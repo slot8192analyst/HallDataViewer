@@ -11,10 +11,23 @@ body {
   font-size: 14px;
 }
 
+/* ===================
+   メインコンテナ
+   =================== */
 h1 {
   font-size: 1.2rem;
   text-align: center;
   margin: 10px 0;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.tabs,
+.tab-content {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* ===================
@@ -298,7 +311,7 @@ h1 {
 }
 
 /* ===================
-   テーブル
+   テーブル共通
    =================== */
 .table-wrapper {
   overflow-x: auto;
@@ -308,14 +321,13 @@ h1 {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
-  min-width: 800px;
+  font-size: 14px;
 }
 
 th,
 td {
   border: 1px solid #333;
-  padding: 8px 6px;
+  padding: 10px 12px;
   text-align: right;
   white-space: nowrap;
 }
@@ -325,28 +337,6 @@ th {
   position: sticky;
   top: 0;
   z-index: 10;
-  cursor: pointer;
-}
-
-th:hover {
-  background: #1e2d5a;
-}
-
-td:first-child,
-th:first-child {
-  text-align: left;
-  position: sticky;
-  left: 0;
-  background: #1a1a2e;
-  z-index: 5;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-th:first-child {
-  z-index: 15;
-  background: #16213e;
 }
 
 tr:nth-child(even) {
@@ -357,12 +347,77 @@ tr:nth-child(odd) {
   background: #1a1a2e;
 }
 
-tr:nth-child(even) td:first-child {
+/* ===================
+   日別データテーブル
+   =================== */
+#data-table td:nth-child(1),
+#data-table th:nth-child(1) {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  min-width: 140px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#data-table th:nth-child(1) {
+  z-index: 15;
+  background: #16213e;
+}
+
+#data-table tr:nth-child(even) td:nth-child(1) {
   background: #222244;
 }
 
-tr:nth-child(odd) td:first-child {
+#data-table tr:nth-child(odd) td:nth-child(1) {
   background: #1a1a2e;
+}
+
+/* ===================
+   トレンドテーブル
+   =================== */
+#trend-table td:nth-child(1),
+#trend-table th:nth-child(1) {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  min-width: 120px;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#trend-table th:nth-child(1) {
+  z-index: 15;
+  background: #16213e;
+}
+
+#trend-table tr:nth-child(even) td:nth-child(1) {
+  background: #222244;
+}
+
+#trend-table tr:nth-child(odd) td:nth-child(1) {
+  background: #1a1a2e;
+}
+
+/* 傾向列 */
+#trend-table td:last-child,
+#trend-table th:last-child {
+  text-align: center;
+}
+
+/* ===================
+   統計テーブル
+   =================== */
+#stats-table td:nth-child(1),
+#stats-table th:nth-child(1) {
+  text-align: left;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ===================
@@ -413,7 +468,7 @@ tr:nth-child(odd) td:first-child {
    =================== */
 .summary {
   background: #16213e;
-  padding: 10px;
+  padding: 12px;
   border-radius: 6px;
   margin-bottom: 10px;
   font-size: 14px;
@@ -421,6 +476,7 @@ tr:nth-child(odd) td:first-child {
 
 .summary span {
   margin-right: 15px;
+  display: inline-block;
 }
 
 /* ===================
@@ -442,7 +498,7 @@ tr:nth-child(odd) td:first-child {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
 }
 
@@ -459,7 +515,7 @@ tr:nth-child(odd) td:first-child {
 }
 
 .stat-item .value {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: bold;
   margin-top: 5px;
 }
@@ -475,7 +531,7 @@ tr:nth-child(odd) td:first-child {
 }
 
 .date-nav button {
-  padding: 8px 15px;
+  padding: 10px 15px;
   background: #2a2a4a;
   border: 1px solid #444;
   border-radius: 6px;
@@ -501,31 +557,190 @@ tr:nth-child(odd) td:first-child {
 }
 
 /* ===================
-   トレンドテーブル固定列
+   スマホ対応 (480px以下)
    =================== */
-#trend-table td:nth-child(1),
-#trend-table th:nth-child(1) {
-  position: sticky;
-  left: 0;
-  background: #1a1a2e;
-  z-index: 5;
+@media (max-width: 480px) {
+  body {
+    padding: 5px;
+  }
+
+  h1 {
+    font-size: 1.1rem;
+  }
+
+  .tabs {
+    gap: 3px;
+  }
+
+  .tab {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .controls input,
+  .controls select {
+    padding: 8px;
+    font-size: 14px;
+    min-width: 80px;
+  }
+
+  .filter-panel,
+  .trend-settings,
+  .trend-filter-panel {
+    padding: 10px;
+  }
+
+  .filter-item,
+  .trend-filter-item {
+    padding: 5px 8px;
+  }
+
+  .filter-item input,
+  .trend-filter-item input {
+    width: 60px;
+  }
+
+  .preset-buttons {
+    gap: 5px;
+  }
+
+  .preset-btn {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  table {
+    font-size: 11px;
+  }
+
+  th,
+  td {
+    padding: 5px 6px;
+  }
+
+  #data-table td:nth-child(1),
+  #data-table th:nth-child(1) {
+    min-width: 100px;
+    max-width: 130px;
+  }
+
+  #trend-table td:nth-child(1),
+  #trend-table th:nth-child(1) {
+    min-width: 90px;
+    max-width: 120px;
+  }
+
+  .summary {
+    font-size: 12px;
+    padding: 8px;
+  }
+
+  .summary span {
+    margin-right: 8px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .stat-item {
+    padding: 6px;
+  }
+
+  .stat-item .label {
+    font-size: 10px;
+  }
+
+  .stat-item .value {
+    font-size: 0.9rem;
+  }
+
+  .date-nav button {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .current-date {
+    font-size: 0.9rem;
+  }
 }
 
-#trend-table td:nth-child(2),
-#trend-table th:nth-child(2) {
-  position: sticky;
-  left: 150px;
-  background: #1a1a2e;
-  z-index: 5;
+/* ===================
+   タブレット対応 (481px〜768px)
+   =================== */
+@media (min-width: 481px) and (max-width: 768px) {
+  table {
+    font-size: 13px;
+  }
+
+  th,
+  td {
+    padding: 8px 10px;
+  }
 }
 
-#trend-table tr:nth-child(even) td:nth-child(1),
-#trend-table tr:nth-child(even) td:nth-child(2) {
-  background: #222244;
-}
+/* ===================
+   PC対応 (769px以上)
+   =================== */
+@media (min-width: 769px) {
+  body {
+    padding: 20px;
+  }
 
-#trend-table th:nth-child(1),
-#trend-table th:nth-child(2) {
-  background: #16213e;
-  z-index: 15;
+  h1 {
+    font-size: 1.4rem;
+    margin: 15px auto;
+  }
+
+  .tabs {
+    gap: 8px;
+  }
+
+  .tab {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
+  table {
+    font-size: 14px;
+  }
+
+  th,
+  td {
+    padding: 12px 16px;
+  }
+
+  #data-table td:nth-child(1),
+  #data-table th:nth-child(1) {
+    min-width: 180px;
+    max-width: 250px;
+  }
+
+  #trend-table td:nth-child(1),
+  #trend-table th:nth-child(1) {
+    min-width: 150px;
+    max-width: 220px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .stat-item .value {
+    font-size: 1.2rem;
+  }
+
+  .summary {
+    font-size: 15px;
+    padding: 15px;
+  }
+
+  .date-nav button {
+    padding: 12px 20px;
+  }
+
+  .current-date {
+    font-size: 1.2rem;
+  }
 }
