@@ -1,0 +1,531 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0;
+  padding: 10px;
+  background: #1a1a2e;
+  color: #eee;
+  font-size: 14px;
+}
+
+h1 {
+  font-size: 1.2rem;
+  text-align: center;
+  margin: 10px 0;
+}
+
+/* ===================
+   タブ
+   =================== */
+.tabs {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #333;
+  padding-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 10px 15px;
+  background: #2a2a4a;
+  border: none;
+  border-radius: 6px 6px 0 0;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.tab.active {
+  background: #4a4a8a;
+  color: #fff;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* ===================
+   コントロール
+   =================== */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.controls input,
+.controls select {
+  flex: 1;
+  min-width: 100px;
+  padding: 10px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #2a2a4a;
+  color: #eee;
+  font-size: 16px;
+}
+
+.controls select {
+  min-width: 140px;
+}
+
+/* ===================
+   フィルターパネル
+   =================== */
+.filter-panel {
+  background: #252545;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+}
+
+.filter-panel h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #aaa;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #1a1a2e;
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.filter-item label {
+  font-size: 12px;
+  color: #aaa;
+  min-width: 40px;
+}
+
+.filter-item input {
+  width: 80px;
+  padding: 5px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #2a2a4a;
+  color: #eee;
+  font-size: 14px;
+}
+
+.filter-item select {
+  padding: 5px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #2a2a4a;
+  color: #eee;
+  font-size: 14px;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.filter-buttons button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-apply {
+  background: #4a4a8a;
+  color: #fff;
+}
+
+.btn-reset {
+  background: #444;
+  color: #eee;
+}
+
+.btn-apply:hover {
+  background: #5a5a9a;
+}
+
+.btn-reset:hover {
+  background: #555;
+}
+
+/* ===================
+   トレンド設定
+   =================== */
+.trend-settings {
+  background: #252545;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.trend-settings label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.trend-settings select {
+  padding: 8px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #2a2a4a;
+  color: #eee;
+  font-size: 14px;
+}
+
+/* ===================
+   トレンドフィルター
+   =================== */
+.trend-filter-panel {
+  background: #252545;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+}
+
+.trend-filter-panel h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #aaa;
+}
+
+.trend-filter-description {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 10px;
+}
+
+.trend-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.trend-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #1a1a2e;
+  padding: 8px 10px;
+  border-radius: 4px;
+}
+
+.trend-filter-item label {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.trend-filter-item input {
+  width: 70px;
+  padding: 5px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #2a2a4a;
+  color: #eee;
+  font-size: 14px;
+}
+
+.trend-filter-item select {
+  padding: 5px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #2a2a4a;
+  color: #eee;
+  font-size: 14px;
+}
+
+.preset-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.preset-btn {
+  padding: 6px 12px;
+  background: #3a3a5a;
+  border: 1px solid #4a4a7a;
+  border-radius: 4px;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.preset-btn:hover {
+  background: #4a4a7a;
+  color: #fff;
+}
+
+/* ===================
+   ボタン共通
+   =================== */
+.date-btn {
+  padding: 8px 12px;
+  background: #4a4a8a;
+  border: 1px solid #5a5a9a;
+  border-radius: 6px;
+  color: #eee;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.date-btn:hover {
+  background: #5a5a9a;
+}
+
+/* ===================
+   テーブル
+   =================== */
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 800px;
+}
+
+th,
+td {
+  border: 1px solid #333;
+  padding: 8px 6px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+th {
+  background: #16213e;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  cursor: pointer;
+}
+
+th:hover {
+  background: #1e2d5a;
+}
+
+td:first-child,
+th:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: #1a1a2e;
+  z-index: 5;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+th:first-child {
+  z-index: 15;
+  background: #16213e;
+}
+
+tr:nth-child(even) {
+  background: #222244;
+}
+
+tr:nth-child(odd) {
+  background: #1a1a2e;
+}
+
+tr:nth-child(even) td:first-child {
+  background: #222244;
+}
+
+tr:nth-child(odd) td:first-child {
+  background: #1a1a2e;
+}
+
+/* ===================
+   テキスト色分け
+   =================== */
+.plus {
+  color: #4ade80;
+  font-weight: bold;
+}
+
+.minus {
+  color: #f87171;
+}
+
+.zero {
+  color: #888;
+}
+
+.prob-good {
+  color: #4ade80;
+}
+
+.prob-mid {
+  color: #fbbf24;
+}
+
+.prob-bad {
+  color: #f87171;
+}
+
+/* ===================
+   トレンド矢印
+   =================== */
+.trend-up {
+  color: #4ade80;
+}
+
+.trend-down {
+  color: #f87171;
+}
+
+.trend-flat {
+  color: #888;
+}
+
+/* ===================
+   サマリー
+   =================== */
+.summary {
+  background: #16213e;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.summary span {
+  margin-right: 15px;
+}
+
+/* ===================
+   機種別統計
+   =================== */
+.stats-card {
+  background: #222244;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 10px;
+}
+
+.stats-card h3 {
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+  border-bottom: 1px solid #444;
+  padding-bottom: 8px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.stat-item {
+  background: #1a1a2e;
+  padding: 10px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.stat-item .label {
+  font-size: 12px;
+  color: #888;
+}
+
+.stat-item .value {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+/* ===================
+   日付ナビ
+   =================== */
+.date-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.date-nav button {
+  padding: 8px 15px;
+  background: #2a2a4a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #eee;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.date-nav button:hover {
+  background: #3a3a6a;
+}
+
+.date-nav button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.current-date {
+  font-size: 1.1rem;
+  font-weight: bold;
+  flex: 1;
+  text-align: center;
+}
+
+/* ===================
+   トレンドテーブル固定列
+   =================== */
+#trend-table td:nth-child(1),
+#trend-table th:nth-child(1) {
+  position: sticky;
+  left: 0;
+  background: #1a1a2e;
+  z-index: 5;
+}
+
+#trend-table td:nth-child(2),
+#trend-table th:nth-child(2) {
+  position: sticky;
+  left: 150px;
+  background: #1a1a2e;
+  z-index: 5;
+}
+
+#trend-table tr:nth-child(even) td:nth-child(1),
+#trend-table tr:nth-child(even) td:nth-child(2) {
+  background: #222244;
+}
+
+#trend-table th:nth-child(1),
+#trend-table th:nth-child(2) {
+  background: #16213e;
+  z-index: 15;
+}
