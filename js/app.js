@@ -139,11 +139,14 @@ function resetFilters() {
 function renderTable(data, tableId = "data-table", summaryId = "summary") {
   const totalGames = data.reduce((s, d) => s + (parseInt(d["G数"]) || 0), 0);
   const totalSa = data.reduce((s, d) => s + (parseInt(d["差枚"]) || 0), 0);
+  const plusCount = data.filter((d) => (parseInt(d["差枚"]) || 0) > 0).length;
+  const winRate = data.length > 0 ? ((plusCount / data.length) * 100).toFixed(1) : "0.0";
 
   document.getElementById(summaryId).innerHTML = `
     <span>表示: <b>${data.length}</b>台</span>
     <span>総G数: <b>${totalGames.toLocaleString()}</b></span>
     <span>総差枚: <b class="${totalSa > 0 ? "plus" : totalSa < 0 ? "minus" : ""}">${totalSa > 0 ? "+" : ""}${totalSa.toLocaleString()}</b></span>
+    <span>勝率: <b>${winRate}%</b> (${plusCount}/${data.length})</span>
   `;
 
   const thead = document.querySelector(`#${tableId} thead`);
