@@ -12,12 +12,39 @@
       padding: 10px;
       background: #1a1a2e;
       color: #eee;
+      font-size: 14px;
     }
     h1 {
       font-size: 1.2rem;
       text-align: center;
       margin: 10px 0;
     }
+    
+    /* タブ */
+    .tabs {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #333;
+      padding-bottom: 10px;
+    }
+    .tab {
+      padding: 10px 20px;
+      background: #2a2a4a;
+      border: none;
+      border-radius: 6px 6px 0 0;
+      color: #aaa;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .tab.active {
+      background: #4a4a8a;
+      color: #fff;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    /* コントロール */
     .controls {
       display: flex;
       flex-wrap: wrap;
@@ -26,7 +53,7 @@
     }
     .controls input, .controls select {
       flex: 1;
-      min-width: 120px;
+      min-width: 100px;
       padding: 10px;
       border: 1px solid #444;
       border-radius: 6px;
@@ -34,6 +61,59 @@
       color: #eee;
       font-size: 16px;
     }
+    .controls select { min-width: 140px; }
+    
+    /* 日付選択 */
+    .date-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 15px;
+      align-items: center;
+    }
+    .date-selector label {
+      font-weight: bold;
+    }
+    .date-btn {
+      padding: 8px 12px;
+      background: #2a2a4a;
+      border: 1px solid #444;
+      border-radius: 6px;
+      color: #eee;
+      cursor: pointer;
+    }
+    .date-btn:hover { background: #3a3a6a; }
+    .date-btn.active {
+      background: #4a4a8a;
+      border-color: #6a6aba;
+    }
+    
+    /* 比較モード */
+    .compare-selector {
+      background: #252545;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .compare-selector label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .compare-selector select {
+      padding: 8px;
+      border: 1px solid #444;
+      border-radius: 6px;
+      background: #2a2a4a;
+      color: #eee;
+      font-size: 14px;
+    }
+    
+    /* テーブル */
     .table-wrapper {
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
@@ -55,8 +135,9 @@
       position: sticky;
       top: 0;
       z-index: 10;
-      font-weight: bold;
+      cursor: pointer;
     }
+    th:hover { background: #1e2d5a; }
     td:first-child, th:first-child {
       text-align: left;
       position: sticky;
@@ -76,16 +157,14 @@
     tr:nth-child(even) td:first-child { background: #222244; }
     tr:nth-child(odd) td:first-child { background: #1a1a2e; }
     
-    /* 差枚の色分け */
     .plus { color: #4ade80; font-weight: bold; }
     .minus { color: #f87171; }
     .zero { color: #888; }
-    
-    /* 合成確率の色分け */
     .prob-good { color: #4ade80; }
     .prob-mid { color: #fbbf24; }
     .prob-bad { color: #f87171; }
     
+    /* サマリー */
     .summary {
       background: #16213e;
       padding: 10px;
@@ -94,83 +173,268 @@
       font-size: 14px;
     }
     .summary span { margin-right: 15px; }
+    
+    /* 機種別統計 */
+    .stats-card {
+      background: #222244;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 10px;
+    }
+    .stats-card h3 {
+      margin: 0 0 10px 0;
+      font-size: 1rem;
+      border-bottom: 1px solid #444;
+      padding-bottom: 8px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+    .stat-item {
+      background: #1a1a2e;
+      padding: 10px;
+      border-radius: 6px;
+      text-align: center;
+    }
+    .stat-item .label {
+      font-size: 12px;
+      color: #888;
+    }
+    .stat-item .value {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+    
+    /* 比較テーブル */
+    .compare-table td.better { background: rgba(74, 222, 128, 0.2); }
+    .compare-table td.worse { background: rgba(248, 113, 113, 0.2); }
+    
+    /* ローディング */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+    }
+    
+    /* 日付ナビ */
+    .date-nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .date-nav button {
+      padding: 8px 15px;
+      background: #2a2a4a;
+      border: 1px solid #444;
+      border-radius: 6px;
+      color: #eee;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .date-nav button:hover { background: #3a3a6a; }
+    .date-nav button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .current-date {
+      font-size: 1.1rem;
+      font-weight: bold;
+      flex: 1;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
-  <h1>スロットデータ一覧</h1>
+  <h1>📊 ホールデータビューア</h1>
   
-  <div class="controls">
-    <input type="text" id="search" placeholder="機種名・台番号で検索">
-    <select id="machineFilter">
-      <option value="">全機種</option>
-    </select>
-    <select id="sortBy">
-      <option value="">並び替え</option>
-      <option value="sa_desc">差枚 多い順</option>
-      <option value="sa_asc">差枚 少ない順</option>
-      <option value="game_desc">G数 多い順</option>
-      <option value="prob_asc">合成確率 良い順</option>
-    </select>
+  <!-- タブ -->
+  <div class="tabs">
+    <button class="tab active" data-tab="daily">日別データ</button>
+    <button class="tab" data-tab="compare">日付比較</button>
+    <button class="tab" data-tab="stats">機種別統計</button>
   </div>
   
-  <div class="summary" id="summary"></div>
+  <!-- 日別データタブ -->
+  <div id="daily" class="tab-content active">
+    <div class="date-nav">
+      <button id="prevDate">◀ 前日</button>
+      <span class="current-date" id="currentDateLabel">-</span>
+      <button id="nextDate">翌日 ▶</button>
+    </div>
+    
+    <div class="controls">
+      <select id="dateSelect"></select>
+      <input type="text" id="search" placeholder="機種名・台番号で検索">
+      <select id="machineFilter">
+        <option value="">全機種</option>
+      </select>
+      <select id="sortBy">
+        <option value="">並び替え</option>
+        <option value="sa_desc">差枚 ↓</option>
+        <option value="sa_asc">差枚 ↑</option>
+        <option value="game_desc">G数 ↓</option>
+        <option value="prob_asc">合成確率 良い順</option>
+      </select>
+    </div>
+    
+    <div class="summary" id="summary"></div>
+    
+    <div class="table-wrapper">
+      <table id="data-table">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
   
-  <div class="table-wrapper">
-    <table id="data-table">
-      <thead></thead>
-      <tbody></tbody>
-    </table>
+  <!-- 日付比較タブ -->
+  <div id="compare" class="tab-content">
+    <div class="compare-selector">
+      <label>比較元: <select id="compareDate1"></select></label>
+      <label>比較先: <select id="compareDate2"></select></label>
+      <button class="date-btn" id="runCompare">比較する</button>
+    </div>
+    
+    <div class="controls">
+      <select id="compareMachineFilter">
+        <option value="">全機種</option>
+      </select>
+    </div>
+    
+    <div class="summary" id="compareSummary"></div>
+    
+    <div class="table-wrapper">
+      <table id="compare-table" class="compare-table">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  
+  <!-- 機種別統計タブ -->
+  <div id="stats" class="tab-content">
+    <div class="controls">
+      <select id="statsDateSelect"></select>
+      <select id="statsMachineSelect">
+        <option value="">機種を選択</option>
+      </select>
+    </div>
+    
+    <div id="statsContent">
+      <p style="text-align:center;color:#888;">機種を選択してください</p>
+    </div>
   </div>
 
   <script>
-    const CSV_FILE = 'data.csv';
-    let allData = [];
+    let CSV_FILES = [];
+    let dataCache = {};
     let headers = [];
-
-    async function loadCSV() {
-      const res = await fetch(CSV_FILE);
-      const text = await res.text();
-      const lines = text.trim().split('\n');
-      headers = lines[0].split(',');
+    let currentDateIndex = 0;
+    let allMachines = new Set();
+    
+    // 日付文字列をフォーマット
+    function formatDate(filename) {
+      const match = filename.match(/(\d{4})_(\d{2})_(\d{2})/);
+      if (match) {
+        return `${match[1]}/${match[2]}/${match[3]}`;
+      }
+      return filename;
+    }
+    
+    // CSV読み込み
+    async function loadCSV(filename) {
+      if (dataCache[filename]) return dataCache[filename];
       
-      allData = lines.slice(1).map(line => {
-        const values = line.split(',');
-        const obj = {};
-        headers.forEach((h, i) => obj[h] = values[i]);
-        return obj;
+      try {
+        const res = await fetch(filename);
+        if (!res.ok) throw new Error('Not found');
+        const text = await res.text();
+        const lines = text.trim().split('\n');
+        
+        if (headers.length === 0) {
+          headers = lines[0].split(',');
+        }
+        
+        const data = lines.slice(1).map(line => {
+          const values = line.split(',');
+          const obj = {};
+          headers.forEach((h, i) => obj[h] = values[i]);
+          return obj;
+        });
+        
+        data.forEach(d => allMachines.add(d['機種名']));
+        dataCache[filename] = data;
+        return data;
+      } catch (e) {
+        console.error(`Failed to load ${filename}:`, e);
+        return [];
+      }
+    }
+    
+    // 全CSV読み込み
+    async function loadAllCSV() {
+      for (const file of CSV_FILES) {
+        await loadCSV(file);
+      }
+      populateMachineFilters();
+    }
+    
+    // 機種フィルタを設定
+    function populateMachineFilters() {
+      const machines = [...allMachines].sort();
+      ['machineFilter', 'compareMachineFilter', 'statsMachineSelect'].forEach(id => {
+        const select = document.getElementById(id);
+        const firstOption = select.options[0];
+        select.innerHTML = '';
+        select.appendChild(firstOption);
+        machines.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m;
+          opt.textContent = m;
+          select.appendChild(opt);
+        });
+      });
+    }
+    
+    // 日付セレクタを設定
+    function populateDateSelectors() {
+      const selectors = ['dateSelect', 'compareDate1', 'compareDate2', 'statsDateSelect'];
+      selectors.forEach(id => {
+        const select = document.getElementById(id);
+        select.innerHTML = '';
+        CSV_FILES.forEach((file, i) => {
+          const opt = document.createElement('option');
+          opt.value = file;
+          opt.textContent = formatDate(file);
+          select.appendChild(opt);
+        });
+        select.selectedIndex = CSV_FILES.length - 1;
       });
       
-      populateMachineFilter();
-      renderTable(allData);
+      currentDateIndex = CSV_FILES.length - 1;
+      
+      // 比較用は1日前をデフォルトに
+      if (CSV_FILES.length > 1) {
+        document.getElementById('compareDate1').selectedIndex = CSV_FILES.length - 2;
+      }
     }
-
-    function populateMachineFilter() {
-      const machines = [...new Set(allData.map(d => d['機種名']))];
-      const select = document.getElementById('machineFilter');
-      machines.forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m;
-        opt.textContent = m;
-        select.appendChild(opt);
-      });
-    }
-
-    function renderTable(data) {
-      // Summary
-      const totalGames = data.reduce((s, d) => s + parseInt(d['G数']) || 0, 0);
-      const totalSa = data.reduce((s, d) => s + parseInt(d['差枚']) || 0, 0);
-      document.getElementById('summary').innerHTML = `
+    
+    // テーブル描画
+    function renderTable(data, tableId = 'data-table', summaryId = 'summary') {
+      const totalGames = data.reduce((s, d) => s + (parseInt(d['G数']) || 0), 0);
+      const totalSa = data.reduce((s, d) => s + (parseInt(d['差枚']) || 0), 0);
+      
+      document.getElementById(summaryId).innerHTML = `
         <span>表示: <b>${data.length}</b>台</span>
         <span>総G数: <b>${totalGames.toLocaleString()}</b></span>
         <span>総差枚: <b class="${totalSa > 0 ? 'plus' : totalSa < 0 ? 'minus' : ''}">${totalSa > 0 ? '+' : ''}${totalSa.toLocaleString()}</b></span>
       `;
 
-      // Header
-      const thead = document.querySelector('#data-table thead');
+      const thead = document.querySelector(`#${tableId} thead`);
       thead.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
 
-      // Body
-      const tbody = document.querySelector('#data-table tbody');
+      const tbody = document.querySelector(`#${tableId} tbody`);
       tbody.innerHTML = data.map(row => {
         return '<tr>' + headers.map(h => {
           let val = row[h];
@@ -193,13 +457,17 @@
         }).join('') + '</tr>';
       }).join('');
     }
-
-    function filterAndSort() {
+    
+    // 日別データのフィルタ・ソート
+    async function filterAndRender() {
+      const filename = CSV_FILES[currentDateIndex];
+      const data = await loadCSV(filename);
+      
       const search = document.getElementById('search').value.toLowerCase();
       const machine = document.getElementById('machineFilter').value;
       const sort = document.getElementById('sortBy').value;
 
-      let data = allData.filter(d => {
+      let filtered = data.filter(d => {
         const matchSearch = d['機種名'].toLowerCase().includes(search) || 
                           d['台番号'].includes(search);
         const matchMachine = !machine || d['機種名'] === machine;
@@ -207,11 +475,11 @@
       });
 
       if (sort) {
-        data.sort((a, b) => {
+        filtered.sort((a, b) => {
           switch(sort) {
-            case 'sa_desc': return parseInt(b['差枚']) - parseInt(a['差枚']);
-            case 'sa_asc': return parseInt(a['差枚']) - parseInt(b['差枚']);
-            case 'game_desc': return parseInt(b['G数']) - parseInt(a['G数']);
+            case 'sa_desc': return (parseInt(b['差枚']) || 0) - (parseInt(a['差枚']) || 0);
+            case 'sa_asc': return (parseInt(a['差枚']) || 0) - (parseInt(b['差枚']) || 0);
+            case 'game_desc': return (parseInt(b['G数']) || 0) - (parseInt(a['G数']) || 0);
             case 'prob_asc':
               const pa = parseFloat(a['合成確率'].replace('1/', '')) || 9999;
               const pb = parseFloat(b['合成確率'].replace('1/', '')) || 9999;
@@ -220,14 +488,272 @@
         });
       }
 
-      renderTable(data);
+      renderTable(filtered);
+      updateDateNav();
     }
-
-    document.getElementById('search').addEventListener('input', filterAndSort);
-    document.getElementById('machineFilter').addEventListener('change', filterAndSort);
-    document.getElementById('sortBy').addEventListener('change', filterAndSort);
-
-    loadCSV();
+    
+    // 日付ナビゲーション更新
+    function updateDateNav() {
+      document.getElementById('currentDateLabel').textContent = formatDate(CSV_FILES[currentDateIndex]);
+      document.getElementById('prevDate').disabled = currentDateIndex === 0;
+      document.getElementById('nextDate').disabled = currentDateIndex === CSV_FILES.length - 1;
+      document.getElementById('dateSelect').selectedIndex = currentDateIndex;
+    }
+    
+    // 比較機能
+    async function runCompare() {
+      const file1 = document.getElementById('compareDate1').value;
+      const file2 = document.getElementById('compareDate2').value;
+      const machineFilter = document.getElementById('compareMachineFilter').value;
+      
+      const data1 = await loadCSV(file1);
+      const data2 = await loadCSV(file2);
+      
+      // 台番号でマッピング
+      const map1 = {};
+      data1.forEach(d => { map1[d['台番号']] = d; });
+      
+      const compareData = [];
+      data2.forEach(d2 => {
+        if (machineFilter && d2['機種名'] !== machineFilter) return;
+        
+        const d1 = map1[d2['台番号']];
+        if (d1 && d1['機種名'] === d2['機種名']) {
+          const sa1 = parseInt(d1['差枚']) || 0;
+          const sa2 = parseInt(d2['差枚']) || 0;
+          const g1 = parseInt(d1['G数']) || 0;
+          const g2 = parseInt(d2['G数']) || 0;
+          
+          compareData.push({
+            '機種名': d2['機種名'],
+            '台番号': d2['台番号'],
+            [`G数(${formatDate(file1)})`]: g1,
+            [`G数(${formatDate(file2)})`]: g2,
+            'G数差': g2 - g1,
+            [`差枚(${formatDate(file1)})`]: sa1,
+            [`差枚(${formatDate(file2)})`]: sa2,
+            '差枚変化': sa2 - sa1,
+          });
+        }
+      });
+      
+      // 比較テーブル描画
+      const compareHeaders = ['機種名', '台番号', `G数(${formatDate(file1)})`, `G数(${formatDate(file2)})`, 'G数差', 
+                             `差枚(${formatDate(file1)})`, `差枚(${formatDate(file2)})`, '差枚変化'];
+      
+      const totalSaChange = compareData.reduce((s, d) => s + d['差枚変化'], 0);
+      document.getElementById('compareSummary').innerHTML = `
+        <span>比較台数: <b>${compareData.length}</b>台</span>
+        <span>差枚変化合計: <b class="${totalSaChange > 0 ? 'plus' : totalSaChange < 0 ? 'minus' : ''}">${totalSaChange > 0 ? '+' : ''}${totalSaChange.toLocaleString()}</b></span>
+      `;
+      
+      const thead = document.querySelector('#compare-table thead');
+      thead.innerHTML = '<tr>' + compareHeaders.map(h => `<th>${h}</th>`).join('') + '</tr>';
+      
+      const tbody = document.querySelector('#compare-table tbody');
+      tbody.innerHTML = compareData.map(row => {
+        return '<tr>' + compareHeaders.map(h => {
+          let val = row[h];
+          let cls = '';
+          
+          if (h === '差枚変化' || h === 'G数差') {
+            const num = val;
+            cls = num > 0 ? 'plus' : num < 0 ? 'minus' : 'zero';
+            if (h === '差枚変化') {
+              cls += num > 0 ? ' better' : num < 0 ? ' worse' : '';
+            }
+            val = num > 0 ? '+' + num.toLocaleString() : num.toLocaleString();
+          } else if (typeof val === 'number') {
+            val = val.toLocaleString();
+          }
+          
+          return `<td class="${cls}">${val}</td>`;
+        }).join('') + '</tr>';
+      }).join('');
+    }
+    
+    // 機種別統計
+    async function showStats() {
+      const filename = document.getElementById('statsDateSelect').value;
+      const machine = document.getElementById('statsMachineSelect').value;
+      const container = document.getElementById('statsContent');
+      
+      if (!machine) {
+        container.innerHTML = '<p style="text-align:center;color:#888;">機種を選択してください</p>';
+        return;
+      }
+      
+      const data = await loadCSV(filename);
+      const machineData = data.filter(d => d['機種名'] === machine);
+      
+      if (machineData.length === 0) {
+        container.innerHTML = '<p style="text-align:center;color:#888;">データがありません</p>';
+        return;
+      }
+      
+      // 統計計算
+      const stats = {
+        count: machineData.length,
+        totalGames: 0,
+        totalSa: 0,
+        totalBB: 0,
+        totalRB: 0,
+        maxSa: -Infinity,
+        minSa: Infinity,
+        maxSaUnit: '',
+        minSaUnit: '',
+      };
+      
+      machineData.forEach(d => {
+        const g = parseInt(d['G数']) || 0;
+        const sa = parseInt(d['差枚']) || 0;
+        const bb = parseInt(d['BB']) || 0;
+        const rb = parseInt(d['RB']) || 0;
+        
+        stats.totalGames += g;
+        stats.totalSa += sa;
+        stats.totalBB += bb;
+        stats.totalRB += rb;
+        
+        if (sa > stats.maxSa) { stats.maxSa = sa; stats.maxSaUnit = d['台番号']; }
+        if (sa < stats.minSa) { stats.minSa = sa; stats.minSaUnit = d['台番号']; }
+      });
+      
+      stats.avgSa = Math.round(stats.totalSa / stats.count);
+      stats.avgGames = Math.round(stats.totalGames / stats.count);
+      
+      // 合成確率計算
+      const totalBonus = stats.totalBB + stats.totalRB;
+      stats.compositeProb = totalBonus > 0 ? (stats.totalGames / totalBonus).toFixed(1) : '-';
+      
+      // プラス台数
+      const plusCount = machineData.filter(d => (parseInt(d['差枚']) || 0) > 0).length;
+      stats.plusRate = ((plusCount / stats.count) * 100).toFixed(1);
+      
+      container.innerHTML = `
+        <div class="stats-card">
+          <h3>${machine} (${formatDate(filename)})</h3>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="label">設置台数</div>
+              <div class="value">${stats.count}台</div>
+            </div>
+            <div class="stat-item">
+              <div class="label">総G数</div>
+              <div class="value">${stats.totalGames.toLocaleString()}</div>
+            </div>
+            <div class="stat-item">
+              <div class="label">平均G数</div>
+              <div class="value">${stats.avgGames.toLocaleString()}</div>
+            </div>
+            <div class="stat-item">
+              <div class="label">総差枚</div>
+              <div class="value ${stats.totalSa > 0 ? 'plus' : stats.totalSa < 0 ? 'minus' : ''}">${stats.totalSa > 0 ? '+' : ''}${stats.totalSa.toLocaleString()}</div>
+            </div>
+            <div class="stat-item">
+              <div class="label">平均差枚</div>
+              <div class="value ${stats.avgSa > 0 ? 'plus' : stats.avgSa < 0 ? 'minus' : ''}">${stats.avgSa > 0 ? '+' : ''}${stats.avgSa.toLocaleString()}</div>
+            </div>
+            <div class="stat-item">
+              <div class="label">勝率</div>
+              <div class="value">${stats.plusRate}%</div>
+            </div>
+            <div class="stat-item">
+              <div class="label">合成確率</div>
+              <div class="value">1/${stats.compositeProb}</div>
+            </div>
+            <div class="stat-item">
+              <div class="label">総BB/RB</div>
+              <div class="value">${stats.totalBB}/${stats.totalRB}</div>
+            </div>
+            <div class="stat-item">
+              <div class="label">最高差枚</div>
+              <div class="value plus">+${stats.maxSa.toLocaleString()}<br><small>(${stats.maxSaUnit}番)</small></div>
+            </div>
+            <div class="stat-item">
+              <div class="label">最低差枚</div>
+              <div class="value minus">${stats.minSa.toLocaleString()}<br><small>(${stats.minSaUnit}番)</small></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="stats-card">
+          <h3>台別データ</h3>
+          <div class="table-wrapper">
+            <table id="stats-table">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      
+      // 台別テーブル
+      const statsHeaders = ['台番号', 'G数', '差枚', 'BB', 'RB', '合成確率'];
+      document.querySelector('#stats-table thead').innerHTML = '<tr>' + statsHeaders.map(h => `<th>${h}</th>`).join('') + '</tr>';
+      
+      const sortedData = [...machineData].sort((a, b) => (parseInt(b['差枚']) || 0) - (parseInt(a['差枚']) || 0));
+      document.querySelector('#stats-table tbody').innerHTML = sortedData.map(row => {
+        return '<tr>' + statsHeaders.map(h => {
+          let val = row[h];
+          let cls = '';
+          if (h === '差枚') {
+            const num = parseInt(val);
+            cls = num > 0 ? 'plus' : num < 0 ? 'minus' : 'zero';
+            val = num > 0 ? '+' + val : val;
+          }
+          return `<td class="${cls}">${val}</td>`;
+        }).join('') + '</tr>';
+      }).join('');
+    }
+    
+    // タブ切り替え
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+    
+    // イベントリスナー
+    document.getElementById('search').addEventListener('input', filterAndRender);
+    document.getElementById('machineFilter').addEventListener('change', filterAndRender);
+    document.getElementById('sortBy').addEventListener('change', filterAndRender);
+    document.getElementById('dateSelect').addEventListener('change', (e) => {
+      currentDateIndex = e.target.selectedIndex;
+      filterAndRender();
+    });
+    document.getElementById('prevDate').addEventListener('click', () => {
+      if (currentDateIndex > 0) {
+        currentDateIndex--;
+        filterAndRender();
+      }
+    });
+    document.getElementById('nextDate').addEventListener('click', () => {
+      if (currentDateIndex < CSV_FILES.length - 1) {
+        currentDateIndex++;
+        filterAndRender();
+      }
+    });
+    document.getElementById('runCompare').addEventListener('click', runCompare);
+    document.getElementById('compareMachineFilter').addEventListener('change', runCompare);
+    document.getElementById('statsDateSelect').addEventListener('change', showStats);
+    document.getElementById('statsMachineSelect').addEventListener('change', showStats);
+    
+    // 初期化
+    async function init() {
+      // JSONからファイル一覧を取得
+      const res = await fetch('files.json');
+      CSV_FILES = await res.json();
+      
+      populateDateSelectors();
+      await loadAllCSV();
+      filterAndRender();
+    }
+    
+    init();
   </script>
 </body>
 </html>
