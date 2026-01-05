@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>スロットデータ</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 10px;
+      background: #1a1a2e;
+      color: #eee;
+    }
+    h1 {
+      font-size: 1.2rem;
+      text-align: center;
+      margin: 10px 0;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .controls input, .controls select {
+      flex: 1;
+      min-width: 120px;
+      padding: 10px;
+      border: 1px solid #444;
+      border-radius: 6px;
+      background: #2a2a4a;
+      color: #eee;
+      font-size: 16px;
+    }
+    .table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 800px;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 8px 6px;
+      text-align: right;
+      white-space: nowrap;
+    }
+    th {
+      background: #16213e;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      font-weight: bold;
+    }
+    td:first-child, th:first-child {
+      text-align: left;
+      position: sticky;
+      left: 0;
+      background: #1a1a2e;
+      z-index: 5;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    th:first-child {
+      z-index: 15;
+      background: #16213e;
+    }
+    tr:nth-child(even) { background: #222244; }
+    tr:nth-child(odd) { background: #1a1a2e; }
+    tr:nth-child(even) td:first-child { background: #222244; }
+    tr:nth-child(odd) td:first-child { background: #1a1a2e; }
+    
+    /* 差枚の色分け */
+    .plus { color: #4ade80; font-weight: bold; }
+    .minus { color: #f87171; }
+    .zero { color: #888; }
+    
+    /* 合成確率の色分け */
+    .prob-good { color: #4ade80; }
+    .prob-mid { color: #fbbf24; }
+    .prob-bad { color: #f87171; }
+    
+    .summary {
+      background: #16213e;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .summary span { margin-right: 15px; }
+  </style>
+</head>
+<body>
+  <h1>スロットデータ一覧</h1>
+  
+  <div class="controls">
+    <input type="text" id="search" placeholder="機種名・台番号で検索">
+    <select id="machineFilter">
+      <option value="">全機種</option>
+    </select>
+    <select id="sortBy">
+      <option value="">並び替え</option>
+      <option value="sa_desc">差枚 多い順</option>
+      <option value="sa_asc">差枚 少ない順</option>
+      <option value="game_desc">G数 多い順</option>
+      <option value="prob_asc">合成確率 良い順</option>
+    </select>
+  </div>
+  
+  <div class="summary" id="summary"></div>
+  
+  <div class="table-wrapper">
+    <table id="data-table">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const CSV_FILE = 'data.csv';
+    let allData = [];
+    let headers = [];
+
+    async function loadCSV() {
+      const res = await fetch(CSV_FILE);
+      const text = await res.text();
+      const lines = text.trim().split('\n');
+      headers = lines[0].split(',');
+      
+      allData = lines.slice(1).map(line => {
+        const values = line.split(',');
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = values[i]);
+        return obj;
+      });
+      
+      populateMachineFilter();
+      renderTable(allData);
+    }
+
+    function populateMachineFilter() {
+      const machines = [...new Set(allData.map(d => d['機種名']))];
+      const select = document.getElementById('machineFilter');
+      machines.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderTable(data) {
+      // Summary
+      const totalGames = data.reduce((s, d) => s + parseInt(d['G数']) || 0, 0);
+      const totalSa = data.reduce((s, d) => s + parseInt(d['差枚']) || 0, 0);
+      document.getElementById('summary').innerHTML = `
+        <span>表示: <b>${data.length}</b>台</span>
+        <span>総G数: <b>${totalGames.toLocaleString()}</b></span>
+        <span>総差枚: <b class="${totalSa > 0 ? 'plus' : totalSa < 0 ? 'minus' : ''}">${totalSa > 0 ? '+' : ''}${totalSa.toLocaleString()}</b></span>
+      `;
+
+      // Header
+      const thead = document.querySelector('#data-table thead');
+      thead.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+      // Body
+      const tbody = document.querySelector('#data-table tbody');
+      tbody.innerHTML = data.map(row => {
+        return '<tr>' + headers.map(h => {
+          let val = row[h];
+          let cls = '';
+          
+          if (h === '差枚') {
+            const num = parseInt(val);
+            cls = num > 0 ? 'plus' : num < 0 ? 'minus' : 'zero';
+            val = num > 0 ? '+' + val : val;
+          }
+          
+          if (h === '合成確率' && val && val !== '1/0.0') {
+            const prob = parseFloat(val.replace('1/', ''));
+            if (prob > 0 && prob < 140) cls = 'prob-good';
+            else if (prob >= 140 && prob < 180) cls = 'prob-mid';
+            else if (prob >= 180) cls = 'prob-bad';
+          }
+          
+          return `<td class="${cls}">${val}</td>`;
+        }).join('') + '</tr>';
+      }).join('');
+    }
+
+    function filterAndSort() {
+      const search = document.getElementById('search').value.toLowerCase();
+      const machine = document.getElementById('machineFilter').value;
+      const sort = document.getElementById('sortBy').value;
+
+      let data = allData.filter(d => {
+        const matchSearch = d['機種名'].toLowerCase().includes(search) || 
+                          d['台番号'].includes(search);
+        const matchMachine = !machine || d['機種名'] === machine;
+        return matchSearch && matchMachine;
+      });
+
+      if (sort) {
+        data.sort((a, b) => {
+          switch(sort) {
+            case 'sa_desc': return parseInt(b['差枚']) - parseInt(a['差枚']);
+            case 'sa_asc': return parseInt(a['差枚']) - parseInt(b['差枚']);
+            case 'game_desc': return parseInt(b['G数']) - parseInt(a['G数']);
+            case 'prob_asc':
+              const pa = parseFloat(a['合成確率'].replace('1/', '')) || 9999;
+              const pb = parseFloat(b['合成確率'].replace('1/', '')) || 9999;
+              return pa - pb;
+          }
+        });
+      }
+
+      renderTable(data);
+    }
+
+    document.getElementById('search').addEventListener('input', filterAndSort);
+    document.getElementById('machineFilter').addEventListener('change', filterAndSort);
+    document.getElementById('sortBy').addEventListener('change', filterAndSort);
+
+    loadCSV();
+  </script>
+</body>
+</html>
