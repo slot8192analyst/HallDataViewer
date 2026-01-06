@@ -58,6 +58,22 @@
                     </select>
                     <input type="number" id="gameFilterValue" placeholder="G">
                 </div>
+                <div class="filter-item">
+                  <label>台番号末尾</label>
+                  <select id="unitSuffixFilter">
+                      <option value="">全て</option>
+                      <option value="0">0</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                      <option value="6">6</option>
+                      <option value="7">7</option>
+                      <option value="8">8</option>
+                      <option value="9">9</option>
+                  </select>
+                </div>
             </div>
             <div class="filter-buttons">
                 <button class="btn-apply" id="applyFilter">フィルター適用</button>
@@ -85,7 +101,6 @@
                     <option value="5">5日間</option>
                     <option value="7" selected>7日間</option>
                     <option value="10">10日間</option>
-                    <option value="0">全期間</option>
                     <option value="custom">日付を選択</option>
                 </select>
                 <button id="openTrendCalendar" class="calendar-btn" title="日付を選択">📅</button>
@@ -127,11 +142,19 @@
         </div>
 
         <div id="trendSummary" class="summary"></div>
-        <div class="table-wrapper">
-            <table id="trend-table">
-                <thead></thead>
-                <tbody></tbody>
-            </table>
+        <div class="table-wrapper has-scrollbar">
+            <div class="fixed-columns">
+                <table id="trend-fixed-table">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="scroll-columns">
+                <table id="trend-scroll-table">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -153,6 +176,22 @@
                     <label>機種:</label>
                     <select id="statsMachineSelect">
                         <option value="">全機種</option>
+                    </select>
+                </div>
+                <div class="control-group stats-unit-suffix-filter" style="display: none;">
+                    <label>台番号末尾:</label>
+                    <select id="statsUnitSuffixFilter">
+                        <option value="">全て</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
                     </select>
                 </div>
                 <div class="control-group">
@@ -195,9 +234,41 @@
                     </select>
                 </div>
                 <div class="control-group">
+                    <label>日付末尾:</label>
+                    <select id="statsDateSuffix">
+                        <option value="">全日付</option>
+                        <option value="0">0のつく日</option>
+                        <option value="1">1のつく日</option>
+                        <option value="2">2のつく日</option>
+                        <option value="3">3のつく日</option>
+                        <option value="4">4のつく日</option>
+                        <option value="5">5のつく日</option>
+                        <option value="6">6のつく日</option>
+                        <option value="7">7のつく日</option>
+                        <option value="8">8のつく日</option>
+                        <option value="9">9のつく日</option>
+                    </select>
+                </div>
+                <div class="control-group">
                     <label>機種:</label>
                     <select id="statsPeriodMachineSelect">
                         <option value="">全機種</option>
+                    </select>
+                </div>
+                <div class="control-group stats-period-unit-suffix-filter" style="display: none;">
+                    <label>台番号末尾:</label>
+                    <select id="statsPeriodUnitSuffixFilter">
+                        <option value="">全て</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
                     </select>
                 </div>
                 <div class="control-group">
@@ -258,6 +329,12 @@
         </div>
     </div>
 
+    <script src="js/utils.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/daily.js"></script>
+    <script src="js/trend.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/calendar.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
