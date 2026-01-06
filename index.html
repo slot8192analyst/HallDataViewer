@@ -1,163 +1,263 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>スロットデータ</title>
-  <link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>オーギヤ磐田店 データまとめ</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <h1>📊 ホールデータビューア</h1>
-  
-  <!-- タブ -->
-  <div class="tabs">
-    <button class="tab active" data-tab="daily">日別データ</button>
-    <button class="tab" data-tab="trend">差枚トレンド</button>
-    <button class="tab" data-tab="stats">機種別統計</button>
-  </div>
-  
-  <!-- 日別データタブ -->
-  <div id="daily" class="tab-content active">
-    <div class="date-nav">
-      <button id="prevDate">◀ 前日</button>
-      <span class="current-date" id="currentDateLabel">-</span>
-      <button id="nextDate">翌日 ▶</button>
-    </div>
-    
-    <div class="controls">
-      <select id="dateSelect"></select>
-      <input type="text" id="search" placeholder="機種名・台番号で検索">
-      <select id="sortBy">
-        <option value="">並び替え</option>
-        <option value="sa_desc">差枚 ↓</option>
-        <option value="sa_asc">差枚 ↑</option>
-        <option value="game_desc">G数 ↓</option>
-      </select>
-    </div>
-    
-    <!-- 列フィルター -->
-    <div class="filter-panel">
-      <h4>🔍 列フィルター</h4>
-      <div class="filter-row">
-        <div class="filter-item">
-          <label>差枚</label>
-          <select id="filterSaOp">
-            <option value="">--</option>
-            <option value="gte">以上</option>
-            <option value="lte">以下</option>
-          </select>
-          <input type="number" id="filterSaVal" placeholder="枚">
-        </div>
-        <div class="filter-item">
-          <label>G数</label>
-          <select id="filterGOp">
-            <option value="">--</option>
-            <option value="gte">以上</option>
-            <option value="lte">以下</option>
-          </select>
-          <input type="number" id="filterGVal" placeholder="G">
-        </div>
-      </div>
-      <div class="filter-buttons">
-        <button class="btn-apply" id="applyFilter">フィルター適用</button>
-        <button class="btn-reset" id="resetFilter">リセット</button>
-      </div>
-    </div>
-    
-    <div class="summary" id="summary"></div>
-    
-    <div class="table-wrapper">
-      <table id="data-table">
-        <thead></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
-  
-  <!-- 差枚トレンドタブ -->
-  <div id="trend" class="tab-content">
-    <div class="trend-settings">
-      <label>
-        表示日数:
-        <select id="trendDays">
-          <option value="3">3日間</option>
-          <option value="5">5日間</option>
-          <option value="7" selected>7日間</option>
-          <option value="10">10日間</option>
-          <option value="0">全期間</option>
-        </select>
-      </label>
-      <label>
-        機種:
-        <select id="trendMachineFilter">
-          <option value="">全機種</option>
-        </select>
-      </label>
-      <label>
-        並び替え:
-        <select id="trendSortBy">
-          <option value="total_desc">合計差枚 ↓</option>
-          <option value="total_asc">合計差枚 ↑</option>
-          <option value="avg_desc">平均差枚 ↓</option>
-          <option value="latest_desc">最新日差枚 ↓</option>
-        </select>
-      </label>
-    </div>
-    
-    <!-- トレンドフィルター -->
-    <div class="trend-filter-panel">
-      <h4>🔍 日別差枚フィルター</h4>
-      <p class="trend-filter-description">全ての日で条件を満たす台を抽出します（連日プラス・連日マイナス台の発見に便利）</p>
-      <div class="trend-filter-row">
-        <div class="trend-filter-item">
-          <label>各日の差枚が</label>
-          <select id="trendFilterOp">
-            <option value="">--</option>
-            <option value="gte">以上</option>
-            <option value="lte">以下</option>
-          </select>
-          <input type="number" id="trendFilterVal" placeholder="枚">
-        </div>
-        <button class="btn-apply" id="applyTrendFilter">適用</button>
-        <button class="btn-reset" id="resetTrendFilter">リセット</button>
-      </div>
-      <div class="preset-buttons">
-        <button class="preset-btn" data-op="gte" data-val="0">連日プラス (≥0)</button>
-        <button class="preset-btn" data-op="gte" data-val="500">連日+500以上</button>
-        <button class="preset-btn" data-op="lte" data-val="0">連日マイナス (≤0)</button>
-        <button class="preset-btn" data-op="lte" data-val="-500">連日-500以下</button>
-      </div>
-    </div>
-    
-    <div class="summary" id="trendSummary"></div>
-    
-    <div class="table-wrapper">
-      <table id="trend-table">
-        <thead></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
-  
-  <!-- 機種別統計タブ -->
-<div id="stats" class="tab-content">
-  <div class="controls">
-    <select id="statsDateSelect"></select>
-    <select id="statsMachineSelect">
-      <option value="">全機種</option>
-    </select>
-    <select id="statsSortBy">
-      <option value="total_desc">総差枚 ↓</option>
-      <option value="total_asc">総差枚 ↑</option>
-      <option value="avg_desc">平均差枚 ↓</option>
-      <option value="avg_asc">平均差枚 ↑</option>
-      <option value="count_desc">台数 ↓</option>
-    </select>
-  </div>
-  
-  <div id="statsContent"></div>
-</div>
+    <h1>📊 オーギヤ磐田店</h1>
 
-  <script src="js/app.js"></script>
+    <!-- タブ -->
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="daily">日別データ</button>
+        <button class="tab-btn" data-tab="trend">差枚トレンド</button>
+        <button class="tab-btn" data-tab="stats">機種別統計</button>
+        <button class="tab-btn" data-tab="calendar">カレンダー</button>
+    </div>
+
+    <!-- 日別データタブ -->
+    <div id="daily" class="tab-content active">
+        <div class="date-nav">
+            <button id="prevDate">◀ 前日</button>
+            <span class="current-date" id="currentDateLabel">-</span>
+            <button id="nextDate">翌日 ▶</button>
+        </div>
+
+        <div class="controls">
+            <select id="dateSelect"></select>
+            <input type="text" id="search" placeholder="機種名・台番号で検索">
+            <select id="sortBy">
+                <option value="">並び替え</option>
+                <option value="sa_desc">差枚 ↓</option>
+                <option value="sa_asc">差枚 ↑</option>
+                <option value="game_desc">G数 ↓</option>
+            </select>
+        </div>
+
+        <!-- 列フィルター -->
+        <div class="filter-panel">
+            <h4>🔍 列フィルター</h4>
+            <div class="filter-row">
+                <div class="filter-item">
+                    <label>差枚</label>
+                    <select id="saFilterType">
+                        <option value="">--</option>
+                        <option value="gte">以上</option>
+                        <option value="lte">以下</option>
+                    </select>
+                    <input type="number" id="saFilterValue" placeholder="枚">
+                </div>
+                <div class="filter-item">
+                    <label>G数</label>
+                    <select id="gameFilterType">
+                        <option value="">--</option>
+                        <option value="gte">以上</option>
+                        <option value="lte">以下</option>
+                    </select>
+                    <input type="number" id="gameFilterValue" placeholder="G">
+                </div>
+            </div>
+            <div class="filter-buttons">
+                <button class="btn-apply" id="applyFilter">フィルター適用</button>
+                <button class="btn-reset" id="resetFilter">リセット</button>
+            </div>
+        </div>
+
+        <div class="summary" id="summary"></div>
+
+        <div class="table-wrapper">
+            <table id="data-table">
+                <thead></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 差枚トレンドタブ -->
+    <div id="trend" class="tab-content">
+        <div class="controls">
+            <div class="control-group">
+                <label>表示日数:</label>
+                <select id="trendDays">
+                    <option value="3">3日間</option>
+                    <option value="5">5日間</option>
+                    <option value="7" selected>7日間</option>
+                    <option value="10">10日間</option>
+                    <option value="0">全期間</option>
+                    <option value="custom">日付を選択</option>
+                </select>
+                <button id="openTrendCalendar" class="calendar-btn" title="日付を選択">📅</button>
+            </div>
+            <div class="control-group">
+                <label>機種:</label>
+                <select id="trendMachineFilter">
+                    <option value="">全機種</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>並び替え:</label>
+                <select id="trendSortBy">
+                    <option value="total_desc">合計差枚 多い順</option>
+                    <option value="total_asc">合計差枚 少ない順</option>
+                    <option value="avg_desc">平均差枚 多い順</option>
+                    <option value="latest_desc">最新日 差枚多い順</option>
+                </select>
+            </div>
+            <button id="loadTrend" class="btn-apply">表示更新</button>
+        </div>
+
+        <!-- カレンダー日付選択モーダル -->
+        <div id="trendCalendarModal" class="calendar-modal">
+            <div class="calendar-modal-content">
+                <div class="calendar-modal-header">
+                    <h3>表示する日付を選択</h3>
+                    <button id="closeTrendCalendar" class="close-btn">×</button>
+                </div>
+                <div class="calendar-modal-body">
+                    <div id="trendDateList" class="date-checkbox-list"></div>
+                </div>
+                <div class="calendar-modal-footer">
+                    <button id="selectAllDates" class="modal-btn">全選択</button>
+                    <button id="deselectAllDates" class="modal-btn">全解除</button>
+                    <button id="applyTrendDates" class="modal-btn primary">適用</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="trendSummary" class="summary"></div>
+        <div class="table-wrapper">
+            <table id="trend-table">
+                <thead></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 機種別統計タブ -->
+    <div id="stats" class="tab-content">
+        <div class="stats-mode-selector">
+            <button class="stats-mode-btn active" data-mode="daily">日別</button>
+            <button class="stats-mode-btn" data-mode="period">期間集計</button>
+        </div>
+
+        <!-- 日別モード -->
+        <div id="stats-daily-content" class="stats-mode-content active">
+            <div class="controls">
+                <div class="control-group">
+                    <label>日付:</label>
+                    <select id="statsDateSelect"></select>
+                </div>
+                <div class="control-group">
+                    <label>機種:</label>
+                    <select id="statsMachineSelect">
+                        <option value="">全機種</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>並び替え:</label>
+                    <select id="statsSortBy">
+                        <option value="total_desc">総差枚 多い順</option>
+                        <option value="total_asc">総差枚 少ない順</option>
+                        <option value="avg_desc">平均差枚 多い順</option>
+                        <option value="avg_asc">平均差枚 少ない順</option>
+                        <option value="count_desc">台数 多い順</option>
+                        <option value="winrate_desc">勝率 高い順</option>
+                        <option value="winrate_asc">勝率 低い順</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 期間集計モード -->
+        <div id="stats-period-content" class="stats-mode-content">
+            <div class="controls">
+                <div class="control-group">
+                    <label>開始日:</label>
+                    <select id="statsPeriodStart"></select>
+                </div>
+                <div class="control-group">
+                    <label>終了日:</label>
+                    <select id="statsPeriodEnd"></select>
+                </div>
+                <div class="control-group">
+                    <label>曜日:</label>
+                    <select id="statsDayOfWeek">
+                        <option value="">全曜日</option>
+                        <option value="0">日曜</option>
+                        <option value="1">月曜</option>
+                        <option value="2">火曜</option>
+                        <option value="3">水曜</option>
+                        <option value="4">木曜</option>
+                        <option value="5">金曜</option>
+                        <option value="6">土曜</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>機種:</label>
+                    <select id="statsPeriodMachineSelect">
+                        <option value="">全機種</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>並び替え:</label>
+                    <select id="statsPeriodSortBy">
+                        <option value="total_desc">総差枚 多い順</option>
+                        <option value="total_asc">総差枚 少ない順</option>
+                        <option value="avg_desc">平均差枚 多い順</option>
+                        <option value="avg_asc">平均差枚 少ない順</option>
+                        <option value="count_desc">延べ台数 多い順</option>
+                        <option value="winrate_desc">勝率 高い順</option>
+                        <option value="winrate_asc">勝率 低い順</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="statsContent"></div>
+    </div>
+
+    <!-- カレンダータブ -->
+    <div id="calendar" class="tab-content">
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <button id="prevMonth">◀ 前月</button>
+                <h2 id="calendarMonth"></h2>
+                <button id="nextMonth">次月 ▶</button>
+            </div>
+            <div class="calendar-weekdays">
+                <div class="weekday sunday">日</div>
+                <div class="weekday">月</div>
+                <div class="weekday">火</div>
+                <div class="weekday">水</div>
+                <div class="weekday">木</div>
+                <div class="weekday">金</div>
+                <div class="weekday saturday">土</div>
+            </div>
+            <div class="calendar-days" id="calendarDays"></div>
+
+            <div class="calendar-legend">
+                <div class="legend-item">
+                    <span class="legend-bar avg-sa"></span>
+                    <span>平均差枚 (最大±1,000枚)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-bar avg-game"></span>
+                    <span>平均G数 (最大8,000G)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-bar win-rate"></span>
+                    <span>勝率 (最大75%)</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-bar total-sa"></span>
+                    <span>総差枚 (最大±250,000枚)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
 </body>
 </html>
