@@ -3,9 +3,9 @@
 // ===================
 const SITE_CONFIG = {
     // ホール名（この3つを変更するだけ！）
-    hallName: "オーギヤ磐田店",
-    siteTitle: "オーギヤ磐田店 データまとめ",
-    headerTitle: "📊 オーギヤ磐田店",
+    hallName: "OGIYA 磐田店",
+    siteTitle: "OGIYA 磐田店 データまとめ",
+    headerTitle: "📊 OGIYA 磐田店",
 
     // テーマ: "dark" または "light"
     theme: "dark",

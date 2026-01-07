@@ -1,6 +1,7 @@
 // ===================
 // ユーティリティ関数
 // ===================
+
 function formatDate(filename) {
     const match = filename.match(/(\d{4})_(\d{2})_(\d{2})/);
     if (match) {
@@ -69,14 +70,22 @@ function getDateSuffix(filename) {
 
 function getSortFunction(sortBy) {
     switch (sortBy) {
-        case 'total_desc': return (a, b) => b.totalSa - a.totalSa;
-        case 'total_asc': return (a, b) => a.totalSa - b.totalSa;
-        case 'avg_desc': return (a, b) => b.avgSa - a.avgSa;
-        case 'avg_asc': return (a, b) => a.avgSa - b.avgSa;
-        case 'count_desc': return (a, b) => b.count - a.count;
-        case 'winrate_desc': return (a, b) => parseFloat(b.winRate) - parseFloat(a.winRate);
-        case 'winrate_asc': return (a, b) => parseFloat(a.winRate) - parseFloat(b.winRate);
-        default: return (a, b) => b.totalSa - a.totalSa;
+        case 'total_desc':
+            return (a, b) => b.totalSa - a.totalSa;
+        case 'total_asc':
+            return (a, b) => a.totalSa - b.totalSa;
+        case 'avg_desc':
+            return (a, b) => b.avgSa - a.avgSa;
+        case 'avg_asc':
+            return (a, b) => a.avgSa - b.avgSa;
+        case 'count_desc':
+            return (a, b) => b.count - a.count;
+        case 'winrate_desc':
+            return (a, b) => parseFloat(b.winRate) - parseFloat(a.winRate);
+        case 'winrate_asc':
+            return (a, b) => parseFloat(a.winRate) - parseFloat(b.winRate);
+        default:
+            return (a, b) => b.totalSa - a.totalSa;
     }
 }
 
@@ -133,3 +142,198 @@ function renderTable(data, tableId, summaryId) {
         }
     }
 }
+
+// ===================
+// 検索可能セレクトボックス
+// ===================
+function initSearchableSelect(containerId, options, placeholder, onChange) {
+    const container = document.getElementById(containerId);
+    if (!container) return null;
+
+    container.className = 'searchable-select';
+    container.innerHTML = `
+        <div class="searchable-select-display" tabindex="0">
+            <span class="searchable-select-text">${placeholder}</span>
+            <span class="searchable-select-arrow">▼</span>
+        </div>
+        <div class="searchable-select-dropdown">
+            <input type="text" class="searchable-select-search" placeholder="検索...">
+            <div class="searchable-select-options"></div>
+        </div>
+    `;
+
+    const display = container.querySelector('.searchable-select-display');
+    const displayText = container.querySelector('.searchable-select-text');
+    const dropdown = container.querySelector('.searchable-select-dropdown');
+    const searchInput = container.querySelector('.searchable-select-search');
+    const optionsContainer = container.querySelector('.searchable-select-options');
+
+    let selectedValue = '';
+    let isOpen = false;
+    let currentOptions = options;
+
+    // オプションを描画
+    function renderOptions(filter = '') {
+        const filterLower = filter.toLowerCase();
+        let html = '';
+        let hasResults = false;
+
+        // デフォルトオプション（プレースホルダー）
+        const defaultSelected = selectedValue === '' ? 'selected' : '';
+        html += `<div class="searchable-select-option ${defaultSelected}" data-value="">${placeholder}</div>`;
+
+        currentOptions.forEach(opt => {
+            const value = typeof opt === 'object' ? opt.value : opt;
+            const label = typeof opt === 'object' ? opt.label : opt;
+
+            // 空の値はスキップ（既にデフォルトで追加済み）
+            if (value === '') return;
+
+            // フィルタリング
+            if (filterLower && !label.toLowerCase().includes(filterLower)) {
+                return;
+            }
+
+            hasResults = true;
+            const selectedClass = value === selectedValue ? 'selected' : '';
+            html += `<div class="searchable-select-option ${selectedClass}" data-value="${value}">${label}</div>`;
+        });
+
+        // 検索結果がない場合
+        if (filterLower && !hasResults) {
+            html += `<div class="searchable-select-no-results">該当する項目がありません</div>`;
+        }
+
+        optionsContainer.innerHTML = html;
+
+        // オプションクリックイベント
+        optionsContainer.querySelectorAll('.searchable-select-option').forEach(opt => {
+            opt.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectedValue = opt.dataset.value;
+                displayText.textContent = opt.textContent;
+                closeDropdown();
+                if (onChange) onChange(selectedValue);
+            });
+        });
+    }
+
+    // ドロップダウンを開く
+    function openDropdown() {
+        // 他の開いているドロップダウンを閉じる
+        document.querySelectorAll('.searchable-select-dropdown.open').forEach(dd => {
+            dd.classList.remove('open');
+        });
+        document.querySelectorAll('.searchable-select-display.open').forEach(d => {
+            d.classList.remove('open');
+        });
+
+        isOpen = true;
+        dropdown.classList.add('open');
+        display.classList.add('open');
+        searchInput.value = '';
+        renderOptions();
+
+        // 少し遅延させてフォーカス
+        setTimeout(() => {
+            searchInput.focus();
+        }, 10);
+    }
+
+    // ドロップダウンを閉じる
+    function closeDropdown() {
+        isOpen = false;
+        dropdown.classList.remove('open');
+        display.classList.remove('open');
+    }
+
+    // 表示エリアクリック
+    display.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (isOpen) {
+            closeDropdown();
+        } else {
+            openDropdown();
+        }
+    });
+
+    // 検索入力
+    searchInput.addEventListener('input', (e) => {
+        renderOptions(e.target.value);
+    });
+
+    // 検索欄クリック時の伝播を止める
+    searchInput.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+
+    // ドロップダウン内クリック時の伝播を止める
+    dropdown.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+
+    // 外側クリックで閉じる
+    document.addEventListener('click', (e) => {
+        if (!container.contains(e.target) && isOpen) {
+            closeDropdown();
+        }
+    });
+
+    // キーボード操作
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeDropdown();
+        } else if (e.key === 'Enter') {
+            // 最初の選択肢を選択
+            const firstOption = optionsContainer.querySelector('.searchable-select-option:not(.selected)');
+            if (firstOption) {
+                firstOption.click();
+            }
+        }
+    });
+
+    // Escキーでも閉じる（display要素にフォーカス時）
+    display.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeDropdown();
+        } else if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (isOpen) {
+                closeDropdown();
+            } else {
+                openDropdown();
+            }
+        }
+    });
+
+    // 初期描画
+    renderOptions();
+
+    // 値を取得/設定するメソッドを返す
+    return {
+        getValue: () => selectedValue,
+        setValue: (value) => {
+            selectedValue = value;
+            const opt = currentOptions.find(o => (typeof o === 'object' ? o.value : o) === value);
+            if (opt) {
+                displayText.textContent = typeof opt === 'object' ? opt.label : opt;
+            } else {
+                displayText.textContent = placeholder;
+            }
+        },
+        updateOptions: (newOptions) => {
+            currentOptions = newOptions;
+            if (isOpen) {
+                renderOptions(searchInput.value);
+            }
+        },
+        reset: () => {
+            selectedValue = '';
+            displayText.textContent = placeholder;
+        },
+        close: () => {
+            closeDropdown();
+        }
+    };
+}
+

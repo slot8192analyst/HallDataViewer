@@ -1,0 +1,44 @@
+{
+  "events": [
+    {
+      "date": "2025_12_27",
+      "type": "anniversary",
+      "media": "その他",
+      "name": "周年日"
+    },
+    {
+      "date": "2025_12_30",
+      "type": "event",
+      "media": "その他",
+      "name": "特定日"
+    },
+    {
+      "date": "2026_01_05",
+      "type": "event",
+      "media": "その他",
+      "name": "特定日"
+    },
+    {
+      "date": "2026_01_06",
+      "name": "店休日"
+    },
+    {
+      "date": "2026_01_07",
+      "type": "new_machine",
+      "media": "",
+      "name": ["新台入替"],
+      "note": "北斗の拳転生の章2,鉄拳6,ハナハナ"
+    }
+  ],
+  "mediaTypes": [
+    "その他"
+  ],
+  "performers": [
+  ],
+  "eventTypes": [
+    {"id": "coverage", "name": "取材", "color": "#f59e0b", "icon": "📺"},
+    {"id": "event", "name": "イベント", "color": "#8b5cf6", "icon": "🎉"},
+    {"id": "new_machine", "name": "新台入替", "color": "#10b981", "icon": "🎰"},
+    {"id": "anniversary", "name": "周年", "color": "#ef4444", "icon": "🎂"}
+  ]
+}

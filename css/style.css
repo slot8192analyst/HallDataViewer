@@ -2,54 +2,65 @@
    CSS変数（テーマ設定）
    =================== */
 :root {
+    /* ━━━ ベースフォントサイズ ━━━ */
+    --font-size-base: 14px;
+    --font-size-xs: 10px;
+    --font-size-sm: 12px;
+    --font-size-md: 14px;
+    --font-size-lg: 16px;
+    --font-size-xl: 18px;
+    --font-size-2xl: 20px;
+    --font-size-3xl: 24px;
+
     /* ━━━ メインカラー ━━━ */
     --primary-color: #4a4a8a;
     --primary-hover: #5a5a9a;
     --primary-light: #6a6aaa;
     --primary-dark: #3a3a6a;
-    
+
     /* ━━━ 背景色 ━━━ */
     --bg-dark: #1a1a2e;
     --bg-medium: #222244;
     --bg-light: #252545;
     --bg-card: #16213e;
     --bg-input: #2a2a4a;
-    
+
     /* ━━━ テキスト ━━━ */
     --text-primary: #eee;
     --text-secondary: #aaa;
     --text-muted: #888;
     --text-dark: #666;
-    
+
     /* ━━━ ボーダー ━━━ */
     --border-color: #333;
     --border-light: #444;
     --border-focus: #5a5a9a;
-    
+
     /* ━━━ アクセントカラー ━━━ */
     --accent-plus: #4ade80;
     --accent-minus: #f87171;
     --accent-info: #60a5fa;
     --accent-warning: #fbbf24;
     --accent-purple: #a855f7;
-    
+    --accent-pink: #ec4899;
+
     /* ━━━ ホール固有カラー ━━━ */
     --hall-accent: #fbbf24;
-    
+
     /* ━━━ テーブル ━━━ */
     --table-header-bg: var(--bg-card);
     --table-row-even: var(--bg-medium);
     --table-row-odd: var(--bg-dark);
-    
+
     /* ━━━ シャドウ ━━━ */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
-    
+
     /* ━━━ 角丸 ━━━ */
     --radius-sm: 4px;
     --radius-md: 6px;
     --radius-lg: 8px;
-    
+
     /* ━━━ トランジション ━━━ */
     --transition-fast: 0.2s ease;
     --transition-normal: 0.3s ease;
@@ -63,30 +74,30 @@
     --primary-hover: #5a7fb5;
     --primary-light: #6a8fc5;
     --primary-dark: #3a5f95;
-    
+
     --bg-dark: #f5f5f5;
     --bg-medium: #ffffff;
     --bg-light: #fafafa;
     --bg-card: #ffffff;
     --bg-input: #f0f0f0;
-    
+
     --text-primary: #333;
     --text-secondary: #666;
     --text-muted: #999;
     --text-dark: #ccc;
-    
+
     --border-color: #ddd;
     --border-light: #eee;
     --border-focus: #4a6fa5;
-    
+
     --accent-plus: #16a34a;
     --accent-minus: #dc2626;
     --accent-info: #2563eb;
-    
+
     --table-header-bg: #f0f0f0;
     --table-row-even: #f8f8f8;
     --table-row-odd: #ffffff;
-    
+
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
@@ -104,19 +115,37 @@ body {
     padding: 10px;
     background: var(--bg-dark);
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: var(--font-size-md);
     line-height: 1.5;
 }
 
 /* ===================
    共通クラス
    =================== */
-.plus { color: var(--accent-plus); font-weight: bold; }
-.minus { color: var(--accent-minus); }
-.zero { color: var(--text-muted); }
-.prob-good { color: var(--accent-plus); }
-.prob-mid { color: var(--accent-warning); }
-.prob-bad { color: var(--accent-minus); }
+.plus {
+    color: var(--accent-plus);
+    font-weight: bold;
+}
+
+.minus {
+    color: var(--accent-minus);
+}
+
+.zero {
+    color: var(--text-muted);
+}
+
+.prob-good {
+    color: var(--accent-plus);
+}
+
+.prob-mid {
+    color: var(--accent-warning);
+}
+
+.prob-bad {
+    color: var(--accent-minus);
+}
 
 /* ===================
    レイアウト
@@ -130,7 +159,7 @@ h1,
 }
 
 h1 {
-    font-size: 1.2rem;
+    font-size: var(--font-size-xl);
     text-align: center;
     margin: 10px auto;
     color: var(--text-primary);
@@ -155,7 +184,7 @@ h1 {
     border-radius: var(--radius-md) var(--radius-md) 0 0;
     color: var(--text-secondary);
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     transition: all var(--transition-fast);
 }
 
@@ -190,7 +219,7 @@ h1 {
     border: none;
     border-radius: var(--radius-sm);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--font-size-md);
     transition: background var(--transition-fast);
 }
 
@@ -229,7 +258,7 @@ select {
     border-radius: var(--radius-sm);
     background: var(--bg-input);
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: var(--font-size-md);
 }
 
 input:focus,
@@ -253,7 +282,7 @@ select:focus {
     flex: 1;
     min-width: 100px;
     padding: 10px;
-    font-size: 16px;
+    font-size: var(--font-size-md);
 }
 
 .controls select {
@@ -267,7 +296,7 @@ select:focus {
 }
 
 .control-group label {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
     white-space: nowrap;
 }
@@ -307,7 +336,7 @@ select:focus {
 
 .filter-panel-header h4 {
     margin: 0;
-    font-size: 14px;
+    font-size: var(--font-size-md);
     color: var(--text-secondary);
     display: flex;
     align-items: center;
@@ -315,7 +344,7 @@ select:focus {
 }
 
 .toggle-icon {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     color: var(--text-muted);
     transition: transform var(--transition-normal);
 }
@@ -325,7 +354,7 @@ select:focus {
 }
 
 .filter-badge {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     background: var(--primary-color);
     color: var(--accent-info);
     padding: 2px 8px;
@@ -361,7 +390,7 @@ select:focus {
 
 .filter-section h5 {
     margin: 0 0 10px 0;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
 }
 
@@ -382,7 +411,7 @@ select:focus {
 }
 
 .filter-item label {
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
     min-width: 40px;
 }
@@ -409,7 +438,7 @@ select:focus {
 
 .btn-small {
     padding: 5px 10px;
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     background: var(--primary-dark);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
@@ -439,7 +468,7 @@ select:focus {
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: all var(--transition-fast);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
 }
 
 .column-checkbox-item:hover {
@@ -480,7 +509,7 @@ select:focus {
     border-radius: var(--radius-md);
     color: var(--text-primary);
     cursor: pointer;
-    font-size: 16px;
+    font-size: var(--font-size-lg);
     transition: background var(--transition-fast);
 }
 
@@ -494,7 +523,7 @@ select:focus {
 }
 
 .current-date {
-    font-size: 1.1rem;
+    font-size: var(--font-size-lg);
     font-weight: bold;
     flex: 1;
     text-align: center;
@@ -508,7 +537,7 @@ select:focus {
     padding: 12px;
     border-radius: var(--radius-md);
     margin-bottom: 10px;
-    font-size: 14px;
+    font-size: var(--font-size-md);
 }
 
 .summary span {
@@ -527,7 +556,7 @@ select:focus {
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 14px;
+    font-size: var(--font-size-md);
 }
 
 th,
@@ -545,8 +574,13 @@ th {
     z-index: 10;
 }
 
-tr:nth-child(even) { background: var(--table-row-even); }
-tr:nth-child(odd) { background: var(--table-row-odd); }
+tr:nth-child(even) {
+    background: var(--table-row-even);
+}
+
+tr:nth-child(odd) {
+    background: var(--table-row-odd);
+}
 
 /* テーブル1列目固定 */
 #data-table td:nth-child(1),
@@ -570,10 +604,14 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
 }
 
 #data-table tr:nth-child(even) td:nth-child(1),
-.stats-table tr:nth-child(even) td:nth-child(1) { background: var(--table-row-even); }
+.stats-table tr:nth-child(even) td:nth-child(1) {
+    background: var(--table-row-even);
+}
 
 #data-table tr:nth-child(odd) td:nth-child(1),
-.stats-table tr:nth-child(odd) td:nth-child(1) { background: var(--table-row-odd); }
+.stats-table tr:nth-child(odd) td:nth-child(1) {
+    background: var(--table-row-odd);
+}
 
 /* ===================
    差枚トレンドテーブル
@@ -659,7 +697,7 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
     border-radius: var(--radius-md);
     color: var(--text-secondary);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--font-size-md);
     transition: all var(--transition-fast);
 }
 
@@ -689,7 +727,7 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
 }
 
 .stats-summary-block .block-title {
-    font-size: 14px;
+    font-size: var(--font-size-md);
     color: var(--text-secondary);
     margin: 0 0 10px 0;
     padding-bottom: 8px;
@@ -710,14 +748,14 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
 }
 
 .stat-box .stat-label {
-    font-size: 11px;
+    font-size: var(--font-size-xs);
     color: var(--text-muted);
     display: block;
     margin-bottom: 5px;
 }
 
 .stat-box .stat-value {
-    font-size: 1.1rem;
+    font-size: var(--font-size-lg);
     font-weight: bold;
     display: block;
 }
@@ -735,7 +773,7 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
     border-radius: var(--radius-sm);
     color: var(--text-secondary);
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     transition: all var(--transition-fast);
 }
 
@@ -750,14 +788,14 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
 }
 
 .machine-title {
-    font-size: 1.1rem;
+    font-size: var(--font-size-lg);
     margin: 0 0 15px 0;
     padding-bottom: 10px;
     border-bottom: 1px solid var(--border-light);
 }
 
 .period-label {
-    font-size: 14px;
+    font-size: var(--font-size-md);
     color: var(--text-secondary);
     margin-bottom: 10px;
     background: var(--bg-light);
@@ -777,14 +815,14 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
 
 .suffix-stats-block .block-title {
     margin: 0 0 15px 0;
-    font-size: 1rem;
+    font-size: var(--font-size-lg);
     color: var(--text-secondary);
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border-light);
 }
 
 .suffix-stats-table {
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
 }
 
 .suffix-stats-table tbody tr.no-data {
@@ -809,12 +847,133 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
     background: var(--primary-dark);
     color: var(--accent-info);
     border-radius: var(--radius-sm);
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
 }
 
 .stats-unit-suffix-filter,
 .stats-period-unit-suffix-filter {
     transition: opacity var(--transition-fast);
+}
+
+/* ===================
+   検索可能セレクトボックス
+   =================== */
+.searchable-select {
+    position: relative;
+    min-width: 200px;
+}
+
+.searchable-select-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+    transition: all var(--transition-fast);
+    min-width: 200px;
+}
+
+.searchable-select-display:hover {
+    border-color: var(--border-focus);
+}
+
+.searchable-select-display.open {
+    border-color: var(--primary-color);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.searchable-select-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.searchable-select-arrow {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin-left: 8px;
+    transition: transform var(--transition-fast);
+}
+
+.searchable-select-display.open .searchable-select-arrow {
+    transform: rotate(180deg);
+}
+
+.searchable-select-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-input);
+    border: 1px solid var(--primary-color);
+    border-top: none;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    z-index: 1000;
+    max-height: 300px;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+}
+
+.searchable-select-dropdown.open {
+    display: flex;
+    flex-direction: column;
+}
+
+.searchable-select-search {
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-light);
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+    flex-shrink: 0;
+}
+
+.searchable-select-search:focus {
+    outline: none;
+    background: var(--bg-medium);
+}
+
+.searchable-select-search::placeholder {
+    color: var(--text-muted);
+}
+
+.searchable-select-options {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 250px;
+}
+
+.searchable-select-option {
+    padding: 8px 12px;
+    font-size: var(--font-size-md);
+    cursor: pointer;
+}
+
+.searchable-select-option:hover {
+    background: var(--primary-dark);
+}
+
+.searchable-select-option.selected {
+    background: var(--primary-color);
+    color: #fff;
+}
+
+/* 選択肢がない場合 */
+.searchable-select-no-results {
+    padding: 12px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
 }
 
 /* ===================
@@ -824,6 +983,8 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
     background: var(--bg-medium);
     border-radius: var(--radius-lg);
     overflow: hidden;
+    width: 100%;
+    max-width: 100%;
 }
 
 .calendar-header {
@@ -832,11 +993,14 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .calendar-header h2 {
     margin: 0;
-    font-size: 1.2rem;
+    font-size: var(--font-size-xl);
+    white-space: nowrap;
 }
 
 .calendar-header button {
@@ -846,11 +1010,71 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
     padding: 8px 16px;
     border-radius: var(--radius-sm);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--font-size-md);
     transition: background var(--transition-fast);
+    white-space: nowrap;
 }
 
 .calendar-header button:hover {
+    background: var(--primary-hover);
+}
+
+/* カレンダーフィルター */
+.calendar-filter-container {
+    padding: 10px 15px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+}
+
+.calendar-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.calendar-filters .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+
+.calendar-filters .filter-group label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.calendar-filters .filter-group .searchable-select {
+    min-width: 120px;
+    flex: 1;
+}
+
+/* スマホ用スクロールラッパー */
+.calendar-scroll-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+}
+
+/* スクロールバーのスタイル */
+.calendar-scroll-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.calendar-scroll-wrapper::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+    border-radius: var(--radius-md);
+}
+
+.calendar-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: var(--radius-md);
+}
+
+.calendar-scroll-wrapper::-webkit-scrollbar-thumb:hover {
     background: var(--primary-hover);
 }
 
@@ -858,67 +1082,144 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     background: var(--bg-dark);
+    min-width: 700px;
 }
 
 .calendar-weekdays .weekday {
-    padding: 10px;
+    padding: 10px 5px;
     text-align: center;
     font-weight: 600;
     color: var(--text-secondary);
+    font-size: var(--font-size-sm);
 }
 
-.calendar-weekdays .weekday.sunday { color: var(--accent-minus); }
-.calendar-weekdays .weekday.saturday { color: var(--accent-info); }
+.calendar-weekdays .weekday.sunday {
+    color: var(--accent-minus);
+}
+
+.calendar-weekdays .weekday.saturday {
+    color: var(--accent-info);
+}
 
 .calendar-days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
+    min-width: 700px;
 }
 
 .calendar-day {
-    min-height: 130px;
+    min-height: 120px;
     border: 1px solid var(--border-color);
-    padding: 6px;
+    padding: 4px;
     background: var(--bg-dark);
+    min-width: 100px;
 }
 
-.calendar-day.empty { background: var(--bg-card); opacity: 0.5; }
-.calendar-day.has-data { background: var(--bg-light); }
-.calendar-day.sunday .day-number { color: var(--accent-minus); }
-.calendar-day.saturday .day-number { color: var(--accent-info); }
+.calendar-day.empty {
+    background: var(--bg-card);
+    opacity: 0.5;
+    min-height: 50px;
+}
+
+.calendar-day.has-data {
+    background: var(--bg-light);
+}
+
+.calendar-day.has-event {
+    border: 2px solid var(--accent-warning);
+}
+
+.calendar-day.filtered-out {
+    opacity: 0.3;
+}
+
+.calendar-day.sunday .day-number {
+    color: var(--accent-minus);
+}
+
+.calendar-day.saturday .day-number {
+    color: var(--accent-info);
+}
 
 .calendar-day .day-number {
     font-weight: bold;
-    font-size: 13px;
-    margin-bottom: 6px;
+    font-size: var(--font-size-sm);
+    margin-bottom: 4px;
 }
 
+/* イベントバッジ */
+.calendar-day .event-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 4px;
+}
+
+.event-badge {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    border: 1px solid;
+    font-size: 8px;
+    line-height: 1.2;
+    overflow: hidden;
+}
+
+.event-icon {
+    font-size: 9px;
+    flex-shrink: 0;
+}
+
+.event-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-primary);
+}
+
+/* 演者バッジ */
+.event-performers {
+    font-size: 7px;
+    color: var(--text-secondary);
+    padding: 1px 4px;
+    background: var(--bg-medium);
+    border-radius: 2px;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* カレンダーヒストグラム */
 .calendar-day .histogram {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
 }
 
 .calendar-day .bar-row {
     display: flex;
     align-items: center;
-    gap: 4px;
-    height: 14px;
+    gap: 2px;
+    height: 12px;
 }
 
 .calendar-day .bar-label {
-    font-size: 9px;
+    font-size: 7px;
     color: var(--text-muted);
-    width: 22px;
+    width: 20px;
     flex-shrink: 0;
 }
 
 .calendar-day .bar-track {
     flex: 1;
-    height: 10px;
+    height: 8px;
     background: var(--border-color);
     border-radius: 2px;
     overflow: hidden;
+    min-width: 30px;
 }
 
 .calendar-day .bar {
@@ -928,50 +1229,83 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
 }
 
 .calendar-day .bar-value {
-    font-size: 9px;
+    font-size: 7px;
     color: var(--text-secondary);
-    width: 38px;
+    width: 35px;
     text-align: right;
     flex-shrink: 0;
 }
 
-.calendar-day .bar-value.plus { color: var(--accent-plus); }
-.calendar-day .bar-value.minus { color: var(--accent-minus); }
+.calendar-day .bar-value.plus {
+    color: var(--accent-plus);
+}
 
-.calendar-day .bar.bar-avg-sa.plus { background: linear-gradient(90deg, #22c55e, var(--accent-plus)); }
-.calendar-day .bar.bar-avg-sa.minus { background: linear-gradient(90deg, #ef4444, var(--accent-minus)); }
-.calendar-day .bar.bar-avg-game { background: linear-gradient(90deg, #3b82f6, var(--accent-info)); }
-.calendar-day .bar.bar-win-rate { background: linear-gradient(90deg, var(--accent-purple), #c084fc); }
-.calendar-day .bar.bar-total-sa.plus { background: linear-gradient(90deg, #f59e0b, var(--accent-warning)); }
-.calendar-day .bar.bar-total-sa.minus { background: linear-gradient(90deg, #dc2626, #ef4444); }
+.calendar-day .bar-value.minus {
+    color: var(--accent-minus);
+}
+
+.calendar-day .bar.bar-avg-sa.plus {
+    background: linear-gradient(90deg, #22c55e, var(--accent-plus));
+}
+
+.calendar-day .bar.bar-avg-sa.minus {
+    background: linear-gradient(90deg, #ef4444, var(--accent-minus));
+}
+
+.calendar-day .bar.bar-avg-game {
+    background: linear-gradient(90deg, #3b82f6, var(--accent-info));
+}
+
+.calendar-day .bar.bar-win-rate {
+    background: linear-gradient(90deg, var(--accent-purple), #c084fc);
+}
+
+.calendar-day .bar.bar-total-sa.plus {
+    background: linear-gradient(90deg, #f59e0b, var(--accent-warning));
+}
+
+.calendar-day .bar.bar-total-sa.minus {
+    background: linear-gradient(90deg, #dc2626, #ef4444);
+}
 
 .calendar-legend {
-    padding: 15px 20px;
+    padding: 10px 15px;
     background: var(--bg-card);
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 10px;
     justify-content: center;
 }
 
 .legend-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
+    gap: 5px;
+    font-size: var(--font-size-xs);
     color: var(--text-secondary);
 }
 
 .legend-bar {
-    width: 20px;
-    height: 8px;
+    width: 16px;
+    height: 6px;
     border-radius: 2px;
 }
 
-.legend-bar.avg-sa { background: linear-gradient(90deg, var(--accent-minus), var(--accent-plus)); }
-.legend-bar.avg-game { background: linear-gradient(90deg, #3b82f6, var(--accent-info)); }
-.legend-bar.win-rate { background: linear-gradient(90deg, var(--accent-purple), #c084fc); }
-.legend-bar.total-sa { background: linear-gradient(90deg, #ef4444, var(--accent-warning)); }
+.legend-bar.avg-sa {
+    background: linear-gradient(90deg, var(--accent-minus), var(--accent-plus));
+}
+
+.legend-bar.avg-game {
+    background: linear-gradient(90deg, #3b82f6, var(--accent-info));
+}
+
+.legend-bar.win-rate {
+    background: linear-gradient(90deg, var(--accent-purple), #c084fc);
+}
+
+.legend-bar.total-sa {
+    background: linear-gradient(90deg, #ef4444, var(--accent-warning));
+}
 
 /* ===================
    日付選択モーダル
@@ -1014,20 +1348,22 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
 .calendar-modal-header h3 {
     margin: 0;
     color: var(--text-primary);
-    font-size: 16px;
+    font-size: var(--font-size-lg);
 }
 
 .close-btn {
     background: none;
     border: none;
     color: var(--text-secondary);
-    font-size: 24px;
+    font-size: var(--font-size-2xl);
     cursor: pointer;
     padding: 0;
     line-height: 1;
 }
 
-.close-btn:hover { color: var(--text-primary); }
+.close-btn:hover {
+    color: var(--text-primary);
+}
 
 .calendar-modal-body {
     padding: 15px 20px;
@@ -1060,7 +1396,9 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
     transition: background var(--transition-fast);
 }
 
-.date-checkbox-item:hover { background: var(--primary-dark); }
+.date-checkbox-item:hover {
+    background: var(--primary-dark);
+}
 
 .date-checkbox-item input[type="checkbox"] {
     width: 18px;
@@ -1072,15 +1410,95 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
     flex: 1;
     cursor: pointer;
     color: var(--text-primary);
+    font-size: var(--font-size-md);
 }
 
 .date-checkbox-item .day-of-week {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--font-size-sm);
 }
 
-.date-checkbox-item .day-of-week.sunday { color: var(--accent-minus); }
-.date-checkbox-item .day-of-week.saturday { color: var(--accent-info); }
+.date-checkbox-item .day-of-week.sunday {
+    color: var(--accent-minus);
+}
+
+.date-checkbox-item .day-of-week.saturday {
+    color: var(--accent-info);
+}
+
+/* ===================
+   統計イベントバッジ
+   =================== */
+.stats-event-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: var(--bg-light);
+    border-radius: var(--radius-md);
+}
+
+.stats-event-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid;
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+}
+
+.stats-event-badge.performer-badge {
+    background: #ec489920;
+    border-color: var(--accent-pink);
+}
+
+/* イベント・演者サマリー */
+.event-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 15px;
+    padding: 12px 15px;
+    background: var(--bg-light);
+    border-radius: var(--radius-md);
+}
+
+.event-summary-section {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.event-summary-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-right: 5px;
+}
+
+.event-summary-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid;
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+}
+
+.event-summary-item.performer-item {
+    background: #ec489920;
+    border-color: var(--accent-pink);
+}
+
+.event-summary-more {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
 
 /* ===================
    フッター
@@ -1091,7 +1509,7 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
     padding: 15px;
     text-align: center;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--font-size-sm);
     border-top: 1px solid var(--border-color);
 }
 
@@ -1104,19 +1522,109 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
 }
 
 /* ===================
-   レスポンシブ: スマホ
+   機種別統計 日付ナビゲーション
+   =================== */
+.stats-date-nav {
+    margin-bottom: 15px;
+}
+
+.stats-date-nav button {
+    padding: 10px 15px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: var(--font-size-lg);
+    transition: background var(--transition-fast);
+}
+
+.stats-date-nav button:hover:not(:disabled) {
+    background: var(--primary-dark);
+}
+
+.stats-date-nav button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.stats-date-nav .current-date {
+    font-size: var(--font-size-lg);
+    font-weight: bold;
+    flex: 1;
+    text-align: center;
+}
+
+/* ===================
+   日別データタブ イベント情報
+   =================== */
+.daily-event-info {
+    margin-bottom: 15px;
+}
+
+.daily-event-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+    background: var(--bg-light);
+    border-radius: var(--radius-md);
+}
+
+.daily-event-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid;
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+}
+
+.daily-event-badge.performer-badge {
+    background: #ec489920;
+    border-color: var(--accent-pink);
+}
+
+/* 日付セレクトボックスのイベント情報表示 */
+#dateSelect {
+    min-width: 280px;
+}
+
+#dateSelect option {
+    padding: 5px;
+}
+
+/* ===================
+   レスポンシブ: スマホ (〜480px)
    =================== */
 @media (max-width: 480px) {
-    body { padding: 5px; }
-    h1 { font-size: 1.1rem; }
+    :root {
+        --font-size-xs: 9px;
+        --font-size-sm: 11px;
+        --font-size-md: 12px;
+        --font-size-lg: 14px;
+        --font-size-xl: 16px;
+        --font-size-2xl: 18px;
+        --font-size-3xl: 20px;
+    }
 
-    .tabs { gap: 3px; }
-    .tab-btn { padding: 8px 10px; font-size: 12px; }
+    body {
+        padding: 5px;
+    }
+
+    .tabs {
+        gap: 3px;
+    }
+
+    .tab-btn {
+        padding: 8px 10px;
+    }
 
     .controls input,
     .controls select {
         padding: 8px;
-        font-size: 14px;
         min-width: 80px;
     }
 
@@ -1129,102 +1637,480 @@ tr:nth-child(odd) { background: var(--table-row-odd); }
         min-width: 0;
     }
 
-    .filter-panel-header { padding: 10px 12px; }
-    .filter-panel-header h4 { font-size: 13px; }
-    .filter-panel-content.open { padding: 12px; }
-    .filter-section h5 { font-size: 12px; }
-    .filter-badge { font-size: 10px; padding: 2px 6px; }
+    .filter-panel-header {
+        padding: 10px 12px;
+    }
 
-    .filter-item { padding: 5px 8px; }
-    .filter-item input { width: 60px; }
+    .filter-panel-content.open {
+        padding: 12px;
+    }
 
-    .column-selector-controls { flex-wrap: wrap; }
-    .btn-small { padding: 6px 12px; font-size: 11px; }
-    .column-checkboxes { gap: 4px; }
-    .column-checkbox-item { padding: 5px 8px; font-size: 11px; }
-    .column-checkbox-item input[type="checkbox"] { width: 14px; height: 14px; }
+    .filter-item {
+        padding: 5px 8px;
+    }
 
-    table { font-size: 11px; }
-    th, td { padding: 5px 6px; }
+    .filter-item input {
+        width: 60px;
+    }
+
+    .column-selector-controls {
+        flex-wrap: wrap;
+    }
+
+    .btn-small {
+        padding: 6px 12px;
+    }
+
+    .column-checkboxes {
+        gap: 4px;
+    }
+
+    .column-checkbox-item {
+        padding: 5px 8px;
+    }
+
+    .column-checkbox-item input[type="checkbox"] {
+        width: 14px;
+        height: 14px;
+    }
+
+    th,
+    td {
+        padding: 5px 6px;
+    }
 
     #data-table td:nth-child(1),
-    #data-table th:nth-child(1) { min-width: 100px; max-width: 130px; }
+    #data-table th:nth-child(1) {
+        min-width: 100px;
+        max-width: 130px;
+    }
 
     #trend-fixed-table th:first-child,
-    #trend-fixed-table td:first-child { min-width: 90px; max-width: 120px; }
+    #trend-fixed-table td:first-child {
+        min-width: 90px;
+        max-width: 120px;
+    }
 
-    .summary { font-size: 12px; padding: 8px; }
-    .summary span { margin-right: 8px; }
+    .summary {
+        padding: 8px;
+    }
 
-    .stats-summary-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
-    .stat-box { padding: 8px; }
-    .stat-box .stat-label { font-size: 10px; }
-    .stat-box .stat-value { font-size: 0.9rem; }
+    .summary span {
+        margin-right: 8px;
+    }
 
-    .date-nav button { padding: 6px 10px; font-size: 13px; }
-    .current-date { font-size: 0.9rem; }
+    .stats-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
 
-    .calendar-day { min-height: 100px; padding: 4px; }
-    .calendar-day .day-number { font-size: 11px; margin-bottom: 4px; }
-    .calendar-day .histogram { gap: 3px; }
-    .calendar-day .bar-row { height: 12px; gap: 2px; }
-    .calendar-day .bar-label { font-size: 7px; width: 18px; }
-    .calendar-day .bar-track { height: 8px; }
-    .calendar-day .bar-value { font-size: 7px; width: 32px; }
-    .calendar-header h2 { font-size: 1rem; }
-    .calendar-header button { padding: 6px 12px; font-size: 12px; }
-    .calendar-legend { padding: 10px; gap: 10px; }
-    .legend-item { font-size: 9px; }
-    .legend-bar { width: 15px; height: 6px; }
+    .stat-box {
+        padding: 8px;
+    }
 
-    .suffix-stats-block { padding: 10px; }
-    .suffix-stats-block .block-title { font-size: 0.9rem; }
-    .suffix-stats-table { font-size: 0.8rem; }
+    .date-nav button {
+        padding: 6px 10px;
+    }
+
+    /* 検索可能セレクト */
+    .searchable-select {
+        min-width: 100px;
+    }
+
+    .searchable-select-display {
+        padding: 6px 8px;
+    }
+
+    .searchable-select-option {
+        padding: 6px 8px;
+    }
+
+    /* カレンダー */
+    .calendar-header {
+        padding: 10px 12px;
+    }
+    
+    .calendar-header h2 {
+        flex: 1;
+        text-align: center;
+    }
+    
+    .calendar-header button {
+        padding: 6px 10px;
+    }
+    
+    .calendar-filter-container {
+        padding: 8px 10px;
+    }
+    
+    .calendar-filters {
+        gap: 8px;
+    }
+    
+    .calendar-filters .filter-group {
+        width: 100%;
+    }
+    
+    .calendar-filters .filter-group .searchable-select {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .calendar-filters .filter-group label {
+        min-width: 50px;
+    }
+    
+    .calendar-days {
+        min-width: 600px;
+    }
+    
+    .calendar-weekdays {
+        min-width: 600px;
+    }
+    
+    .calendar-day {
+        min-height: 100px;
+        min-width: 85px;
+        padding: 3px;
+    }
+
+    .calendar-day .histogram {
+        gap: 3px;
+    }
+
+    .calendar-day .bar-row {
+        height: 10px;
+        gap: 1px;
+    }
+
+    .calendar-day .bar-label {
+        font-size: 6px;
+        width: 18px;
+    }
+
+    .calendar-day .bar-track {
+        height: 6px;
+        min-width: 20px;
+    }
+
+    .calendar-day .bar-value {
+        font-size: 6px;
+        width: 30px;
+    }
+    
+    .event-badge {
+        font-size: 7px;
+        padding: 1px 3px;
+    }
+    
+    .event-icon {
+        font-size: 8px;
+    }
+    
+    .event-performers {
+        font-size: 6px;
+    }
+
+    .calendar-legend {
+        padding: 8px 10px;
+        gap: 8px;
+    }
+
+    .legend-bar {
+        width: 14px;
+        height: 5px;
+    }
+
+    /* 統計 */
+    .suffix-stats-block {
+        padding: 10px;
+    }
+
     .suffix-stats-table th,
-    .suffix-stats-table td { padding: 6px 4px; }
+    .suffix-stats-table td {
+        padding: 6px 4px;
+    }
+
+    .stats-event-badges {
+        padding: 8px;
+        gap: 5px;
+    }
+
+    .event-summary {
+        padding: 8px 10px;
+    }
+
+    .event-summary-section {
+        gap: 5px;
+    }
+
+    .event-summary-label {
+        width: 100%;
+    }
+
+    /* 日別データタブ */
+    .daily-event-info {
+        margin-bottom: 10px;
+    }
+    
+    .daily-event-badges {
+        padding: 8px;
+        gap: 5px;
+    }
+    
+    #dateSelect {
+        min-width: 200px;
+    }
+
+    /* 機種別統計 日付ナビゲーション */
+    .stats-date-nav {
+        gap: 5px;
+    }
+    
+    .stats-date-nav button {
+        padding: 6px 10px;
+    }
 }
 
 /* ===================
-   レスポンシブ: タブレット
+   レスポンシブ: タブレット (481px〜768px)
    =================== */
 @media (min-width: 481px) and (max-width: 768px) {
-    table { font-size: 13px; }
-    th, td { padding: 8px 10px; }
+    :root {
+        --font-size-xs: 10px;
+        --font-size-sm: 12px;
+        --font-size-md: 13px;
+        --font-size-lg: 15px;
+        --font-size-xl: 17px;
+        --font-size-2xl: 19px;
+        --font-size-3xl: 22px;
+    }
+
+    th,
+    td {
+        padding: 8px 10px;
+    }
+
+    .calendar-days {
+        min-width: 650px;
+    }
+    
+    .calendar-weekdays {
+        min-width: 650px;
+    }
+    
+    .calendar-day {
+        min-height: 110px;
+        min-width: 90px;
+    }
+    
+    .calendar-filters .filter-group {
+        flex: 1;
+        min-width: 150px;
+    }
 }
 
 /* ===================
-   レスポンシブ: PC
+   レスポンシブ: PC (769px〜)
    =================== */
 @media (min-width: 769px) {
-    body { padding: 20px; }
-    h1 { font-size: 1.4rem; margin: 15px auto; }
+    :root {
+        --font-size-xs: 11px;
+        --font-size-sm: 13px;
+        --font-size-md: 14px;
+        --font-size-lg: 16px;
+        --font-size-xl: 18px;
+        --font-size-2xl: 20px;
+        --font-size-3xl: 24px;
+    }
 
-    .tabs { gap: 8px; }
-    .tab-btn { padding: 12px 20px; font-size: 14px; }
+    body {
+        padding: 20px;
+    }
 
-    table { font-size: 14px; }
-    th, td { padding: 12px 16px; }
+    .tabs {
+        gap: 8px;
+    }
+
+    .tab-btn {
+        padding: 12px 20px;
+    }
+
+    th,
+    td {
+        padding: 12px 16px;
+    }
 
     #data-table td:nth-child(1),
-    #data-table th:nth-child(1) { min-width: 180px; max-width: 250px; }
+    #data-table th:nth-child(1) {
+        min-width: 180px;
+        max-width: 250px;
+    }
 
-    .stats-summary-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
-    .stat-box .stat-value { font-size: 1.2rem; }
+    .stats-summary-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
 
-    .summary { font-size: 15px; padding: 15px; }
+    .summary {
+        padding: 15px;
+    }
 
-    .date-nav button { padding: 12px 20px; }
-    .current-date { font-size: 1.2rem; }
+    .date-nav button {
+        padding: 12px 20px;
+    }
 
-    .calendar-day { min-height: 150px; padding: 8px; }
-    .calendar-day .day-number { font-size: 14px; }
-    .calendar-day .histogram { gap: 5px; }
-    .calendar-day .bar-row { height: 16px; gap: 6px; }
-    .calendar-day .bar-label { font-size: 10px; width: 28px; }
-    .calendar-day .bar-track { height: 12px; }
-    .calendar-day .bar-value { font-size: 10px; width: 45px; }
+    .filter-panel-header {
+        padding: 14px 18px;
+    }
 
-    .filter-panel-header { padding: 14px 18px; }
-    .filter-panel-content.open { padding: 18px; }
-    .column-checkbox-item { padding: 8px 12px; font-size: 14px; }
+    .filter-panel-content.open {
+        padding: 18px;
+    }
+
+    .column-checkbox-item {
+        padding: 8px 12px;
+    }
+
+    /* カレンダー */
+    .calendar-days {
+        min-width: auto;
+    }
+    
+    .calendar-weekdays {
+        min-width: auto;
+    }
+    
+    .calendar-day {
+        min-height: 140px;
+        min-width: auto;
+        padding: 6px;
+    }
+
+    .calendar-day .histogram {
+        gap: 5px;
+    }
+
+    .calendar-day .bar-row {
+        height: 14px;
+        gap: 4px;
+    }
+
+    .calendar-day .bar-label {
+        font-size: 9px;
+        width: 24px;
+    }
+
+    .calendar-day .bar-track {
+        height: 10px;
+    }
+
+    .calendar-day .bar-value {
+        font-size: 9px;
+        width: 40px;
+    }
+    
+    .event-badge {
+        font-size: 9px;
+        padding: 2px 5px;
+    }
+    
+    .event-icon {
+        font-size: 10px;
+    }
+    
+    .event-performers {
+        font-size: 8px;
+    }
+
+    /* 日別データタブ */
+    #dateSelect {
+        min-width: 320px;
+    }
+}
+
+/* ===================
+   レスポンシブ: 大画面PC (1200px〜)
+   =================== */
+@media (min-width: 1200px) {
+    :root {
+        --font-size-xs: 11px;
+        --font-size-sm: 13px;
+        --font-size-md: 15px;
+        --font-size-lg: 17px;
+        --font-size-xl: 20px;
+        --font-size-2xl: 22px;
+        --font-size-3xl: 26px;
+    }
+}
+
+/* ===================
+   台番号末尾統計トグル
+   =================== */
+.suffix-stats-block.collapsible {
+    padding: 0;
+    overflow: hidden;
+}
+
+.suffix-stats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    user-select: none;
+}
+
+.suffix-stats-header:hover {
+    background: var(--primary-dark);
+}
+
+.suffix-stats-header.open {
+    background: var(--primary-dark);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.suffix-stats-header .block-title {
+    margin: 0;
+    padding: 0;
+    border: none;
+    font-size: var(--font-size-md);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.suffix-stats-header .toggle-icon {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    transition: transform var(--transition-normal);
+}
+
+.suffix-stats-header.open .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.suffix-stats-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height var(--transition-normal), padding var(--transition-normal);
+    padding: 0 15px;
+}
+
+.suffix-stats-content.open {
+    max-height: 800px;
+    padding: 15px;
+    transition: max-height 0.5s ease-in, padding var(--transition-normal);
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 480px) {
+    .suffix-stats-header {
+        padding: 10px 12px;
+    }
+    
+    .suffix-stats-content.open {
+        padding: 10px 12px;
+    }
 }

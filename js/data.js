@@ -90,17 +90,26 @@ function populateDateSelectors() {
 
 function populateMachineFilters() {
     const sortedMachines = [...allMachines].sort();
-    const selectors = ['trendMachineFilter', 'statsMachineSelect', 'statsPeriodMachineSelect'];
 
-    selectors.forEach(id => {
-        const select = document.getElementById(id);
-        if (select) {
-            const currentValue = select.value;
-            select.innerHTML = '<option value="">全機種</option>' +
-                sortedMachines.map(m => `<option value="${m}">${m}</option>`).join('');
-            if (currentValue) select.value = currentValue;
-        }
-    });
+    // 通常のセレクト（日別統計用）
+    const statsMachineSelect = document.getElementById('statsMachineSelect');
+    if (statsMachineSelect) {
+        const currentValue = statsMachineSelect.value;
+        statsMachineSelect.innerHTML = '<option value="">全機種</option>' +
+            sortedMachines.map(m => `<option value="${m}">${m}</option>`).join('');
+        if (currentValue) statsMachineSelect.value = currentValue;
+    }
+
+    // 検索可能セレクトの更新
+    if (typeof initDailyMachineFilter === 'function') {
+        initDailyMachineFilter();
+    }
+    if (typeof initTrendMachineFilter === 'function') {
+        initTrendMachineFilter();
+    }
+    if (typeof updateStatsMachineFilter === 'function') {
+        updateStatsMachineFilter();
+    }
 }
 
 function updateDateNav() {
