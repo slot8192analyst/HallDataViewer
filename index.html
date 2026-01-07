@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>オーギヤ磐田店 データまとめ</title>
+    <title>ホールデータまとめ</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <h1>📊 オーギヤ磐田店</h1>
+    <h1>📊 ホールデータまとめ</h1>
 
     <!-- タブ -->
     <div class="tabs">
@@ -36,48 +36,69 @@
             </select>
         </div>
 
-        <!-- 列フィルター -->
-        <div class="filter-panel">
-            <h4>🔍 列フィルター</h4>
-            <div class="filter-row">
-                <div class="filter-item">
-                    <label>差枚</label>
-                    <select id="saFilterType">
-                        <option value="">--</option>
-                        <option value="gte">以上</option>
-                        <option value="lte">以下</option>
-                    </select>
-                    <input type="number" id="saFilterValue" placeholder="枚">
-                </div>
-                <div class="filter-item">
-                    <label>G数</label>
-                    <select id="gameFilterType">
-                        <option value="">--</option>
-                        <option value="gte">以上</option>
-                        <option value="lte">以下</option>
-                    </select>
-                    <input type="number" id="gameFilterValue" placeholder="G">
-                </div>
-                <div class="filter-item">
-                  <label>台番号末尾</label>
-                  <select id="unitSuffixFilter">
-                      <option value="">全て</option>
-                      <option value="0">0</option>
-                      <option value="1">1</option>
-                      <option value="2">2</option>
-                      <option value="3">3</option>
-                      <option value="4">4</option>
-                      <option value="5">5</option>
-                      <option value="6">6</option>
-                      <option value="7">7</option>
-                      <option value="8">8</option>
-                      <option value="9">9</option>
-                  </select>
-                </div>
+        <!-- フィルターパネル（トグル式） -->
+        <div class="filter-panel collapsible">
+            <div class="filter-panel-header" id="filterToggle">
+                <h4>🔍 フィルター・表示設定</h4>
+                <span class="toggle-icon">▼</span>
             </div>
-            <div class="filter-buttons">
-                <button class="btn-apply" id="applyFilter">フィルター適用</button>
-                <button class="btn-reset" id="resetFilter">リセット</button>
+            <div class="filter-panel-content" id="filterContent">
+                <!-- 数値フィルター -->
+                <div class="filter-section">
+                    <h5>数値フィルター</h5>
+                    <div class="filter-row">
+                        <div class="filter-item">
+                            <label>差枚</label>
+                            <select id="saFilterType">
+                                <option value="">--</option>
+                                <option value="gte">以上</option>
+                                <option value="lte">以下</option>
+                            </select>
+                            <input type="number" id="saFilterValue" placeholder="枚">
+                        </div>
+                        <div class="filter-item">
+                            <label>G数</label>
+                            <select id="gameFilterType">
+                                <option value="">--</option>
+                                <option value="gte">以上</option>
+                                <option value="lte">以下</option>
+                            </select>
+                            <input type="number" id="gameFilterValue" placeholder="G">
+                        </div>
+                        <div class="filter-item">
+                            <label>台番号末尾</label>
+                            <select id="unitSuffixFilter">
+                                <option value="">全て</option>
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filter-buttons">
+                        <button class="btn-apply" id="applyFilter">フィルター適用</button>
+                        <button class="btn-reset" id="resetFilter">リセット</button>
+                    </div>
+                </div>
+
+                <!-- 列選択セクション -->
+                <div class="filter-section">
+                    <h5>📋 表示列</h5>
+                    <div class="column-selector-controls">
+                        <button class="btn-small" id="selectAllColumns">全選択</button>
+                        <button class="btn-small" id="deselectAllColumns">全解除</button>
+                    </div>
+                    <div class="column-checkboxes" id="columnCheckboxes">
+                        <!-- JSで動的に生成 -->
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -329,6 +350,7 @@
         </div>
     </div>
 
+    <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/data.js"></script>
     <script src="js/daily.js"></script>
