@@ -689,7 +689,88 @@ function setupDailyEventListeners() {
 
     document.getElementById('filterToggle')?.addEventListener('click', toggleFilterPanel);
 
+    // コピー・ダウンロードボタン
+    document.getElementById('copyTableBtn')?.addEventListener('click', copyTableToClipboard);
+    document.getElementById('downloadCsvBtn')?.addEventListener('click', downloadTableAsCSV);
+
     restoreFilterPanelState();
     
     initDateSelectWithEvents();
+}
+
+// ===================
+// コピー・ダウンロード機能
+// ===================
+
+// 現在表示中のテーブルデータを取得
+function getDisplayedTableData() {
+    const table = document.getElementById('data-table');
+    if (!table) return { headers: [], rows: [] };
+
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+
+    // ヘッダー取得
+    const headers = [];
+    const headerCells = thead.querySelectorAll('th');
+    headerCells.forEach(cell => {
+        headers.push(cell.textContent.trim());
+    });
+
+    // 行データ取得
+    const rows = [];
+    const bodyRows = tbody.querySelectorAll('tr');
+    bodyRows.forEach(row => {
+        const rowData = [];
+        const cells = row.querySelectorAll('td');
+        cells.forEach((cell, index) => {
+            let value = cell.textContent.trim();
+            
+            // 数値の処理（カンマや+記号を除去して数値として扱う）
+            const headerName = headers[index];
+            if (['G数', '差枚', 'BB', 'RB', 'ART', '合成確率', '機械割'].some(h => headerName && headerName.includes(h))) {
+                // +記号とカンマを除去
+                let numStr = value.replace(/[+,]/g, '').replace('%', '');
+                // 数値に変換できる場合はそのまま、できない場合は元の値
+                const num = parseFloat(numStr);
+                if (!isNaN(num)) {
+                    // 機械割はパーセント値のまま
+                    if (headerName && headerName.includes('機械割')) {
+                        value = num.toString();
+                    } else {
+                        value = num.toString();
+                    }
+                }
+            }
+            rowData.push(value);
+        });
+        rows.push(rowData);
+    });
+
+    return { headers, rows };
+}
+
+// クリップボードにコピー
+async function copyTableToClipboard() {
+    const { headers, rows } = getDisplayedTableData();
+    const btn = document.getElementById('copyTableBtn');
+    await copyToClipboard({ headers, rows }, btn);
+}
+
+// CSVファイルをダウンロード
+function downloadTableAsCSV() {
+    const { headers, rows } = getDisplayedTableData();
+    
+    if (rows.length === 0) {
+        showCopyToast('ダウンロードするデータがありません', true);
+        return;
+    }
+    
+    // ファイル名を生成（現在の日付データから）
+    const sortedFiles = sortFilesByDate(CSV_FILES, true);
+    const currentFile = sortedFiles[currentDateIndex];
+    const dateStr = currentFile ? currentFile.replace('.csv', '').replace('data/', '') : 'data';
+    const filename = `${dateStr}_export.csv`;
+    
+    downloadAsCSV({ headers, rows }, filename);
 }

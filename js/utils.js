@@ -144,7 +144,7 @@ function renderTable(data, tableId, summaryId) {
 }
 
 // ===================
-// 検索可能セレクトボックス
+// 検索可能セレクトボックス（コンボボックス）
 // ===================
 function initSearchableSelect(containerId, options, placeholder, onChange) {
     const container = document.getElementById(containerId);
@@ -171,37 +171,40 @@ function initSearchableSelect(containerId, options, placeholder, onChange) {
     let selectedValue = '';
     let isOpen = false;
     let currentOptions = options;
+    let highlightedIndex = -1;
 
     // オプションを描画
     function renderOptions(filter = '') {
-        const filterLower = filter.toLowerCase();
+        const filterLower = filter.toLowerCase().trim();
         let html = '';
-        let hasResults = false;
+        let visibleOptions = [];
 
-        // デフォルトオプション（プレースホルダー）
-        const defaultSelected = selectedValue === '' ? 'selected' : '';
-        html += `<div class="searchable-select-option ${defaultSelected}" data-value="">${placeholder}</div>`;
-
-        currentOptions.forEach(opt => {
+        currentOptions.forEach((opt) => {
             const value = typeof opt === 'object' ? opt.value : opt;
             const label = typeof opt === 'object' ? opt.label : opt;
+            const disabled = typeof opt === 'object' && opt.disabled;
 
-            // 空の値はスキップ（既にデフォルトで追加済み）
-            if (value === '') return;
+            // 区切り線の場合
+            if (disabled) {
+                if (!filterLower) {
+                    html += `<div class="searchable-select-separator">${label}</div>`;
+                }
+                return;
+            }
 
             // フィルタリング
             if (filterLower && !label.toLowerCase().includes(filterLower)) {
                 return;
             }
 
-            hasResults = true;
+            visibleOptions.push({ value, label });
             const selectedClass = value === selectedValue ? 'selected' : '';
-            html += `<div class="searchable-select-option ${selectedClass}" data-value="${value}">${label}</div>`;
+            const highlightClass = visibleOptions.length - 1 === highlightedIndex ? 'highlighted' : '';
+            html += `<div class="searchable-select-option ${selectedClass} ${highlightClass}" data-value="${value}" data-index="${visibleOptions.length - 1}">${label}</div>`;
         });
 
-        // 検索結果がない場合
-        if (filterLower && !hasResults) {
-            html += `<div class="searchable-select-no-results">該当する項目がありません</div>`;
+        if (filterLower && visibleOptions.length === 0) {
+            html = `<div class="searchable-select-no-results">該当する項目がありません</div>`;
         }
 
         optionsContainer.innerHTML = html;
@@ -210,32 +213,65 @@ function initSearchableSelect(containerId, options, placeholder, onChange) {
         optionsContainer.querySelectorAll('.searchable-select-option').forEach(opt => {
             opt.addEventListener('click', (e) => {
                 e.stopPropagation();
-                selectedValue = opt.dataset.value;
-                displayText.textContent = opt.textContent;
-                closeDropdown();
-                if (onChange) onChange(selectedValue);
+                selectOption(opt.dataset.value, opt.textContent);
             });
+
+            opt.addEventListener('mouseenter', () => {
+                highlightedIndex = parseInt(opt.dataset.index);
+                updateHighlight();
+            });
+        });
+
+        return visibleOptions;
+    }
+
+    // オプションを選択
+    function selectOption(value, label) {
+        selectedValue = value;
+        displayText.textContent = label;
+        closeDropdown();
+        if (onChange) onChange(selectedValue);
+    }
+
+    // ハイライト更新
+    function updateHighlight() {
+        optionsContainer.querySelectorAll('.searchable-select-option').forEach((opt) => {
+            if (parseInt(opt.dataset.index) === highlightedIndex) {
+                opt.classList.add('highlighted');
+                opt.scrollIntoView({ block: 'nearest' });
+            } else {
+                opt.classList.remove('highlighted');
+            }
         });
     }
 
     // ドロップダウンを開く
     function openDropdown() {
-        // 他の開いているドロップダウンを閉じる
+        // 他のドロップダウンを閉じる
         document.querySelectorAll('.searchable-select-dropdown.open').forEach(dd => {
-            dd.classList.remove('open');
+            if (dd !== dropdown) {
+                dd.classList.remove('open');
+            }
         });
         document.querySelectorAll('.searchable-select-display.open').forEach(d => {
-            d.classList.remove('open');
+            if (d !== display) {
+                d.classList.remove('open');
+            }
         });
 
         isOpen = true;
+        highlightedIndex = -1;
         dropdown.classList.add('open');
         display.classList.add('open');
         searchInput.value = '';
         renderOptions();
 
-        // 少し遅延させてフォーカス
+        // 選択済み項目にスクロール
         setTimeout(() => {
+            const selectedOpt = optionsContainer.querySelector('.searchable-select-option.selected');
+            if (selectedOpt) {
+                selectedOpt.scrollIntoView({ block: 'center' });
+            }
             searchInput.focus();
         }, 10);
     }
@@ -243,11 +279,12 @@ function initSearchableSelect(containerId, options, placeholder, onChange) {
     // ドロップダウンを閉じる
     function closeDropdown() {
         isOpen = false;
+        highlightedIndex = -1;
         dropdown.classList.remove('open');
         display.classList.remove('open');
     }
 
-    // 表示エリアクリック
+    // イベントリスナー
     display.addEventListener('click', (e) => {
         e.stopPropagation();
         if (isOpen) {
@@ -257,17 +294,15 @@ function initSearchableSelect(containerId, options, placeholder, onChange) {
         }
     });
 
-    // 検索入力
     searchInput.addEventListener('input', (e) => {
+        highlightedIndex = -1;
         renderOptions(e.target.value);
     });
 
-    // 検索欄クリック時の伝播を止める
     searchInput.addEventListener('click', (e) => {
         e.stopPropagation();
     });
 
-    // ドロップダウン内クリック時の伝播を止める
     dropdown.addEventListener('click', (e) => {
         e.stopPropagation();
     });
@@ -281,26 +316,45 @@ function initSearchableSelect(containerId, options, placeholder, onChange) {
 
     // キーボード操作
     searchInput.addEventListener('keydown', (e) => {
+        const visibleOpts = optionsContainer.querySelectorAll('.searchable-select-option');
+        const maxIndex = visibleOpts.length - 1;
+
         if (e.key === 'Escape') {
             closeDropdown();
-        } else if (e.key === 'Enter') {
-            // 最初の選択肢を選択
-            const firstOption = optionsContainer.querySelector('.searchable-select-option:not(.selected)');
-            if (firstOption) {
-                firstOption.click();
+            display.focus();
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (highlightedIndex < maxIndex) {
+                highlightedIndex++;
+                updateHighlight();
             }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (highlightedIndex > 0) {
+                highlightedIndex--;
+                updateHighlight();
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (highlightedIndex >= 0 && highlightedIndex <= maxIndex) {
+                const opt = visibleOpts[highlightedIndex];
+                if (opt) {
+                    selectOption(opt.dataset.value, opt.textContent);
+                }
+            } else if (visibleOpts.length > 0) {
+                selectOption(visibleOpts[0].dataset.value, visibleOpts[0].textContent);
+            }
+        } else if (e.key === 'Tab') {
+            closeDropdown();
         }
     });
 
-    // Escキーでも閉じる（display要素にフォーカス時）
     display.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeDropdown();
-        } else if (e.key === 'Enter' || e.key === ' ') {
+        } else if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
             e.preventDefault();
-            if (isOpen) {
-                closeDropdown();
-            } else {
+            if (!isOpen) {
                 openDropdown();
             }
         }
@@ -309,12 +363,15 @@ function initSearchableSelect(containerId, options, placeholder, onChange) {
     // 初期描画
     renderOptions();
 
-    // 値を取得/設定するメソッドを返す
+    // APIを返す
     return {
         getValue: () => selectedValue,
         setValue: (value) => {
             selectedValue = value;
-            const opt = currentOptions.find(o => (typeof o === 'object' ? o.value : o) === value);
+            const opt = currentOptions.find(o => {
+                const v = typeof o === 'object' ? o.value : o;
+                return v === value;
+            });
             if (opt) {
                 displayText.textContent = typeof opt === 'object' ? opt.label : opt;
             } else {
@@ -330,10 +387,204 @@ function initSearchableSelect(containerId, options, placeholder, onChange) {
         reset: () => {
             selectedValue = '';
             displayText.textContent = placeholder;
+            if (onChange) onChange('');
         },
         close: () => {
             closeDropdown();
+        },
+        open: () => {
+            openDropdown();
         }
     };
 }
 
+// ===================
+// 共通コピー・ダウンロード機能
+// ===================
+
+// テーブルからデータを取得する汎用関数
+function getTableData(tableElement) {
+    if (!tableElement) return { headers: [], rows: [] };
+
+    const thead = tableElement.querySelector('thead');
+    const tbody = tableElement.querySelector('tbody');
+
+    // ヘッダー取得
+    const headers = [];
+    if (thead) {
+        const headerCells = thead.querySelectorAll('th');
+        headerCells.forEach(cell => {
+            headers.push(cell.textContent.trim());
+        });
+    }
+
+    // 行データ取得
+    const rows = [];
+    if (tbody) {
+        const bodyRows = tbody.querySelectorAll('tr');
+        bodyRows.forEach(row => {
+            const rowData = [];
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                let value = cell.textContent.trim();
+                // +記号とカンマを除去して数値として扱う
+                let numStr = value.replace(/[+,]/g, '').replace('%', '');
+                const num = parseFloat(numStr);
+                if (!isNaN(num) && value !== '-') {
+                    value = numStr;
+                }
+                rowData.push(value);
+            });
+            if (rowData.length > 0) {
+                rows.push(rowData);
+            }
+        });
+    }
+
+    return { headers, rows };
+}
+
+// 複数テーブルのデータを結合（トレンド用）
+function getMergedTableData(fixedTable, scrollTable) {
+    const fixedData = getTableData(fixedTable);
+    const scrollData = getTableData(scrollTable);
+
+    const headers = [...fixedData.headers, ...scrollData.headers];
+    const rows = [];
+
+    const maxRows = Math.max(fixedData.rows.length, scrollData.rows.length);
+    for (let i = 0; i < maxRows; i++) {
+        const fixedRow = fixedData.rows[i] || [];
+        const scrollRow = scrollData.rows[i] || [];
+        rows.push([...fixedRow, ...scrollRow]);
+    }
+
+    return { headers, rows };
+}
+
+// タブ区切り形式に変換（スプレッドシート用）
+function convertToTSV(headers, rows) {
+    const lines = [];
+    lines.push(headers.join('\t'));
+    rows.forEach(row => {
+        lines.push(row.join('\t'));
+    });
+    return lines.join('\n');
+}
+
+// CSV形式に変換
+function convertToCSV(headers, rows) {
+    const lines = [];
+    
+    const escapeCSV = (value) => {
+        const str = String(value);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+    };
+    
+    lines.push(headers.map(escapeCSV).join(','));
+    rows.forEach(row => {
+        lines.push(row.map(escapeCSV).join(','));
+    });
+    
+    return lines.join('\n');
+}
+
+// クリップボードにコピー（汎用）
+async function copyToClipboard(data, buttonElement) {
+    const { headers, rows } = data;
+    
+    if (rows.length === 0) {
+        showCopyToast('コピーするデータがありません', true);
+        return;
+    }
+    
+    const tsv = convertToTSV(headers, rows);
+    
+    try {
+        await navigator.clipboard.writeText(tsv);
+        showCopyToast(`${rows.length}行のデータをコピーしました`);
+        
+        if (buttonElement) {
+            buttonElement.classList.add('copied');
+            setTimeout(() => {
+                buttonElement.classList.remove('copied');
+            }, 2000);
+        }
+    } catch (err) {
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = tsv;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            
+            showCopyToast(`${rows.length}行のデータをコピーしました`);
+            
+            if (buttonElement) {
+                buttonElement.classList.add('copied');
+                setTimeout(() => {
+                    buttonElement.classList.remove('copied');
+                }, 2000);
+            }
+        } catch (fallbackErr) {
+            showCopyToast('コピーに失敗しました', true);
+            console.error('Copy failed:', fallbackErr);
+        }
+    }
+}
+
+// CSVファイルをダウンロード（汎用）
+function downloadAsCSV(data, filename) {
+    const { headers, rows } = data;
+    
+    if (rows.length === 0) {
+        showCopyToast('ダウンロードするデータがありません', true);
+        return;
+    }
+    
+    const csv = convertToCSV(headers, rows);
+    
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const blob = new Blob([bom, csv], { type: 'text/csv;charset=utf-8' });
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showCopyToast(`${filename} をダウンロードしました`);
+}
+
+// トースト通知を表示
+function showCopyToast(message, isError = false) {
+    const existingToast = document.querySelector('.copy-toast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = 'copy-toast' + (isError ? ' error' : '');
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    requestAnimationFrame(() => {
+        toast.classList.add('show');
+    });
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 3000);
+}

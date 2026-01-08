@@ -27,12 +27,15 @@
 
         <div class="controls">
             <select id="dateSelect"></select>
-            <input type="text" id="search" placeholder="機種名・台番号で検索">
+            <div id="dailyMachineFilterContainer"></div>
+            <input type="text" id="search" placeholder="台番号で検索">
             <select id="sortBy">
                 <option value="">並び替え</option>
                 <option value="sa_desc">差枚 ↓</option>
                 <option value="sa_asc">差枚 ↑</option>
                 <option value="game_desc">G数 ↓</option>
+                <option value="rate_desc">機械割 ↓</option>
+                <option value="rate_asc">機械割 ↑</option>
             </select>
         </div>
 
@@ -64,6 +67,15 @@
                                 <option value="lte">以下</option>
                             </select>
                             <input type="number" id="gameFilterValue" placeholder="G">
+                        </div>
+                        <div class="filter-item">
+                            <label>機械割</label>
+                            <select id="rateFilterType">
+                                <option value="">--</option>
+                                <option value="gte">以上</option>
+                                <option value="lte">以下</option>
+                            </select>
+                            <input type="number" id="rateFilterValue" placeholder="%" step="0.1">
                         </div>
                         <div class="filter-item">
                             <label>台番号末尾</label>
@@ -104,6 +116,16 @@
 
         <div class="summary" id="summary"></div>
 
+        <!-- コピー・ダウンロードボタン -->
+        <div class="table-actions">
+            <button class="btn-copy" id="copyTableBtn" title="テーブルをクリップボードにコピー">
+                📋 コピー
+            </button>
+            <button class="btn-download" id="downloadCsvBtn" title="CSVファイルをダウンロード">
+                💾 CSV
+            </button>
+        </div>
+
         <div class="table-wrapper">
             <table id="data-table">
                 <thead></thead>
@@ -128,9 +150,7 @@
             </div>
             <div class="control-group">
                 <label>機種:</label>
-                <select id="trendMachineFilter">
-                    <option value="">全機種</option>
-                </select>
+                <div id="trendMachineFilterContainer"></div>
             </div>
             <div class="control-group">
                 <label>並び替え:</label>
@@ -146,11 +166,13 @@
 
         <!-- カレンダー日付選択モーダル -->
         <div id="trendCalendarModal" class="calendar-modal">
-            <div class="calendar-modal-content">
+            <div class="calendar-modal-content calendar-modal-large">
                 <div class="calendar-modal-header">
                     <h3>表示する日付を選択</h3>
                     <button id="closeTrendCalendar" class="close-btn">×</button>
                 </div>
+                <!-- フィルターパネル -->
+                <div id="trendFilterContainer"></div>
                 <div class="calendar-modal-body">
                     <div id="trendDateList" class="date-checkbox-list"></div>
                 </div>
@@ -163,6 +185,17 @@
         </div>
 
         <div id="trendSummary" class="summary"></div>
+
+        <!-- コピー・ダウンロードボタン -->
+        <div class="table-actions">
+            <button class="btn-copy" id="copyTrendTableBtn" title="テーブルをクリップボードにコピー">
+                📋 コピー
+            </button>
+            <button class="btn-download" id="downloadTrendCsvBtn" title="CSVファイルをダウンロード">
+                💾 CSV
+            </button>
+        </div>
+
         <div class="table-wrapper has-scrollbar">
             <div class="fixed-columns">
                 <table id="trend-fixed-table">
@@ -188,6 +221,13 @@
 
         <!-- 日別モード -->
         <div id="stats-daily-content" class="stats-mode-content active">
+            <!-- 日付ナビゲーション -->
+            <div class="date-nav stats-date-nav">
+                <button id="statsPrevDate">◀ 前日</button>
+                <span class="current-date" id="statsCurrentDateLabel">-</span>
+                <button id="statsNextDate">翌日 ▶</button>
+            </div>
+            
             <div class="controls">
                 <div class="control-group">
                     <label>日付:</label>
@@ -195,9 +235,7 @@
                 </div>
                 <div class="control-group">
                     <label>機種:</label>
-                    <select id="statsMachineSelect">
-                        <option value="">全機種</option>
-                    </select>
+                    <div id="statsDailyMachineFilterContainer"></div>
                 </div>
                 <div class="control-group stats-unit-suffix-filter" style="display: none;">
                     <label>台番号末尾:</label>
@@ -271,10 +309,20 @@
                     </select>
                 </div>
                 <div class="control-group">
+                    <label>イベント:</label>
+                    <div id="statsEventFilterContainer"></div>
+                </div>
+                <div class="control-group">
+                    <label>メディア:</label>
+                    <div id="statsMediaFilterContainer"></div>
+                </div>
+                <div class="control-group">
+                    <label>演者:</label>
+                    <div id="statsPerformerFilterContainer"></div>
+                </div>
+                <div class="control-group">
                     <label>機種:</label>
-                    <select id="statsPeriodMachineSelect">
-                        <option value="">全機種</option>
-                    </select>
+                    <div id="statsMachineFilterContainer"></div>
                 </div>
                 <div class="control-group stats-period-unit-suffix-filter" style="display: none;">
                     <label>台番号末尾:</label>
@@ -307,6 +355,16 @@
             </div>
         </div>
 
+        <!-- コピー・ダウンロードボタンを追加 -->
+        <div class="table-actions" id="statsTableActions">
+            <button class="btn-copy" id="copyStatsTableBtn" title="テーブルをクリップボードにコピー">
+                📋 コピー
+            </button>
+            <button class="btn-download" id="downloadStatsCsvBtn" title="CSVファイルをダウンロード">
+                💾 CSV
+            </button>
+        </div>
+
         <div id="statsContent"></div>
     </div>
 
@@ -318,38 +376,46 @@
                 <h2 id="calendarMonth"></h2>
                 <button id="nextMonth">次月 ▶</button>
             </div>
-            <div class="calendar-weekdays">
-                <div class="weekday sunday">日</div>
-                <div class="weekday">月</div>
-                <div class="weekday">火</div>
-                <div class="weekday">水</div>
-                <div class="weekday">木</div>
-                <div class="weekday">金</div>
-                <div class="weekday saturday">土</div>
+
+            <!-- イベントフィルター -->
+            <div id="calendarFilter" class="calendar-filter-container"></div>
+
+            <!-- スクロール可能なエリア -->
+            <div class="calendar-scroll-wrapper">
+                <div class="calendar-weekdays">
+                    <div class="weekday sunday">日</div>
+                    <div class="weekday">月</div>
+                    <div class="weekday">火</div>
+                    <div class="weekday">水</div>
+                    <div class="weekday">木</div>
+                    <div class="weekday">金</div>
+                    <div class="weekday saturday">土</div>
+                </div>
+                <div class="calendar-days" id="calendarDays"></div>
             </div>
-            <div class="calendar-days" id="calendarDays"></div>
 
             <div class="calendar-legend">
                 <div class="legend-item">
                     <span class="legend-bar avg-sa"></span>
-                    <span>平均差枚 (最大±1,000枚)</span>
+                    <span>平均差枚</span>
                 </div>
                 <div class="legend-item">
                     <span class="legend-bar avg-game"></span>
-                    <span>平均G数 (最大8,000G)</span>
+                    <span>平均G数</span>
                 </div>
                 <div class="legend-item">
                     <span class="legend-bar win-rate"></span>
-                    <span>勝率 (最大75%)</span>
+                    <span>勝率</span>
                 </div>
                 <div class="legend-item">
                     <span class="legend-bar total-sa"></span>
-                    <span>総差枚 (最大±250,000枚)</span>
+                    <span>総差枚</span>
                 </div>
             </div>
         </div>
     </div>
-
+    
+    <!-- スクリプト読み込み -->
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/data.js"></script>

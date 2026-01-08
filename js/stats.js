@@ -94,7 +94,7 @@ function calculateSuffixStats(data) {
     });
 }
 
-// 台番号末尾統計のHTML生成（トグル式・機械割追加）
+// 台番号末尾統計のHTML生成（トグル式・機械割追加・コピーダウンロード追加）
 function renderSuffixStatsTable(suffixStats, title = '台番号末尾別統計') {
     const uniqueId = 'suffixStats_' + Math.random().toString(36).substr(2, 9);
     
@@ -127,8 +127,16 @@ function renderSuffixStatsTable(suffixStats, title = '台番号末尾別統計')
                 <span class="toggle-icon">▼</span>
             </div>
             <div class="suffix-stats-content" id="${uniqueId}">
+                <div class="table-actions suffix-table-actions">
+                    <button class="btn-copy btn-small" data-table-id="suffix-table-${uniqueId}" title="テーブルをクリップボードにコピー">
+                        📋 コピー
+                    </button>
+                    <button class="btn-download btn-small" data-table-id="suffix-table-${uniqueId}" title="CSVファイルをダウンロード">
+                        💾 CSV
+                    </button>
+                </div>
                 <div class="table-wrapper">
-                    <table class="stats-table suffix-stats-table">
+                    <table class="stats-table suffix-stats-table" id="suffix-table-${uniqueId}">
                         <thead>
                             <tr>
                                 <th>末尾</th>
@@ -152,10 +160,46 @@ function renderSuffixStatsTable(suffixStats, title = '台番号末尾別統計')
 
     setTimeout(() => {
         setupSuffixStatsToggle(uniqueId);
+        setupSuffixTableActions(uniqueId);
     }, 0);
 
     return html;
 }
+
+// 台番号末尾テーブルのコピー・ダウンロードボタンをセットアップ
+function setupSuffixTableActions(uniqueId) {
+    const container = document.getElementById(uniqueId);
+    if (!container) return;
+
+    const copyBtn = container.querySelector('.btn-copy');
+    const downloadBtn = container.querySelector('.btn-download');
+    const tableId = `suffix-table-${uniqueId}`;
+
+    if (copyBtn) {
+        copyBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const table = document.getElementById(tableId);
+            if (table) {
+                const data = getTableData(table);
+                copyToClipboard(data, copyBtn);
+            }
+        });
+    }
+
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const table = document.getElementById(tableId);
+            if (table) {
+                const data = getTableData(table);
+                const today = new Date().toISOString().split('T')[0].replace(/-/g, '_');
+                const filename = `suffix_stats_${today}.csv`;
+                downloadAsCSV(data, filename);
+            }
+        });
+    }
+}
+
 
 // トグル動作のセットアップ
 function setupSuffixStatsToggle(uniqueId) {
@@ -1434,4 +1478,53 @@ function setupStatsEventListeners() {
         updateStatsDateLabel();
         updateStatsDateNavButtons();
     }, 100);
+
+    // コピー・ダウンロードボタンのイベントリスナーを追加
+    document.getElementById('copyStatsTableBtn')?.addEventListener('click', copyStatsTable);
+    document.getElementById('downloadStatsCsvBtn')?.addEventListener('click', downloadStatsCSV);
+}
+
+// 統計テーブルのコピー
+function copyStatsTable() {
+    // statsContent内の最初のstats-tableを取得
+    const table = document.querySelector('#statsContent .stats-table');
+    if (!table) {
+        showCopyToast('コピーするテーブルがありません', true);
+        return;
+    }
+    const data = getTableData(table);
+    const btn = document.getElementById('copyStatsTableBtn');
+    copyToClipboard(data, btn);
+}
+
+// 統計テーブルのCSVダウンロード
+function downloadStatsCSV() {
+    const table = document.querySelector('#statsContent .stats-table');
+    if (!table) {
+        showCopyToast('ダウンロードするテーブルがありません', true);
+        return;
+    }
+    const data = getTableData(table);
+    
+    // ファイル名を生成
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '_');
+    let filename = '';
+    
+    if (statsMode === 'daily') {
+        const dateSelect = document.getElementById('statsDateSelect');
+        const selectedDate = dateSelect?.value?.replace('data/', '').replace('.csv', '') || today;
+        const machine = statsDailyMachineFilterSelect ? statsDailyMachineFilterSelect.getValue() : '';
+        filename = machine 
+            ? `stats_daily_${selectedDate}_${machine}.csv`
+            : `stats_daily_${selectedDate}.csv`;
+    } else {
+        const startDate = document.getElementById('statsPeriodStart')?.value?.replace('data/', '').replace('.csv', '') || '';
+        const endDate = document.getElementById('statsPeriodEnd')?.value?.replace('data/', '').replace('.csv', '') || '';
+        const machine = statsMachineFilterSelect ? statsMachineFilterSelect.getValue() : '';
+        filename = machine
+            ? `stats_period_${startDate}_${endDate}_${machine}.csv`
+            : `stats_period_${startDate}_${endDate}.csv`;
+    }
+    
+    downloadAsCSV(data, filename);
 }
