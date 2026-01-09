@@ -168,11 +168,54 @@
                     <option value="unit_asc">台番号 ↑</option>
                     <option value="unit_desc">台番号 ↓</option>
                 </select>
-
             </div>
             <button id="loadTrend" class="btn-apply">表示更新</button>
         </div>
-
+    
+        <!-- フィルター・表示設定パネル -->
+        <div class="filter-panel collapsible">
+            <div class="filter-panel-header" id="trendFilterToggle">
+                <h4>🔍 フィルター・表示設定</h4>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="filter-panel-content" id="trendFilterContent">
+                <!-- 合計差枚フィルター -->
+                <div class="filter-section">
+                    <h5>数値フィルター</h5>
+                    <div class="filter-row">
+                        <div class="filter-item">
+                            <label>合計差枚</label>
+                            <select id="trendTotalFilterType">
+                                <option value="">--</option>
+                                <option value="gte">以上</option>
+                                <option value="lte">以下</option>
+                            </select>
+                            <input type="number" id="trendTotalFilterValue" placeholder="枚">
+                        </div>
+                    </div>
+                </div>
+            
+                <!-- 列表示設定 -->
+                <div class="filter-section">
+                    <h5>📋 表示列</h5>
+                    <div class="column-checkboxes">
+                        <label class="column-checkbox-item">
+                            <input type="checkbox" id="trendShowTotal" checked>
+                            <span>合計</span>
+                        </label>
+                        <label class="column-checkbox-item">
+                            <input type="checkbox" id="trendShowAvg" checked>
+                            <span>平均</span>
+                        </label>
+                    </div>
+                </div>
+            
+                <div class="filter-buttons">
+                    <button class="btn-reset" id="resetTrendFilter">リセット</button>
+                </div>
+            </div>
+        </div>
+    
         <!-- カレンダー日付選択モーダル -->
         <div id="trendCalendarModal" class="calendar-modal">
             <div class="calendar-modal-content calendar-modal-large">
@@ -192,9 +235,9 @@
                 </div>
             </div>
         </div>
-
+    
         <div id="trendSummary" class="summary"></div>
-
+    
         <!-- コピー・ダウンロードボタン -->
         <div class="table-actions">
             <button class="btn-copy" id="copyTrendTableBtn" title="テーブルをクリップボードにコピー">
@@ -204,7 +247,7 @@
                 💾 CSV
             </button>
         </div>
-
+    
         <div class="table-wrapper has-scrollbar">
             <div class="fixed-columns">
                 <table id="trend-fixed-table">

@@ -1,6 +1,30 @@
 // ===================
 // メイン初期化・タブ切り替え
 // ===================
+
+// フィルターパネルのトグル（汎用関数）
+function setupFilterPanelToggle(toggleId, contentId) {
+    const toggle = document.getElementById(toggleId);
+    const content = document.getElementById(contentId);
+    
+    if (!toggle || !content) return;
+    
+    toggle.addEventListener('click', () => {
+        const icon = toggle.querySelector('.toggle-icon');
+        const isOpen = content.classList.contains('open');
+
+        if (isOpen) {
+            content.classList.remove('open');
+            toggle.classList.remove('open');
+            if (icon) icon.textContent = '▼';
+        } else {
+            content.classList.add('open');
+            toggle.classList.add('open');
+            if (icon) icon.textContent = '▲';
+        }
+    });
+}
+
 function setupTabEventListeners() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -56,6 +80,9 @@ async function init() {
     setupTrendEventListeners();
     setupStatsEventListeners();
     setupCalendarEventListeners();
+
+    // フィルターパネルのトグルを設定
+    setupFilterPanelToggle('trendFilterToggle', 'trendFilterContent');
 
     filterAndRender();
 }

@@ -5,6 +5,8 @@
 let trendDataCache = null;
 let trendLastParams = null;
 let trendMachineFilterSelect = null;
+let trendShowTotal = true;
+let trendShowAvg = true;
 
 // 日付のイベント・演者情報を取得してテキスト生成
 function getTrendDateEventText(file) {
@@ -351,10 +353,40 @@ function initTrendMachineFilter() {
     }
 }
 
+// 列表示設定の初期化
+function initTrendColumnSettings() {
+    const savedTotal = localStorage.getItem('trendShowTotal');
+    const savedAvg = localStorage.getItem('trendShowAvg');
+    
+    trendShowTotal = savedTotal !== 'false';
+    trendShowAvg = savedAvg !== 'false';
+    
+    const totalCheckbox = document.getElementById('trendShowTotal');
+    const avgCheckbox = document.getElementById('trendShowAvg');
+    
+    if (totalCheckbox) totalCheckbox.checked = trendShowTotal;
+    if (avgCheckbox) avgCheckbox.checked = trendShowAvg;
+}
+
+// 列表示設定の保存
+function saveTrendColumnSettings() {
+    localStorage.setItem('trendShowTotal', trendShowTotal);
+    localStorage.setItem('trendShowAvg', trendShowAvg);
+}
+
 async function loadTrendData() {
     const daysSelect = document.getElementById('trendDays');
     const selectedMachines = trendMachineFilterSelect ? trendMachineFilterSelect.getSelectedValues() : [];
     const sortBy = document.getElementById('trendSortBy')?.value || 'total_desc';
+
+    // 合計差枚フィルター
+    const totalFilterType = document.getElementById('trendTotalFilterType')?.value || '';
+    const totalFilterValue = document.getElementById('trendTotalFilterValue')?.value || '';
+
+    // 列表示設定
+    trendShowTotal = document.getElementById('trendShowTotal')?.checked ?? true;
+    trendShowAvg = document.getElementById('trendShowAvg')?.checked ?? true;
+    saveTrendColumnSettings();
 
     const summaryEl = document.getElementById('trendSummary');
     summaryEl.innerHTML = '<p>読み込み中...</p>';
@@ -402,6 +434,18 @@ async function loadTrendData() {
         const values = Object.values(item.dates);
         item.total = values.reduce((a, b) => a + b, 0);
         item.avg = values.length > 0 ? Math.round(item.total / values.length) : 0;
+    }
+
+    // 合計差枚フィルターを適用
+    if (totalFilterType && totalFilterValue) {
+        const filterVal = parseInt(totalFilterValue);
+        if (!isNaN(filterVal)) {
+            if (totalFilterType === 'gte') {
+                results = results.filter(item => item.total >= filterVal);
+            } else if (totalFilterType === 'lte') {
+                results = results.filter(item => item.total <= filterVal);
+            }
+        }
     }
 
     // ソート
@@ -459,9 +503,16 @@ async function loadTrendData() {
     if (selectedMachines.length > 0) {
         machineInfo = ` | 機種: ${selectedMachines.length}機種選択中`;
     }
+
+    // フィルター情報の表示
+    let filterInfo = '';
+    if (totalFilterType && totalFilterValue) {
+        const filterLabel = totalFilterType === 'gte' ? '以上' : '以下';
+        filterInfo = ` | フィルター: 合計${parseInt(totalFilterValue).toLocaleString()}枚${filterLabel}`;
+    }
     
     summaryEl.innerHTML = `
-        表示: ${results.length}台 | 期間: ${targetFiles.length}日間${machineInfo} |
+        表示: ${results.length}台 | 期間: ${targetFiles.length}日間${machineInfo}${filterInfo} |
         合計差枚: <span class="${saClass}">${totalSa >= 0 ? '+' : ''}${totalSa.toLocaleString()}</span>
     `;
 
@@ -478,8 +529,11 @@ function renderTrendTables(results, targetFiles) {
 
     fixedThead.innerHTML = '<tr><th>機種名</th><th>台番号</th></tr>';
 
-    const scrollHeaderCells = targetFiles.map(file => `<th>${formatDateShort(file)}</th>`).join('');
-    scrollThead.innerHTML = `<tr>${scrollHeaderCells}<th>合計</th><th>平均</th></tr>`;
+    // スクロールヘッダーを構築（列表示設定を反映）
+    let scrollHeaderCells = targetFiles.map(file => `<th>${formatDateShort(file)}</th>`).join('');
+    if (trendShowTotal) scrollHeaderCells += '<th>合計</th>';
+    if (trendShowAvg) scrollHeaderCells += '<th>平均</th>';
+    scrollThead.innerHTML = `<tr>${scrollHeaderCells}</tr>`;
 
     const fixedRows = [];
     const scrollRows = [];
@@ -498,11 +552,15 @@ function renderTrendTables(results, targetFiles) {
             }
         }
 
-        const totalCls = row.total > 0 ? 'plus' : row.total < 0 ? 'minus' : '';
-        const avgCls = row.avg > 0 ? 'plus' : row.avg < 0 ? 'minus' : '';
-
-        dateCells.push(`<td class="${totalCls}">${row.total >= 0 ? '+' : ''}${row.total.toLocaleString()}</td>`);
-        dateCells.push(`<td class="${avgCls}">${row.avg >= 0 ? '+' : ''}${row.avg.toLocaleString()}</td>`);
+        // 列表示設定を反映
+        if (trendShowTotal) {
+            const totalCls = row.total > 0 ? 'plus' : row.total < 0 ? 'minus' : '';
+            dateCells.push(`<td class="${totalCls}">${row.total >= 0 ? '+' : ''}${row.total.toLocaleString()}</td>`);
+        }
+        if (trendShowAvg) {
+            const avgCls = row.avg > 0 ? 'plus' : row.avg < 0 ? 'minus' : '';
+            dateCells.push(`<td class="${avgCls}">${row.avg >= 0 ? '+' : ''}${row.avg.toLocaleString()}</td>`);
+        }
 
         scrollRows.push(`<tr>${dateCells.join('')}</tr>`);
     }
@@ -553,20 +611,28 @@ function handleResize() {
     }, 100);
 }
 
-// トレンドテーブルのコピー
-function copyTrendTable() {
+// トレンドテーブルのデータを取得
+function getTrendTableData() {
     const fixedTable = document.getElementById('trend-fixed-table');
     const scrollTable = document.getElementById('trend-scroll-table');
-    const data = getMergedTableData(fixedTable, scrollTable);
+    return getMergedTableData(fixedTable, scrollTable);
+}
+
+// トレンドテーブルのコピー
+function copyTrendTable() {
+    const data = getTrendTableData();
     const btn = document.getElementById('copyTrendTableBtn');
     copyToClipboard(data, btn);
 }
 
 // トレンドテーブルのCSVダウンロード
 function downloadTrendCSV() {
-    const fixedTable = document.getElementById('trend-fixed-table');
-    const scrollTable = document.getElementById('trend-scroll-table');
-    const data = getMergedTableData(fixedTable, scrollTable);
+    const data = getTrendTableData();
+    
+    if (data.rows.length === 0) {
+        showCopyToast('ダウンロードするデータがありません', true);
+        return;
+    }
     
     // ファイル名を生成
     const daysSelect = document.getElementById('trendDays');
@@ -575,6 +641,31 @@ function downloadTrendCSV() {
     const filename = `trend_${days}days_${today}.csv`;
     
     downloadAsCSV(data, filename);
+}
+
+// フィルターリセット
+function resetTrendFilters() {
+    // 合計差枚フィルターをリセット
+    const totalFilterType = document.getElementById('trendTotalFilterType');
+    const totalFilterValue = document.getElementById('trendTotalFilterValue');
+    if (totalFilterType) totalFilterType.value = '';
+    if (totalFilterValue) totalFilterValue.value = '';
+    
+    // 機種フィルターをリセット
+    if (trendMachineFilterSelect) {
+        trendMachineFilterSelect.reset();
+    }
+    
+    // 列表示をリセット
+    const totalCheckbox = document.getElementById('trendShowTotal');
+    const avgCheckbox = document.getElementById('trendShowAvg');
+    if (totalCheckbox) totalCheckbox.checked = true;
+    if (avgCheckbox) avgCheckbox.checked = true;
+    trendShowTotal = true;
+    trendShowAvg = true;
+    saveTrendColumnSettings();
+    
+    loadTrendData();
 }
 
 function setupTrendEventListeners() {
@@ -619,7 +710,34 @@ function setupTrendEventListeners() {
     // 機種フィルターの初期化
     initTrendMachineFilter();
 
-    // コピー・ダウンロードボタンのイベントリスナーを追加
+    // 列表示設定の初期化
+    initTrendColumnSettings();
+
+    // 列表示チェックボックスのイベント
+    document.getElementById('trendShowTotal')?.addEventListener('change', loadTrendData);
+    document.getElementById('trendShowAvg')?.addEventListener('change', loadTrendData);
+
+    // 合計差枚フィルターのイベント
+    document.getElementById('trendTotalFilterType')?.addEventListener('change', loadTrendData);
+    document.getElementById('trendTotalFilterValue')?.addEventListener('input', debounce(loadTrendData, 500));
+
+    // フィルターリセットボタン
+    document.getElementById('resetTrendFilter')?.addEventListener('click', resetTrendFilters);
+
+    // コピー・ダウンロードボタンのイベントリスナー
     document.getElementById('copyTrendTableBtn')?.addEventListener('click', copyTrendTable);
     document.getElementById('downloadTrendCsvBtn')?.addEventListener('click', downloadTrendCSV);
+}
+
+// デバウンス関数（入力中の連続実行を防ぐ）
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }

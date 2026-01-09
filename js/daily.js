@@ -704,13 +704,33 @@ function getDisplayedTableData() {
             let value = cell.textContent.trim();
             
             const headerName = headers[index];
-            if (['G数', '差枚', 'BB', 'RB', 'ART', '合成確率', '機械割'].some(h => headerName && headerName.includes(h))) {
-                let numStr = value.replace(/[+,]/g, '').replace('%', '');
+            
+            // 確率形式（1/xxx.x）はそのまま保持
+            if (value.includes('/')) {
+                rowData.push(value);
+                return;
+            }
+            
+            // 機械割（%付き）の処理
+            if (headerName && headerName.includes('機械割') && value.includes('%')) {
+                let numStr = value.replace('%', '');
+                const num = parseFloat(numStr);
+                if (!isNaN(num)) {
+                    value = num.toString();
+                }
+                rowData.push(value);
+                return;
+            }
+            
+            // G数、差枚、BB、RB、ARTなどの数値処理
+            if (['G数', '差枚', 'BB', 'RB', 'ART'].some(h => headerName && headerName.includes(h))) {
+                let numStr = value.replace(/[+,]/g, '');
                 const num = parseFloat(numStr);
                 if (!isNaN(num)) {
                     value = num.toString();
                 }
             }
+            
             rowData.push(value);
         });
         rows.push(rowData);
@@ -718,6 +738,7 @@ function getDisplayedTableData() {
 
     return { headers, rows };
 }
+
 
 // クリップボードにコピー
 async function copyTableToClipboard() {
