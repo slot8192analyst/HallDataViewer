@@ -588,3 +588,415 @@ function showCopyToast(message, isError = false) {
         }, 300);
     }, 3000);
 }
+
+// ===================
+// 複数選択可能な機種フィルター
+// ===================
+
+function initMultiSelectMachineFilter(containerId, options, placeholder, onChange) {
+    const container = document.getElementById(containerId);
+    if (!container) return null;
+
+    container.className = 'multi-select-filter';
+    container.innerHTML = `
+        <div class="multi-select-display" tabindex="0">
+            <span class="multi-select-text">${placeholder}</span>
+            <span class="multi-select-count"></span>
+            <span class="multi-select-arrow">▼</span>
+        </div>
+        <div class="multi-select-dropdown">
+            <div class="multi-select-controls">
+                <input type="text" class="multi-select-search" placeholder="機種名で検索...">
+                <div class="multi-select-buttons">
+                    <button type="button" class="multi-select-btn select-all">全選択</button>
+                    <button type="button" class="multi-select-btn deselect-all">全解除</button>
+                </div>
+            </div>
+            <div class="multi-select-options"></div>
+        </div>
+    `;
+
+    const display = container.querySelector('.multi-select-display');
+    const displayText = container.querySelector('.multi-select-text');
+    const displayCount = container.querySelector('.multi-select-count');
+    const dropdown = container.querySelector('.multi-select-dropdown');
+    const searchInput = container.querySelector('.multi-select-search');
+    const optionsContainer = container.querySelector('.multi-select-options');
+    const selectAllBtn = container.querySelector('.select-all');
+    const deselectAllBtn = container.querySelector('.deselect-all');
+
+    let selectedValues = new Set();
+    let isOpen = false;
+    let currentOptions = options;
+
+    // オプションを描画
+    function renderOptions(filter = '') {
+        const filterLower = filter.toLowerCase().trim();
+        let html = '';
+
+        currentOptions.forEach((opt) => {
+            const value = opt.value;
+            const label = opt.label;
+            const count = opt.count || 0;
+
+            // フィルタリング
+            if (filterLower && !label.toLowerCase().includes(filterLower)) {
+                return;
+            }
+
+            const checked = selectedValues.has(value) ? 'checked' : '';
+            html += `
+                <label class="multi-select-option">
+                    <input type="checkbox" value="${value}" ${checked}>
+                    <span class="option-label">${label}</span>
+                    <span class="option-count">${count}台</span>
+                </label>
+            `;
+        });
+
+        if (filterLower && html === '') {
+            html = `<div class="multi-select-no-results">該当する機種がありません</div>`;
+        }
+
+        optionsContainer.innerHTML = html;
+
+        // チェックボックスのイベントリスナー
+        optionsContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    selectedValues.add(e.target.value);
+                } else {
+                    selectedValues.delete(e.target.value);
+                }
+                updateDisplay();
+                if (onChange) onChange(getSelectedValues());
+            });
+        });
+    }
+
+    // 表示を更新
+    function updateDisplay() {
+        const count = selectedValues.size;
+        const total = currentOptions.length;
+
+        if (count === 0) {
+            displayText.textContent = placeholder;
+            displayCount.textContent = '';
+            displayCount.style.display = 'none';
+        } else if (count === total) {
+            displayText.textContent = '全機種';
+            displayCount.textContent = `(${count}機種)`;
+            displayCount.style.display = 'inline';
+        } else if (count <= 2) {
+            const names = Array.from(selectedValues).slice(0, 2);
+            displayText.textContent = names.join(', ');
+            displayCount.textContent = count > 2 ? `他${count - 2}機種` : '';
+            displayCount.style.display = count > 2 ? 'inline' : 'none';
+        } else {
+            displayText.textContent = `${count}機種選択中`;
+            displayCount.textContent = '';
+            displayCount.style.display = 'none';
+        }
+    }
+
+    // 選択された値を取得
+    function getSelectedValues() {
+        return Array.from(selectedValues);
+    }
+
+    // ドロップダウンを開く
+    function openDropdown() {
+        document.querySelectorAll('.multi-select-dropdown.open').forEach(dd => {
+            if (dd !== dropdown) {
+                dd.classList.remove('open');
+            }
+        });
+        document.querySelectorAll('.multi-select-display.open').forEach(d => {
+            if (d !== display) {
+                d.classList.remove('open');
+            }
+        });
+
+        isOpen = true;
+        dropdown.classList.add('open');
+        display.classList.add('open');
+        searchInput.value = '';
+        renderOptions();
+        setTimeout(() => searchInput.focus(), 10);
+    }
+
+    // ドロップダウンを閉じる
+    function closeDropdown() {
+        isOpen = false;
+        dropdown.classList.remove('open');
+        display.classList.remove('open');
+    }
+
+    // 全選択
+    function selectAll() {
+        const filter = searchInput.value.toLowerCase().trim();
+        currentOptions.forEach(opt => {
+            if (!filter || opt.label.toLowerCase().includes(filter)) {
+                selectedValues.add(opt.value);
+            }
+        });
+        renderOptions(searchInput.value);
+        updateDisplay();
+        if (onChange) onChange(getSelectedValues());
+    }
+
+    // 全解除
+    function deselectAll() {
+        const filter = searchInput.value.toLowerCase().trim();
+        if (filter) {
+            // 検索結果のみ解除
+            currentOptions.forEach(opt => {
+                if (opt.label.toLowerCase().includes(filter)) {
+                    selectedValues.delete(opt.value);
+                }
+            });
+        } else {
+            selectedValues.clear();
+        }
+        renderOptions(searchInput.value);
+        updateDisplay();
+        if (onChange) onChange(getSelectedValues());
+    }
+
+    // イベントリスナー
+    display.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (isOpen) {
+            closeDropdown();
+        } else {
+            openDropdown();
+        }
+    });
+
+    searchInput.addEventListener('input', (e) => {
+        renderOptions(e.target.value);
+    });
+
+    searchInput.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+
+    dropdown.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+
+    selectAllBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectAll();
+    });
+
+    deselectAllBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deselectAll();
+    });
+
+    // 外側クリックで閉じる
+    document.addEventListener('click', (e) => {
+        if (!container.contains(e.target) && isOpen) {
+            closeDropdown();
+        }
+    });
+
+    // キーボード操作
+    display.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeDropdown();
+        } else if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (!isOpen) {
+                openDropdown();
+            }
+        }
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeDropdown();
+            display.focus();
+        }
+    });
+
+    // 初期描画
+    renderOptions();
+    updateDisplay();
+
+    // APIを返す
+    return {
+        getSelectedValues: () => getSelectedValues(),
+        setSelectedValues: (values) => {
+            selectedValues = new Set(values);
+            renderOptions(searchInput?.value || '');
+            updateDisplay();
+        },
+        updateOptions: (newOptions) => {
+            currentOptions = newOptions;
+            // 存在しない機種は選択から除外
+            const validValues = new Set(newOptions.map(o => o.value));
+            selectedValues = new Set([...selectedValues].filter(v => validValues.has(v)));
+            if (isOpen) {
+                renderOptions(searchInput.value);
+            }
+            updateDisplay();
+        },
+        reset: () => {
+            selectedValues.clear();
+            renderOptions(searchInput?.value || '');
+            updateDisplay();
+            if (onChange) onChange([]);
+        },
+        selectAll: () => {
+            currentOptions.forEach(opt => selectedValues.add(opt.value));
+            renderOptions(searchInput?.value || '');
+            updateDisplay();
+            if (onChange) onChange(getSelectedValues());
+        },
+        close: () => closeDropdown(),
+        open: () => openDropdown()
+    };
+}
+
+// 機種ごとの台数を取得
+function getMachineCountsFromData(data) {
+    const counts = {};
+    data.forEach(row => {
+        const machine = row['機種名'];
+        if (machine) {
+            counts[machine] = (counts[machine] || 0) + 1;
+        }
+    });
+    return counts;
+}
+
+// 全データから機種ごとの台数を取得
+function getAllMachineCountsFromCache() {
+    const counts = {};
+    Object.values(dataCache).forEach(data => {
+        if (Array.isArray(data)) {
+            data.forEach(row => {
+                const machine = row['機種名'];
+                if (machine) {
+                    if (!counts[machine]) {
+                        counts[machine] = { total: 0, dates: new Set() };
+                    }
+                    counts[machine].total++;
+                }
+            });
+        }
+    });
+
+    // 平均台数を計算
+    const result = {};
+    Object.entries(counts).forEach(([machine, data]) => {
+        result[machine] = Math.round(data.total / Object.keys(dataCache).length);
+    });
+    return result;
+}
+
+// ===================
+// ソート用ユーティリティ関数
+// ===================
+
+// 日本語文字列の比較（50音順）
+function compareJapanese(a, b) {
+    return a.localeCompare(b, 'ja');
+}
+
+// 台番号から数値を抽出
+function extractUnitNumber(unitStr) {
+    const numOnly = (unitStr || '').replace(/\D/g, '');
+    return numOnly ? parseInt(numOnly, 10) : 0;
+}
+
+// 機種名でソート（50音順）
+function sortByMachineName(data, key = '機種名', ascending = true) {
+    return [...data].sort((a, b) => {
+        const nameA = a[key] || a.machine || '';
+        const nameB = b[key] || b.machine || '';
+        const result = compareJapanese(nameA, nameB);
+        return ascending ? result : -result;
+    });
+}
+
+// 台番号でソート
+function sortByUnitNumber(data, key = '台番号', ascending = true) {
+    return [...data].sort((a, b) => {
+        const numA = extractUnitNumber(a[key] || a.num || '');
+        const numB = extractUnitNumber(b[key] || b.num || '');
+        
+        // 台番号が同じ場合は機種名でソート
+        if (numA === numB) {
+            const nameA = a['機種名'] || a.machine || '';
+            const nameB = b['機種名'] || b.machine || '';
+            return compareJapanese(nameA, nameB);
+        }
+        
+        return ascending ? numA - numB : numB - numA;
+    });
+}
+
+// 機種名→台番号の複合ソート
+function sortByMachineThenUnit(data, machineKey = '機種名', unitKey = '台番号', machineAsc = true, unitAsc = true) {
+    return [...data].sort((a, b) => {
+        const nameA = a[machineKey] || a.machine || '';
+        const nameB = b[machineKey] || b.machine || '';
+        const nameCompare = compareJapanese(nameA, nameB);
+        
+        if (nameCompare !== 0) {
+            return machineAsc ? nameCompare : -nameCompare;
+        }
+        
+        // 機種名が同じ場合は台番号でソート
+        const numA = extractUnitNumber(a[unitKey] || a.num || '');
+        const numB = extractUnitNumber(b[unitKey] || b.num || '');
+        return unitAsc ? numA - numB : numB - numA;
+    });
+}
+
+// getSortFunction を拡張
+function getSortFunction(sortBy) {
+    switch (sortBy) {
+        case 'total_desc':
+            return (a, b) => b.totalSa - a.totalSa;
+        case 'total_asc':
+            return (a, b) => a.totalSa - b.totalSa;
+        case 'avg_desc':
+            return (a, b) => b.avgSa - a.avgSa;
+        case 'avg_asc':
+            return (a, b) => a.avgSa - b.avgSa;
+        case 'count_desc':
+            return (a, b) => b.count - a.count;
+        case 'winrate_desc':
+            return (a, b) => parseFloat(b.winRate) - parseFloat(a.winRate);
+        case 'winrate_asc':
+            return (a, b) => parseFloat(a.winRate) - parseFloat(b.winRate);
+        case 'machine_asc':
+            return (a, b) => compareJapanese(a.machine || '', b.machine || '');
+        case 'machine_desc':
+            return (a, b) => compareJapanese(b.machine || '', a.machine || '');
+        case 'unit_asc':
+            return (a, b) => {
+                const numA = extractUnitNumber(a.num || '');
+                const numB = extractUnitNumber(b.num || '');
+                if (numA === numB) {
+                    return compareJapanese(a.machine || '', b.machine || '');
+                }
+                return numA - numB;
+            };
+        case 'unit_desc':
+            return (a, b) => {
+                const numA = extractUnitNumber(a.num || '');
+                const numB = extractUnitNumber(b.num || '');
+                if (numA === numB) {
+                    return compareJapanese(a.machine || '', b.machine || '');
+                }
+                return numB - numA;
+            };
+        default:
+            return (a, b) => b.totalSa - a.totalSa;
+    }
+}

@@ -9,37 +9,12 @@ let statsPerformerFilterSelect = null;
 let statsMachineFilterSelect = null;
 let statsDailyMachineFilterSelect = null;
 
-// 機械割を計算する関数
-function calculateMechanicalRate(games, saMai) {
-    const g = parseInt(games) || 0;
-    const sa = parseInt(saMai) || 0;
-    
-    if (g <= 0) return null;
-    
-    const totalIn = g * 3;
-    const totalOut = totalIn + sa;
-    const rate = (totalOut / totalIn) * 100;
-    
-    return rate;
-}
-
-// 機械割を文字列でフォーマット
-function formatMechanicalRate(rate) {
-    if (rate === null || rate === undefined || isNaN(rate)) {
-        return '-';
-    }
-    return rate.toFixed(2) + '%';
-}
-
-// 機械割のCSSクラスを取得
-function getMechanicalRateClass(rate) {
-    if (rate === null || rate === undefined || isNaN(rate)) {
-        return '';
-    }
-    if (rate >= 100) {
-        return 'plus';
+// メイン表示切り替え関数
+function showStats() {
+    if (statsMode === 'daily') {
+        showDailyStats();
     } else {
-        return 'minus';
+        showPeriodStats();
     }
 }
 
@@ -59,7 +34,7 @@ function filterByUnitSuffix(data, suffixFilter) {
     return data.filter(row => getUnitSuffix(row['台番号']) === targetSuffix);
 }
 
-// 台番号末尾ごとの統計を計算（機械割追加）
+// 台番号末尾ごとの統計を計算
 function calculateSuffixStats(data) {
     const suffixStats = {};
 
@@ -529,43 +504,60 @@ async function initStatsFilters() {
     updateStatsDailyMachineFilter();
 }
 
-// 期間集計用機種フィルターを更新
+// 期間集計用機種フィルターを更新（複数選択対応）
 function updateStatsMachineFilter() {
-    const machineOptions = [{ value: '', label: '全機種' }];
+    const machineCounts = getAllMachineCountsFromCache();
+    
+    const machineOptions = [];
     const sortedMachines = [...allMachines].sort();
     sortedMachines.forEach(machine => {
-        machineOptions.push({ value: machine, label: machine });
+        machineOptions.push({
+            value: machine,
+            label: machine,
+            count: machineCounts[machine] || 0
+        });
     });
 
     if (statsMachineFilterSelect) {
         statsMachineFilterSelect.updateOptions(machineOptions);
     } else {
-        statsMachineFilterSelect = initSearchableSelect('statsMachineFilterContainer', machineOptions, '全機種', () => showStats());
+        statsMachineFilterSelect = initMultiSelectMachineFilter(
+            'statsMachineFilterContainer',
+            machineOptions,
+            '全機種',
+            () => showStats()
+        );
     }
 }
 
-// 日別用機種フィルターを更新
+// 日別用機種フィルターを更新（複数選択対応）
 function updateStatsDailyMachineFilter() {
-    const machineOptions = [{ value: '', label: '全機種' }];
+    const dateFile = document.getElementById('statsDateSelect')?.value;
+    const data = dataCache[dateFile] || [];
+    const machineCounts = getMachineCountsFromData(data);
+    
+    const machineOptions = [];
     const sortedMachines = [...allMachines].sort();
     sortedMachines.forEach(machine => {
-        machineOptions.push({ value: machine, label: machine });
+        machineOptions.push({
+            value: machine,
+            label: machine,
+            count: machineCounts[machine] || 0
+        });
     });
 
     if (statsDailyMachineFilterSelect) {
         statsDailyMachineFilterSelect.updateOptions(machineOptions);
     } else {
-        statsDailyMachineFilterSelect = initSearchableSelect('statsDailyMachineFilterContainer', machineOptions, '全機種', () => showStats());
+        statsDailyMachineFilterSelect = initMultiSelectMachineFilter(
+            'statsDailyMachineFilterContainer',
+            machineOptions,
+            '全機種',
+            () => showStats()
+        );
     }
 }
 
-function showStats() {
-    if (statsMode === 'daily') {
-        showDailyStats();
-    } else {
-        showPeriodStats();
-    }
-}
 
 function updateUnitSuffixFilterVisibility() {
     const dailyFilter = document.querySelector('.stats-unit-suffix-filter');
@@ -641,7 +633,7 @@ function updateStatsDateNavButtons() {
 
 async function showDailyStats() {
     const dateFile = document.getElementById('statsDateSelect')?.value;
-    const selectedMachine = statsDailyMachineFilterSelect ? statsDailyMachineFilterSelect.getValue() : '';
+    const selectedMachines = statsDailyMachineFilterSelect ? statsDailyMachineFilterSelect.getSelectedValues() : [];
     const sortBy = document.getElementById('statsSortBy')?.value || 'total_desc';
     const unitSuffixFilter = document.getElementById('statsUnitSuffixFilter')?.value || '';
 
@@ -649,8 +641,9 @@ async function showDailyStats() {
 
     updateStatsDateLabel();
     updateStatsDateNavButtons();
+    updateStatsDailyMachineFilter();
 
-    const data = await loadCSV(dateFile);
+    let data = await loadCSV(dateFile);
     if (!data) {
         document.getElementById('statsContent').innerHTML = '<p>データがありません</p>';
         return;
@@ -662,14 +655,19 @@ async function showDailyStats() {
     
     const eventHtml = renderStatsEventBadges(events);
 
-    if (selectedMachine) {
-        showMachineDetail(data, selectedMachine, sortBy, unitSuffixFilter, eventHtml);
+    // 複数機種フィルター
+    if (selectedMachines.length > 0) {
+        data = data.filter(row => selectedMachines.includes(row['機種名']));
+    }
+
+    if (selectedMachines.length === 1) {
+        showMachineDetail(data, selectedMachines[0], sortBy, unitSuffixFilter, eventHtml);
     } else {
-        showAllStats(data, sortBy, 'daily', unitSuffixFilter, eventHtml);
+        showAllStats(data, sortBy, 'daily', unitSuffixFilter, eventHtml, selectedMachines);
     }
 }
 
-function showAllStats(data, sortBy, mode, unitSuffixFilter = '', eventHtml = '') {
+function showAllStats(data, sortBy, mode, unitSuffixFilter = '', eventHtml = '', selectedMachines = []) {
     const machineStats = {};
     data.forEach(row => {
         const machine = row['機種名'];
@@ -732,9 +730,13 @@ function showAllStats(data, sortBy, mode, unitSuffixFilter = '', eventHtml = '')
         };
     });
 
-    const sortFunc = getSortFunction(sortBy);
-    machineResults.sort(sortFunc);
-    unitResults.sort(sortFunc);
+    // ソート（機種別）
+    const machineSortFunc = getStatsSortFunction(sortBy);
+    machineResults.sort(machineSortFunc);
+    
+    // ソート（台別）
+    const unitSortFunc = getStatsSortFunction(sortBy);
+    unitResults.sort(unitSortFunc);
 
     const totalSa = data.reduce((sum, r) => sum + (parseInt(r['差枚']) || 0), 0);
     const totalGames = data.reduce((sum, r) => sum + (parseInt(r['G数']) || 0), 0);
@@ -742,15 +744,21 @@ function showAllStats(data, sortBy, mode, unitSuffixFilter = '', eventHtml = '')
     const winRate = ((plusCount / data.length) * 100).toFixed(1);
     const saClass = totalSa > 0 ? 'plus' : totalSa < 0 ? 'minus' : '';
     
-    // 全体の機械割
     const totalRate = calculateMechanicalRate(totalGames, totalSa);
     const totalRateText = formatMechanicalRate(totalRate);
     const totalRateClass = getMechanicalRateClass(totalRate);
 
     const suffixStats = calculateSuffixStats(data);
 
+    // 選択機種の表示
+    let machineFilterInfo = '';
+    if (selectedMachines.length > 0) {
+        machineFilterInfo = `<div class="filter-info"><span class="active-filter">${selectedMachines.length}機種選択中</span></div>`;
+    }
+
     let html = `
         ${eventHtml}
+        ${machineFilterInfo}
         <div class="stats-summary-block">
             <h4 class="block-title">📊 全体サマリー</h4>
             <div class="stats-summary-grid">
@@ -987,7 +995,7 @@ async function showPeriodStats() {
     const eventFilterValue = statsEventFilterSelect ? statsEventFilterSelect.getValue() : '';
     const mediaFilterValue = statsMediaFilterSelect ? statsMediaFilterSelect.getValue() : '';
     const performerFilterValue = statsPerformerFilterSelect ? statsPerformerFilterSelect.getValue() : '';
-    const selectedMachine = statsMachineFilterSelect ? statsMachineFilterSelect.getValue() : '';
+    const selectedMachines = statsMachineFilterSelect ? statsMachineFilterSelect.getSelectedValues() : [];
 
     const sortBy = document.getElementById('statsPeriodSortBy')?.value || 'total_desc';
     const unitSuffixFilter = document.getElementById('statsPeriodUnitSuffixFilter')?.value || '';
@@ -1033,6 +1041,10 @@ async function showPeriodStats() {
         const data = await loadCSV(file);
         if (data) {
             data.forEach(row => {
+                // 機種フィルター（複数選択対応）
+                if (selectedMachines.length > 0 && !selectedMachines.includes(row['機種名'])) {
+                    return;
+                }
                 allData.push({ ...row, _file: file, _date: formatDate(file) });
             });
         }
@@ -1065,16 +1077,19 @@ async function showPeriodStats() {
     if (performerFilterValue) {
         filterLabels.push(`🎤 ${performerFilterValue}`);
     }
+    if (selectedMachines.length > 0) {
+        filterLabels.push(`${selectedMachines.length}機種`);
+    }
     const filterLabel = filterLabels.length > 0 ? `（${filterLabels.join('・')}）` : '';
 
     const periodLabel = `${formatDate(targetFiles[0])} 〜 ${formatDate(targetFiles[targetFiles.length - 1])}（${targetFiles.length}日間）${filterLabel}`;
 
     const eventSummaryHtml = renderDetailedEventSummary(targetFiles);
 
-    if (selectedMachine) {
-        showPeriodMachineDetail(allData, selectedMachine, targetFiles, sortBy, periodLabel, unitSuffixFilter, eventSummaryHtml);
+    if (selectedMachines.length === 1) {
+        showPeriodMachineDetail(allData, selectedMachines[0], targetFiles, sortBy, periodLabel, unitSuffixFilter, eventSummaryHtml);
     } else {
-        showPeriodAllStats(allData, targetFiles, sortBy, periodLabel, unitSuffixFilter, eventSummaryHtml);
+        showPeriodAllStats(allData, targetFiles, sortBy, periodLabel, unitSuffixFilter, eventSummaryHtml, selectedMachines);
     }
 }
 
@@ -1527,4 +1542,52 @@ function downloadStatsCSV() {
     }
     
     downloadAsCSV(data, filename);
+}
+
+// stats.js用のソート関数
+function getStatsSortFunction(sortBy) {
+    switch (sortBy) {
+        case 'total_desc':
+            return (a, b) => b.totalSa - a.totalSa;
+        case 'total_asc':
+            return (a, b) => a.totalSa - b.totalSa;
+        case 'avg_desc':
+            return (a, b) => b.avgSa - a.avgSa;
+        case 'avg_asc':
+            return (a, b) => a.avgSa - b.avgSa;
+        case 'count_desc':
+            return (a, b) => b.count - a.count;
+        case 'winrate_desc':
+            return (a, b) => parseFloat(b.winRate) - parseFloat(a.winRate);
+        case 'winrate_asc':
+            return (a, b) => parseFloat(a.winRate) - parseFloat(b.winRate);
+        case 'machine_asc':
+            return (a, b) => {
+                const nameCompare = compareJapanese(a.machine || '', b.machine || '');
+                if (nameCompare !== 0) return nameCompare;
+                return extractUnitNumber(a.num || '') - extractUnitNumber(b.num || '');
+            };
+        case 'machine_desc':
+            return (a, b) => {
+                const nameCompare = compareJapanese(b.machine || '', a.machine || '');
+                if (nameCompare !== 0) return nameCompare;
+                return extractUnitNumber(a.num || '') - extractUnitNumber(b.num || '');
+            };
+        case 'unit_asc':
+            return (a, b) => {
+                const numA = extractUnitNumber(a.num || '');
+                const numB = extractUnitNumber(b.num || '');
+                if (numA !== numB) return numA - numB;
+                return compareJapanese(a.machine || '', b.machine || '');
+            };
+        case 'unit_desc':
+            return (a, b) => {
+                const numA = extractUnitNumber(a.num || '');
+                const numB = extractUnitNumber(b.num || '');
+                if (numA !== numB) return numB - numA;
+                return compareJapanese(a.machine || '', b.machine || '');
+            };
+        default:
+            return (a, b) => b.totalSa - a.totalSa;
+    }
 }

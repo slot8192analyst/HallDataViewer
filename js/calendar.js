@@ -3,9 +3,9 @@
 // ===================
 
 let eventData = null;
-let eventFilter = '';
-let mediaFilter = '';
-let performerFilter = '';
+let calendarEventFilter = null;
+let calendarMediaFilter = null;
+let calendarPerformerFilter = null;
 
 // イベントデータを読み込み
 async function loadEventData() {
@@ -62,7 +62,6 @@ function getAllEventNames() {
 function renderEventBadges(events) {
     if (!events || events.length === 0) return '';
 
-    // 取材名またはメディア名があるイベントのみ表示
     const displayableEvents = events.filter(event => {
         return event.name || event.media;
     });
@@ -74,7 +73,6 @@ function renderEventBadges(events) {
         const icon = typeInfo ? typeInfo.icon : '📌';
         const color = typeInfo ? typeInfo.color : '#888';
 
-        // 取材名（name）を優先表示、なければメディア名
         let displayName = '';
         if (Array.isArray(event.name)) {
             displayName = event.name.filter(n => n && n.trim() !== '').join(', ');
@@ -100,6 +98,257 @@ function renderEventBadges(events) {
     }).join('');
 }
 
+// カレンダーフィルター用の複数選択コンポーネント初期化
+function initCalendarMultiSelect(containerId, options, placeholder, onChange) {
+    const container = document.getElementById(containerId);
+    if (!container) return null;
+
+    container.className = 'multi-select-filter';
+    container.innerHTML = `
+        <div class="multi-select-display" tabindex="0">
+            <span class="multi-select-text">${placeholder}</span>
+            <span class="multi-select-count"></span>
+            <span class="multi-select-arrow">▼</span>
+        </div>
+        <div class="multi-select-dropdown">
+            <div class="multi-select-controls">
+                <input type="text" class="multi-select-search" placeholder="検索...">
+                <div class="multi-select-buttons">
+                    <button type="button" class="multi-select-btn select-all">全選択</button>
+                    <button type="button" class="multi-select-btn deselect-all">全解除</button>
+                </div>
+            </div>
+            <div class="multi-select-options"></div>
+        </div>
+    `;
+
+    const display = container.querySelector('.multi-select-display');
+    const displayText = container.querySelector('.multi-select-text');
+    const displayCount = container.querySelector('.multi-select-count');
+    const dropdown = container.querySelector('.multi-select-dropdown');
+    const searchInput = container.querySelector('.multi-select-search');
+    const optionsContainer = container.querySelector('.multi-select-options');
+    const selectAllBtn = container.querySelector('.select-all');
+    const deselectAllBtn = container.querySelector('.deselect-all');
+
+    let selectedValues = new Set();
+    let isOpen = false;
+    let currentOptions = options;
+
+    function renderOptions(filter = '') {
+        const filterLower = filter.toLowerCase().trim();
+        let html = '';
+
+        currentOptions.forEach((opt) => {
+            const value = opt.value;
+            const label = opt.label;
+            const icon = opt.icon || '';
+
+            if (filterLower && !label.toLowerCase().includes(filterLower)) {
+                return;
+            }
+
+            const checked = selectedValues.has(value) ? 'checked' : '';
+            html += `
+                <label class="multi-select-option">
+                    <input type="checkbox" value="${value}" ${checked}>
+                    <span class="option-label">${icon ? icon + ' ' : ''}${label}</span>
+                </label>
+            `;
+        });
+
+        if (filterLower && html === '') {
+            html = `<div class="multi-select-no-results">該当する項目がありません</div>`;
+        }
+
+        optionsContainer.innerHTML = html;
+
+        optionsContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    selectedValues.add(e.target.value);
+                } else {
+                    selectedValues.delete(e.target.value);
+                }
+                updateDisplay();
+                if (onChange) onChange(getSelectedValues());
+            });
+        });
+    }
+
+    function updateDisplay() {
+        const count = selectedValues.size;
+        const total = currentOptions.length;
+
+        if (count === 0) {
+            displayText.textContent = placeholder;
+            displayCount.textContent = '';
+            displayCount.style.display = 'none';
+        } else if (count === total) {
+            displayText.textContent = 'すべて選択';
+            displayCount.textContent = `(${count}件)`;
+            displayCount.style.display = 'inline';
+        } else if (count === 1) {
+            const selectedOpt = currentOptions.find(o => selectedValues.has(o.value));
+            displayText.textContent = selectedOpt ? selectedOpt.label : `${count}件選択`;
+            displayCount.textContent = '';
+            displayCount.style.display = 'none';
+        } else {
+            displayText.textContent = `${count}件選択中`;
+            displayCount.textContent = '';
+            displayCount.style.display = 'none';
+        }
+    }
+
+    function getSelectedValues() {
+        return Array.from(selectedValues);
+    }
+
+    function openDropdown() {
+        document.querySelectorAll('.multi-select-dropdown.open').forEach(dd => {
+            if (dd !== dropdown) {
+                dd.classList.remove('open');
+            }
+        });
+        document.querySelectorAll('.multi-select-display.open').forEach(d => {
+            if (d !== display) {
+                d.classList.remove('open');
+            }
+        });
+
+        isOpen = true;
+        dropdown.classList.add('open');
+        display.classList.add('open');
+        searchInput.value = '';
+        renderOptions();
+        setTimeout(() => searchInput.focus(), 10);
+    }
+
+    function closeDropdown() {
+        isOpen = false;
+        dropdown.classList.remove('open');
+        display.classList.remove('open');
+    }
+
+    function selectAll() {
+        const filter = searchInput.value.toLowerCase().trim();
+        currentOptions.forEach(opt => {
+            if (!filter || opt.label.toLowerCase().includes(filter)) {
+                selectedValues.add(opt.value);
+            }
+        });
+        renderOptions(searchInput.value);
+        updateDisplay();
+        if (onChange) onChange(getSelectedValues());
+    }
+
+    function deselectAll() {
+        const filter = searchInput.value.toLowerCase().trim();
+        if (filter) {
+            currentOptions.forEach(opt => {
+                if (opt.label.toLowerCase().includes(filter)) {
+                    selectedValues.delete(opt.value);
+                }
+            });
+        } else {
+            selectedValues.clear();
+        }
+        renderOptions(searchInput.value);
+        updateDisplay();
+        if (onChange) onChange(getSelectedValues());
+    }
+
+    display.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (isOpen) {
+            closeDropdown();
+        } else {
+            openDropdown();
+        }
+    });
+
+    searchInput.addEventListener('input', (e) => {
+        renderOptions(e.target.value);
+    });
+
+    searchInput.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+
+    dropdown.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+
+    selectAllBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectAll();
+    });
+
+    deselectAllBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deselectAll();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!container.contains(e.target) && isOpen) {
+            closeDropdown();
+        }
+    });
+
+    display.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeDropdown();
+        } else if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (!isOpen) {
+                openDropdown();
+            }
+        }
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeDropdown();
+            display.focus();
+        }
+    });
+
+    renderOptions();
+    updateDisplay();
+
+    return {
+        getSelectedValues: () => getSelectedValues(),
+        setSelectedValues: (values) => {
+            selectedValues = new Set(values);
+            renderOptions(searchInput?.value || '');
+            updateDisplay();
+        },
+        updateOptions: (newOptions) => {
+            currentOptions = newOptions;
+            const validValues = new Set(newOptions.map(o => o.value));
+            selectedValues = new Set([...selectedValues].filter(v => validValues.has(v)));
+            if (isOpen) {
+                renderOptions(searchInput.value);
+            }
+            updateDisplay();
+        },
+        reset: () => {
+            selectedValues.clear();
+            renderOptions(searchInput?.value || '');
+            updateDisplay();
+            if (onChange) onChange([]);
+        },
+        selectAll: () => {
+            currentOptions.forEach(opt => selectedValues.add(opt.value));
+            renderOptions(searchInput?.value || '');
+            updateDisplay();
+            if (onChange) onChange(getSelectedValues());
+        },
+        close: () => closeDropdown(),
+        open: () => openDropdown()
+    };
+}
+
 // カレンダーフィルターを描画
 function renderCalendarFilters() {
     const container = document.getElementById('calendarFilter');
@@ -119,57 +368,78 @@ function renderCalendarFilters() {
                 <label>演者:</label>
                 <div id="calendarPerformerFilter"></div>
             </div>
+            <button id="calendarFilterReset" class="btn-small">リセット</button>
         </div>
     `;
 
-    // イベントタイプフィルター（イベント名も含む）
-    const eventOptions = [
-        { value: '', label: 'すべて' },
-        { value: 'has_event', label: 'イベント/演者あり' }
-    ];
+    // イベントフィルター
+    const eventOptions = [];
     
     // イベントタイプを追加
     if (eventData && eventData.eventTypes) {
         eventData.eventTypes.forEach(type => {
-            eventOptions.push({ value: `type:${type.id}`, label: `${type.icon} ${type.name}` });
+            eventOptions.push({ 
+                value: `type:${type.id}`, 
+                label: type.name,
+                icon: type.icon
+            });
         });
     }
     
     // イベント名を追加
     const allEventNames = getAllEventNames();
-    if (allEventNames.length > 0) {
-        eventOptions.push({ value: '', label: '──────────', disabled: true });
-        allEventNames.forEach(name => {
-            eventOptions.push({ value: `name:${name}`, label: `📌 ${name}` });
+    allEventNames.forEach(name => {
+        eventOptions.push({ 
+            value: `name:${name}`, 
+            label: name,
+            icon: '📌'
         });
-    }
-    
-    initSearchableSelect('calendarEventFilter', eventOptions, 'すべて', (value) => {
-        eventFilter = value;
-        renderCalendar();
     });
+    
+    calendarEventFilter = initCalendarMultiSelect(
+        'calendarEventFilter', 
+        eventOptions, 
+        '全イベント', 
+        () => renderCalendar()
+    );
 
     // メディアフィルター
-    const mediaOptions = [{ value: '', label: '全メディア' }];
+    const mediaOptions = [];
     if (eventData && eventData.mediaTypes) {
         eventData.mediaTypes.forEach(media => {
             mediaOptions.push({ value: media, label: media });
         });
     }
-    initSearchableSelect('calendarMediaFilter', mediaOptions, '全メディア', (value) => {
-        mediaFilter = value;
-        renderCalendar();
-    });
+    calendarMediaFilter = initCalendarMultiSelect(
+        'calendarMediaFilter', 
+        mediaOptions, 
+        '全メディア', 
+        () => renderCalendar()
+    );
 
     // 演者フィルター
-    const performerOptions = [{ value: '', label: '全演者' }];
+    const performerOptions = [];
     if (eventData && eventData.performers) {
         eventData.performers.forEach(performer => {
-            performerOptions.push({ value: performer, label: `🎤 ${performer}` });
+            performerOptions.push({ 
+                value: performer, 
+                label: performer,
+                icon: '🎤'
+            });
         });
     }
-    initSearchableSelect('calendarPerformerFilter', performerOptions, '全演者', (value) => {
-        performerFilter = value;
+    calendarPerformerFilter = initCalendarMultiSelect(
+        'calendarPerformerFilter', 
+        performerOptions, 
+        '全演者', 
+        () => renderCalendar()
+    );
+
+    // リセットボタン
+    document.getElementById('calendarFilterReset')?.addEventListener('click', () => {
+        if (calendarEventFilter) calendarEventFilter.reset();
+        if (calendarMediaFilter) calendarMediaFilter.reset();
+        if (calendarPerformerFilter) calendarPerformerFilter.reset();
         renderCalendar();
     });
 }
@@ -215,32 +485,61 @@ function eventHasName(event, targetName) {
 function dateMatchesCalendarFilter(dateKey) {
     const events = getEventsForDate(dateKey);
 
-    // イベントフィルター
-    if (eventFilter) {
-        if (eventFilter === 'has_event') {
-            // イベントまたは演者がある日
-            if (!events.some(e => hasCalendarEventOrPerformers(e))) return false;
-        } else if (eventFilter.startsWith('type:')) {
-            const typeId = eventFilter.replace('type:', '');
-            if (!events.some(e => e.type === typeId)) return false;
-        } else if (eventFilter.startsWith('name:')) {
-            // イベント名でフィルタ
-            const eventName = eventFilter.replace('name:', '');
-            if (!events.some(e => eventHasName(e, eventName))) return false;
+    // フィルター値を取得
+    const selectedEvents = calendarEventFilter ? calendarEventFilter.getSelectedValues() : [];
+    const selectedMedia = calendarMediaFilter ? calendarMediaFilter.getSelectedValues() : [];
+    const selectedPerformers = calendarPerformerFilter ? calendarPerformerFilter.getSelectedValues() : [];
+
+    // フィルターが全て空なら全て表示
+    if (selectedEvents.length === 0 && selectedMedia.length === 0 && selectedPerformers.length === 0) {
+        return true;
+    }
+
+    // イベントがない日はフィルターが設定されていれば非表示
+    if (events.length === 0) {
+        return false;
+    }
+
+    let matchesEvent = selectedEvents.length === 0;
+    let matchesMedia = selectedMedia.length === 0;
+    let matchesPerformer = selectedPerformers.length === 0;
+
+    events.forEach(event => {
+        // イベントフィルターチェック
+        if (selectedEvents.length > 0 && !matchesEvent) {
+            for (const filter of selectedEvents) {
+                if (filter.startsWith('type:')) {
+                    const typeId = filter.replace('type:', '');
+                    if (event.type === typeId) {
+                        matchesEvent = true;
+                        break;
+                    }
+                } else if (filter.startsWith('name:')) {
+                    const eventName = filter.replace('name:', '');
+                    if (eventHasName(event, eventName)) {
+                        matchesEvent = true;
+                        break;
+                    }
+                }
+            }
         }
-    }
 
-    // メディアフィルター
-    if (mediaFilter) {
-        if (!events.some(e => e.media === mediaFilter)) return false;
-    }
+        // メディアフィルターチェック
+        if (selectedMedia.length > 0 && !matchesMedia) {
+            if (selectedMedia.includes(event.media)) {
+                matchesMedia = true;
+            }
+        }
 
-    // 演者フィルター
-    if (performerFilter) {
-        if (!events.some(e => e.performers && e.performers.includes(performerFilter))) return false;
-    }
+        // 演者フィルターチェック
+        if (selectedPerformers.length > 0 && !matchesPerformer) {
+            if (event.performers && event.performers.some(p => selectedPerformers.includes(p))) {
+                matchesPerformer = true;
+            }
+        }
+    });
 
-    return true;
+    return matchesEvent && matchesMedia && matchesPerformer;
 }
 
 // カレンダー描画
@@ -298,7 +597,6 @@ async function renderCalendar() {
         const dateKey = `${year}_${String(month).padStart(2, '0')}_${String(day).padStart(2, '0')}`;
         const events = getEventsForDate(dateKey);
 
-        // 表示可能なイベント（有効なイベントまたは演者がいるもの）
         const displayableEvents = events.filter(e => hasCalendarEventOrPerformers(e));
 
         const matchesFilter = dateMatchesCalendarFilter(dateKey);
@@ -313,7 +611,6 @@ async function renderCalendar() {
         html += `<div class="${dayClass}">`;
         html += `<div class="day-number">${day}</div>`;
 
-        // イベントまたは演者がある場合はバッジ表示
         if (displayableEvents.length > 0) {
             html += `<div class="event-badges">${renderCalendarEventBadges(events)}</div>`;
         }
@@ -378,7 +675,6 @@ function renderCalendarEventBadges(events) {
     let html = '';
     
     relevantEvents.forEach(event => {
-        // イベント情報がある場合はイベントバッジを表示
         if (isCalendarValidEvent(event)) {
             const typeInfo = getEventTypeInfo(event.type);
             const icon = typeInfo ? typeInfo.icon : '📌';
@@ -407,7 +703,6 @@ function renderCalendarEventBadges(events) {
             }
         }
 
-        // 演者情報がある場合は演者バッジを表示
         if (event.performers && event.performers.length > 0) {
             html += `<div class="event-performers">🎤 ${event.performers.join(', ')}</div>`;
         }

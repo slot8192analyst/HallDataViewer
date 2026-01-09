@@ -9,15 +9,14 @@ let filterPanelOpen = false;
 let dailyMachineFilterSelect = null;
 
 // 機械割を計算する関数
-// 計算式: ((G数 * 3) + 差枚) / (G数 * 3) * 100
 function calculateMechanicalRate(games, saMai) {
     const g = parseInt(games) || 0;
     const sa = parseInt(saMai) || 0;
     
-    if (g <= 0) return null; // G数が0以下の場合は計算不可
+    if (g <= 0) return null;
     
-    const totalIn = g * 3; // 総投入枚数（3枚掛け前提）
-    const totalOut = totalIn + sa; // 総払出枚数
+    const totalIn = g * 3;
+    const totalOut = totalIn + sa;
     const rate = (totalOut / totalIn) * 100;
     
     return rate;
@@ -86,18 +85,28 @@ function restoreFilterPanelState() {
     }
 }
 
-// 日別機種フィルターを初期化
+// 日別機種フィルターを初期化（複数選択対応）
 function initDailyMachineFilter() {
-    const machineOptions = [{ value: '', label: '全機種' }];
+    const sortedFiles = sortFilesByDate(CSV_FILES, true);
+    const currentFile = sortedFiles[currentDateIndex];
+    
+    const data = dataCache[currentFile] || [];
+    const machineCounts = getMachineCountsFromData(data);
+    
+    const machineOptions = [];
     const sortedMachines = [...allMachines].sort();
     sortedMachines.forEach(machine => {
-        machineOptions.push({ value: machine, label: machine });
+        machineOptions.push({
+            value: machine,
+            label: machine,
+            count: machineCounts[machine] || 0
+        });
     });
 
     if (dailyMachineFilterSelect) {
         dailyMachineFilterSelect.updateOptions(machineOptions);
     } else {
-        dailyMachineFilterSelect = initSearchableSelect(
+        dailyMachineFilterSelect = initMultiSelectMachineFilter(
             'dailyMachineFilterContainer',
             machineOptions,
             '全機種',
@@ -106,14 +115,34 @@ function initDailyMachineFilter() {
     }
 }
 
+// 日付変更時に機種フィルターの台数を更新
+function updateDailyMachineFilterCounts() {
+    const sortedFiles = sortFilesByDate(CSV_FILES, true);
+    const currentFile = sortedFiles[currentDateIndex];
+    const data = dataCache[currentFile] || [];
+    const machineCounts = getMachineCountsFromData(data);
+    
+    const machineOptions = [];
+    const sortedMachines = [...allMachines].sort();
+    sortedMachines.forEach(machine => {
+        machineOptions.push({
+            value: machine,
+            label: machine,
+            count: machineCounts[machine] || 0
+        });
+    });
+
+    if (dailyMachineFilterSelect) {
+        dailyMachineFilterSelect.updateOptions(machineOptions);
+    }
+}
+
 // 列選択チェックボックスを生成
 function initColumnSelector() {
     if (headers.length === 0) return;
 
-    // 機械割列をヘッダーに追加（まだ存在しない場合）
     allColumns = [...headers];
     if (!allColumns.includes('機械割')) {
-        // 差枚の後に機械割を挿入
         const saIndex = allColumns.indexOf('差枚');
         if (saIndex !== -1) {
             allColumns.splice(saIndex + 1, 0, '機械割');
@@ -242,7 +271,7 @@ function getDailyDateKeyFromFile(file) {
     return match ? match[1] : null;
 }
 
-// イベントが有効かどうかをチェック（日別用）- イベント情報のみ
+// イベントが有効かどうかをチェック（日別用）
 function isDailyValidEvent(event) {
     if (!event) return false;
     
@@ -439,6 +468,7 @@ async function updateDateNavWithEvents() {
     }
 }
 
+// メインのフィルター＆レンダリング関数
 async function filterAndRender() {
     const sortedFiles = sortFilesByDate(CSV_FILES, true);
     const currentFile = sortedFiles[currentDateIndex];
@@ -458,17 +488,19 @@ async function filterAndRender() {
         initColumnSelector();
     }
 
-    // 機種フィルターの初期化（初回のみ）
+    // 機種フィルターの初期化/更新
     if (!dailyMachineFilterSelect) {
         initDailyMachineFilter();
+    } else {
+        updateDailyMachineFilterCounts();
     }
 
     data = [...data];
 
-    // 機種フィルター
-    const machineFilter = dailyMachineFilterSelect ? dailyMachineFilterSelect.getValue() : '';
-    if (machineFilter) {
-        data = data.filter(row => row['機種名'] === machineFilter);
+    // 機種フィルター（複数選択対応）
+    const selectedMachines = dailyMachineFilterSelect ? dailyMachineFilterSelect.getSelectedValues() : [];
+    if (selectedMachines.length > 0) {
+        data = data.filter(row => selectedMachines.includes(row['機種名']));
     }
 
     // 台番号検索
@@ -561,6 +593,18 @@ async function filterAndRender() {
                     return rateA - rateB;
                 });
                 break;
+            case 'machine_asc':
+                data = sortByMachineThenUnit(data, '機種名', '台番号', true, true);
+                break;
+            case 'machine_desc':
+                data = sortByMachineThenUnit(data, '機種名', '台番号', false, true);
+                break;
+            case 'unit_asc':
+                data = sortByUnitNumber(data, '台番号', true);
+                break;
+            case 'unit_desc':
+                data = sortByUnitNumber(data, '台番号', false);
+                break;
         }
     }
 
@@ -568,6 +612,7 @@ async function filterAndRender() {
     await updateDateNavWithEvents();
     updateFilterBadge();
 }
+
 
 // 選択された列のみ表示するテーブル描画
 function renderTableWithColumns(data, tableId, summaryId, columns) {
@@ -585,7 +630,6 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
         return '<tr>' + displayColumns.map(h => {
             const val = row[h];
 
-            // 機械割列の処理
             if (h === '機械割') {
                 const rate = val;
                 const rateClass = getMechanicalRateClass(rate);
@@ -622,7 +666,6 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
             const winRate = data.length > 0 ? ((plusCount / data.length) * 100).toFixed(1) : '0.0';
             const saClass = totalSa > 0 ? 'plus' : totalSa < 0 ? 'minus' : '';
 
-            // 全体の機械割を計算
             const avgRate = calculateMechanicalRate(totalGames, totalSa);
             const avgRateText = formatMechanicalRate(avgRate);
             const avgRateClass = getMechanicalRateClass(avgRate);
@@ -636,6 +679,68 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
             `;
         }
     }
+}
+
+// 現在表示中のテーブルデータを取得
+function getDisplayedTableData() {
+    const table = document.getElementById('data-table');
+    if (!table) return { headers: [], rows: [] };
+
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+
+    const headers = [];
+    const headerCells = thead.querySelectorAll('th');
+    headerCells.forEach(cell => {
+        headers.push(cell.textContent.trim());
+    });
+
+    const rows = [];
+    const bodyRows = tbody.querySelectorAll('tr');
+    bodyRows.forEach(row => {
+        const rowData = [];
+        const cells = row.querySelectorAll('td');
+        cells.forEach((cell, index) => {
+            let value = cell.textContent.trim();
+            
+            const headerName = headers[index];
+            if (['G数', '差枚', 'BB', 'RB', 'ART', '合成確率', '機械割'].some(h => headerName && headerName.includes(h))) {
+                let numStr = value.replace(/[+,]/g, '').replace('%', '');
+                const num = parseFloat(numStr);
+                if (!isNaN(num)) {
+                    value = num.toString();
+                }
+            }
+            rowData.push(value);
+        });
+        rows.push(rowData);
+    });
+
+    return { headers, rows };
+}
+
+// クリップボードにコピー
+async function copyTableToClipboard() {
+    const { headers, rows } = getDisplayedTableData();
+    const btn = document.getElementById('copyTableBtn');
+    await copyToClipboard({ headers, rows }, btn);
+}
+
+// CSVファイルをダウンロード
+function downloadTableAsCSV() {
+    const { headers, rows } = getDisplayedTableData();
+    
+    if (rows.length === 0) {
+        showCopyToast('ダウンロードするデータがありません', true);
+        return;
+    }
+    
+    const sortedFiles = sortFilesByDate(CSV_FILES, true);
+    const currentFile = sortedFiles[currentDateIndex];
+    const dateStr = currentFile ? currentFile.replace('.csv', '').replace('data/', '') : 'data';
+    const filename = `${dateStr}_export.csv`;
+    
+    downloadAsCSV({ headers, rows }, filename);
 }
 
 function setupDailyEventListeners() {
@@ -679,8 +784,6 @@ function setupDailyEventListeners() {
     });
 
     document.getElementById('unitSuffixFilter')?.addEventListener('change', filterAndRender);
-    
-    // 機械割フィルターのイベントリスナー
     document.getElementById('rateFilterType')?.addEventListener('change', filterAndRender);
     document.getElementById('rateFilterValue')?.addEventListener('input', filterAndRender);
 
@@ -689,88 +792,9 @@ function setupDailyEventListeners() {
 
     document.getElementById('filterToggle')?.addEventListener('click', toggleFilterPanel);
 
-    // コピー・ダウンロードボタン
     document.getElementById('copyTableBtn')?.addEventListener('click', copyTableToClipboard);
     document.getElementById('downloadCsvBtn')?.addEventListener('click', downloadTableAsCSV);
 
     restoreFilterPanelState();
-    
     initDateSelectWithEvents();
-}
-
-// ===================
-// コピー・ダウンロード機能
-// ===================
-
-// 現在表示中のテーブルデータを取得
-function getDisplayedTableData() {
-    const table = document.getElementById('data-table');
-    if (!table) return { headers: [], rows: [] };
-
-    const thead = table.querySelector('thead');
-    const tbody = table.querySelector('tbody');
-
-    // ヘッダー取得
-    const headers = [];
-    const headerCells = thead.querySelectorAll('th');
-    headerCells.forEach(cell => {
-        headers.push(cell.textContent.trim());
-    });
-
-    // 行データ取得
-    const rows = [];
-    const bodyRows = tbody.querySelectorAll('tr');
-    bodyRows.forEach(row => {
-        const rowData = [];
-        const cells = row.querySelectorAll('td');
-        cells.forEach((cell, index) => {
-            let value = cell.textContent.trim();
-            
-            // 数値の処理（カンマや+記号を除去して数値として扱う）
-            const headerName = headers[index];
-            if (['G数', '差枚', 'BB', 'RB', 'ART', '合成確率', '機械割'].some(h => headerName && headerName.includes(h))) {
-                // +記号とカンマを除去
-                let numStr = value.replace(/[+,]/g, '').replace('%', '');
-                // 数値に変換できる場合はそのまま、できない場合は元の値
-                const num = parseFloat(numStr);
-                if (!isNaN(num)) {
-                    // 機械割はパーセント値のまま
-                    if (headerName && headerName.includes('機械割')) {
-                        value = num.toString();
-                    } else {
-                        value = num.toString();
-                    }
-                }
-            }
-            rowData.push(value);
-        });
-        rows.push(rowData);
-    });
-
-    return { headers, rows };
-}
-
-// クリップボードにコピー
-async function copyTableToClipboard() {
-    const { headers, rows } = getDisplayedTableData();
-    const btn = document.getElementById('copyTableBtn');
-    await copyToClipboard({ headers, rows }, btn);
-}
-
-// CSVファイルをダウンロード
-function downloadTableAsCSV() {
-    const { headers, rows } = getDisplayedTableData();
-    
-    if (rows.length === 0) {
-        showCopyToast('ダウンロードするデータがありません', true);
-        return;
-    }
-    
-    // ファイル名を生成（現在の日付データから）
-    const sortedFiles = sortFilesByDate(CSV_FILES, true);
-    const currentFile = sortedFiles[currentDateIndex];
-    const dateStr = currentFile ? currentFile.replace('.csv', '').replace('data/', '') : 'data';
-    const filename = `${dateStr}_export.csv`;
-    
-    downloadAsCSV({ headers, rows }, filename);
 }

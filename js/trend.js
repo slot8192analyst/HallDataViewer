@@ -325,18 +325,24 @@ function closeTrendCalendarModal() {
     }
 }
 
-// トレンド用機種フィルターを初期化
+// トレンド用機種フィルターを初期化（複数選択対応）
 function initTrendMachineFilter() {
-    const machineOptions = [{ value: '', label: '全機種' }];
+    const machineCounts = getAllMachineCountsFromCache();
+    
+    const machineOptions = [];
     const sortedMachines = [...allMachines].sort();
     sortedMachines.forEach(machine => {
-        machineOptions.push({ value: machine, label: machine });
+        machineOptions.push({
+            value: machine,
+            label: machine,
+            count: machineCounts[machine] || 0
+        });
     });
 
     if (trendMachineFilterSelect) {
         trendMachineFilterSelect.updateOptions(machineOptions);
     } else {
-        trendMachineFilterSelect = initSearchableSelect(
+        trendMachineFilterSelect = initMultiSelectMachineFilter(
             'trendMachineFilterContainer',
             machineOptions,
             '全機種',
@@ -347,7 +353,7 @@ function initTrendMachineFilter() {
 
 async function loadTrendData() {
     const daysSelect = document.getElementById('trendDays');
-    const machineFilter = trendMachineFilterSelect ? trendMachineFilterSelect.getValue() : '';
+    const selectedMachines = trendMachineFilterSelect ? trendMachineFilterSelect.getSelectedValues() : [];
     const sortBy = document.getElementById('trendSortBy')?.value || 'total_desc';
 
     const summaryEl = document.getElementById('trendSummary');
@@ -378,7 +384,9 @@ async function loadTrendData() {
         for (const row of data) {
             const machine = row['機種名'];
             const num = row['台番号'];
-            if (machineFilter && machine !== machineFilter) continue;
+            
+            // 機種フィルター（複数選択対応）
+            if (selectedMachines.length > 0 && !selectedMachines.includes(machine)) continue;
 
             const key = `${machine}_${num}`;
             if (!machineData[key]) {
@@ -396,6 +404,7 @@ async function loadTrendData() {
         item.avg = values.length > 0 ? Math.round(item.total / values.length) : 0;
     }
 
+    // ソート
     const latestFile = targetFiles[targetFiles.length - 1];
     switch (sortBy) {
         case 'total_desc':
@@ -410,17 +419,55 @@ async function loadTrendData() {
         case 'latest_desc':
             results.sort((a, b) => (b.dates[latestFile] || 0) - (a.dates[latestFile] || 0));
             break;
+        case 'machine_asc':
+            results.sort((a, b) => {
+                const nameCompare = compareJapanese(a.machine, b.machine);
+                if (nameCompare !== 0) return nameCompare;
+                return extractUnitNumber(a.num) - extractUnitNumber(b.num);
+            });
+            break;
+        case 'machine_desc':
+            results.sort((a, b) => {
+                const nameCompare = compareJapanese(b.machine, a.machine);
+                if (nameCompare !== 0) return nameCompare;
+                return extractUnitNumber(a.num) - extractUnitNumber(b.num);
+            });
+            break;
+        case 'unit_asc':
+            results.sort((a, b) => {
+                const numA = extractUnitNumber(a.num);
+                const numB = extractUnitNumber(b.num);
+                if (numA !== numB) return numA - numB;
+                return compareJapanese(a.machine, b.machine);
+            });
+            break;
+        case 'unit_desc':
+            results.sort((a, b) => {
+                const numA = extractUnitNumber(a.num);
+                const numB = extractUnitNumber(b.num);
+                if (numA !== numB) return numB - numA;
+                return compareJapanese(a.machine, b.machine);
+            });
+            break;
     }
 
     const totalSa = results.reduce((sum, r) => sum + r.total, 0);
     const saClass = totalSa > 0 ? 'plus' : totalSa < 0 ? 'minus' : '';
+    
+    // 選択機種の表示
+    let machineInfo = '';
+    if (selectedMachines.length > 0) {
+        machineInfo = ` | 機種: ${selectedMachines.length}機種選択中`;
+    }
+    
     summaryEl.innerHTML = `
-        表示: ${results.length}台 | 期間: ${targetFiles.length}日間 |
+        表示: ${results.length}台 | 期間: ${targetFiles.length}日間${machineInfo} |
         合計差枚: <span class="${saClass}">${totalSa >= 0 ? '+' : ''}${totalSa.toLocaleString()}</span>
     `;
 
     renderTrendTables(results, targetFiles);
 }
+
 
 function renderTrendTables(results, targetFiles) {
     const fixedThead = document.querySelector('#trend-fixed-table thead');
