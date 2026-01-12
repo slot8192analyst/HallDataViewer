@@ -38,7 +38,9 @@ function renderTrendChart(results, targetFiles, options = {}) {
     const {
         showTop = true,
         showBottom = false,
-        displayCount = 5
+        displayCount = 5,
+        mode = 'unit',
+        valueType = 'total'
     } = options;
 
     const ctx = document.getElementById('trendChart');
@@ -54,28 +56,36 @@ function renderTrendChart(results, targetFiles, options = {}) {
         return;
     }
 
+    // グラフ表示タイプを取得（累積 or 日別）
+    const chartDisplayType = document.getElementById('chartDisplayType')?.value || 'cumulative';
+
     // 表示するデータを選択
     let displayData = [];
     
-    // 合計差枚でソート済みの結果から選択
-    const sortedByTotal = [...results].sort((a, b) => b.total - a.total);
+    // ソート基準を決定（機種別+平均モードの場合はavgでソート）
+    const sortKey = (mode === 'machine' && valueType === 'avg') ? 'avg' : 'total';
+    const sortedResults = [...results].sort((a, b) => b[sortKey] - a[sortKey]);
     
     if (showTop) {
-        displayData = displayData.concat(sortedByTotal.slice(0, displayCount));
+        displayData = displayData.concat(sortedResults.slice(0, displayCount));
     }
     
     if (showBottom) {
-        const bottomData = sortedByTotal.slice(-displayCount).reverse();
-        // 重複を避ける
+        const bottomData = sortedResults.slice(-displayCount).reverse();
         bottomData.forEach(item => {
-            if (!displayData.find(d => d.machine === item.machine && d.num === item.num)) {
+            const key = mode === 'machine' ? item.machine : `${item.machine}_${item.num}`;
+            const exists = displayData.find(d => {
+                const dKey = mode === 'machine' ? d.machine : `${d.machine}_${d.num}`;
+                return dKey === key;
+            });
+            if (!exists) {
                 displayData.push(item);
             }
         });
     }
 
     if (displayData.length === 0) {
-        displayData = sortedByTotal.slice(0, displayCount);
+        displayData = sortedResults.slice(0, displayCount);
     }
 
     // 日付ラベルを作成
@@ -86,24 +96,44 @@ function renderTrendChart(results, targetFiles, options = {}) {
         const color = CHART_COLORS[index % CHART_COLORS.length];
         
         // 各日付のデータを取得
-        const data = targetFiles.map(file => {
-            const value = item.dates[file];
-            return value !== undefined ? value : null;
-        });
+        let rawData;
+        if (mode === 'machine' && valueType === 'avg') {
+            // 機種別・平均差枚モード → dailyAvg を使用
+            rawData = targetFiles.map(file => {
+                const value = item.dailyAvg ? item.dailyAvg[file] : null;
+                return value !== undefined ? value : null;
+            });
+        } else {
+            // 台別 または 機種別・総差枚モード → dates を使用
+            rawData = targetFiles.map(file => {
+                const value = item.dates[file];
+                return value !== undefined ? value : null;
+            });
+        }
 
-        // 累積差枚を計算
-        let cumulative = 0;
-        const cumulativeData = data.map(val => {
-            if (val !== null) {
-                cumulative += val;
-                return cumulative;
-            }
-            return null;
-        });
+        // 表示データを作成（累積 or 日別）
+        let chartData;
+        if (chartDisplayType === 'daily') {
+            // 日別表示（そのままの値）
+            chartData = rawData;
+        } else {
+            // 累積表示
+            let cumulative = 0;
+            chartData = rawData.map(val => {
+                if (val !== null) {
+                    cumulative += val;
+                    return cumulative;
+                }
+                return null;
+            });
+        }
+
+        // ラベル作成
+        const label = mode === 'machine' ? item.machine : `${item.machine} ${item.num}`;
 
         return {
-            label: `${item.machine} ${item.num}`,
-            data: cumulativeData,
+            label: label,
+            data: chartData,
             borderColor: color,
             backgroundColor: color + '20',
             borderWidth: 2,
@@ -112,11 +142,21 @@ function renderTrendChart(results, targetFiles, options = {}) {
             pointBackgroundColor: color,
             pointBorderColor: '#fff',
             pointBorderWidth: 1,
-            tension: 0.3,
+            tension: 0, // 直線
             fill: false,
             spanGaps: true
         };
     });
+
+    // Y軸タイトルを決定
+    let yAxisTitle;
+    const isMachineAvg = (mode === 'machine' && valueType === 'avg');
+    
+    if (chartDisplayType === 'daily') {
+        yAxisTitle = isMachineAvg ? '日別平均差枚' : '日別差枚';
+    } else {
+        yAxisTitle = isMachineAvg ? '累積平均差枚' : '累積差枚';
+    }
 
     // チャートを作成
     trendChartInstance = new Chart(ctx, {
@@ -156,6 +196,7 @@ function renderTrendChart(results, targetFiles, options = {}) {
                     callbacks: {
                         label: function(context) {
                             const value = context.parsed.y;
+                            if (value === null) return `${context.dataset.label}: -`;
                             const sign = value >= 0 ? '+' : '';
                             return `${context.dataset.label}: ${sign}${value.toLocaleString()}枚`;
                         }
@@ -191,7 +232,7 @@ function renderTrendChart(results, targetFiles, options = {}) {
                     },
                     title: {
                         display: true,
-                        text: '累積差枚',
+                        text: yAxisTitle,
                         color: '#888',
                         font: {
                             size: 12
@@ -207,18 +248,22 @@ function renderTrendChart(results, targetFiles, options = {}) {
  * チャートを更新
  */
 function updateTrendChart() {
-    // 現在のトレンドデータを使用して再描画
     if (typeof getTrendDisplayData === 'function') {
-        const { results, targetFiles } = getTrendDisplayData();
+        const { results, targetFiles, mode } = getTrendDisplayData();
         
         const showTop = document.getElementById('chartShowTop')?.checked ?? true;
         const showBottom = document.getElementById('chartShowBottom')?.checked ?? false;
         const displayCount = parseInt(document.getElementById('chartDisplayCount')?.value || '5');
         
+        // 機種別モードの場合の値タイプを取得
+        const valueType = document.getElementById('trendMachineValueType')?.value || 'total';
+        
         renderTrendChart(results, targetFiles, {
             showTop,
             showBottom,
-            displayCount
+            displayCount,
+            mode: mode || 'unit',
+            valueType
         });
     }
 }
@@ -230,6 +275,7 @@ function setupChartEventListeners() {
     document.getElementById('chartShowTop')?.addEventListener('change', updateTrendChart);
     document.getElementById('chartShowBottom')?.addEventListener('change', updateTrendChart);
     document.getElementById('chartDisplayCount')?.addEventListener('change', updateTrendChart);
+    document.getElementById('chartDisplayType')?.addEventListener('change', updateTrendChart);
 }
 
 // DOMContentLoaded後に実行
