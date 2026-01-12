@@ -97,3 +97,21 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+function populateMachineFilters() {
+    // 各タブ専用の初期化関数を呼び出す
+    // （各関数内で適切な日付のデータから機種リストを取得）
+    
+    if (typeof initDailyMachineFilter === 'function') {
+        initDailyMachineFilter();
+    }
+    if (typeof initTrendMachineFilter === 'function') {
+        initTrendMachineFilter();
+    }
+    if (typeof updateStatsMachineFilter === 'function') {
+        updateStatsMachineFilter();
+    }
+    if (typeof updateStatsDailyMachineFilter === 'function') {
+        updateStatsDailyMachineFilter();
+    }
+}

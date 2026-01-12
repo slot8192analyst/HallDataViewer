@@ -1583,3 +1583,101 @@ function getAllPositionTags() {
         priority: info.priority
     })).sort((a, b) => a.priority - b.priority);
 }
+
+// ===================
+// 機種フィルター用ソート関数（台数順→50音順）
+// ===================
+
+/**
+ * 機種オプションを台数の多い順、同数なら50音順でソート
+ * @param {Array} machineOptions - {value, label, count} の配列
+ * @returns {Array} ソート済み配列
+ */
+function sortMachineOptionsByCount(machineOptions) {
+    return [...machineOptions].sort((a, b) => {
+        // 台数の多い順（降順）
+        if (b.count !== a.count) {
+            return b.count - a.count;
+        }
+        // 台数が同じ場合は50音順（昇順）
+        return compareJapanese(a.label, b.label);
+    });
+}
+
+/**
+ * 特定の日付のデータから機種リストを取得（台数付き）
+ * @param {string} dateFile - 日付ファイル名（例: "data/2025_01_01.csv"）
+ * @returns {Array} {value, label, count} の配列（台数順→50音順）
+ */
+function getMachineOptionsForDate(dateFile) {
+    const data = dataCache[dateFile] || [];
+    const machineCounts = getMachineCountsFromData(data);
+    
+    const machineOptions = [];
+    Object.entries(machineCounts).forEach(([machine, count]) => {
+        machineOptions.push({
+            value: machine,
+            label: machine,
+            count: count
+        });
+    });
+    
+    return sortMachineOptionsByCount(machineOptions);
+}
+
+/**
+ * 複数日付の最新日から機種リストを取得（台数付き）
+ * @param {Array} dateFiles - 日付ファイル名の配列
+ * @returns {Array} {value, label, count} の配列（台数順→50音順）
+ */
+function getMachineOptionsForLatestDate(dateFiles) {
+    if (!dateFiles || dateFiles.length === 0) {
+        return [];
+    }
+    
+    // 日付順にソートして最新日を取得
+    const sortedFiles = sortFilesByDate(dateFiles, true);
+    const latestFile = sortedFiles[0];
+    
+    return getMachineOptionsForDate(latestFile);
+}
+
+/**
+ * 期間内の全日付から存在する機種リストを取得（最新日の台数で表示）
+ * @param {Array} dateFiles - 日付ファイル名の配列
+ * @returns {Array} {value, label, count} の配列（最新日の台数順→50音順）
+ */
+function getMachineOptionsForPeriod(dateFiles) {
+    if (!dateFiles || dateFiles.length === 0) {
+        return [];
+    }
+    
+    // 最新日の機種と台数を取得
+    const sortedFiles = sortFilesByDate(dateFiles, true);
+    const latestFile = sortedFiles[0];
+    const latestData = dataCache[latestFile] || [];
+    const latestMachineCounts = getMachineCountsFromData(latestData);
+    
+    // 期間内の全機種を収集（存在確認用）
+    const allMachinesInPeriod = new Set();
+    for (const file of dateFiles) {
+        const data = dataCache[file] || [];
+        data.forEach(row => {
+            if (row['機種名']) {
+                allMachinesInPeriod.add(row['機種名']);
+            }
+        });
+    }
+    
+    // 最新日に存在する機種のみを返す
+    const machineOptions = [];
+    Object.entries(latestMachineCounts).forEach(([machine, count]) => {
+        machineOptions.push({
+            value: machine,
+            label: machine,
+            count: count
+        });
+    });
+    
+    return sortMachineOptionsByCount(machineOptions);
+}

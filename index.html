@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ホールデータまとめ</title>
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <!-- ローディング画面 -->
@@ -154,15 +155,9 @@
     <div id="trend" class="tab-content">
         <div class="controls">
             <div class="control-group">
-                <label>表示日数:</label>
-                <select id="trendDays">
-                    <option value="3">3日間</option>
-                    <option value="5">5日間</option>
-                    <option value="7" selected>7日間</option>
-                    <option value="10">10日間</option>
-                    <option value="custom">日付を選択</option>
-                </select>
-                <button id="openTrendCalendar" class="calendar-btn" title="日付を選択">📅</button>
+                <label>表示期間:</label>
+                <button id="openTrendCalendar" class="calendar-btn">📅 日付を選択</button>
+                <span id="trendPeriodLabel" class="period-label-inline">7日間</span>
             </div>
             <div class="control-group">
                 <label>機種:</label>
@@ -235,8 +230,8 @@
                     <h3>表示する日付を選択</h3>
                     <button id="closeTrendCalendar" class="close-btn">×</button>
                 </div>
-                <!-- フィルターパネル -->
-                <div id="trendFilterContainer"></div>
+                <!-- クイック選択・フィルターパネル -->
+                <div id="trendFilterContainer" class="trend-modal-filters"></div>
                 <div class="calendar-modal-body">
                     <div id="trendDateList" class="date-checkbox-list"></div>
                 </div>
@@ -249,6 +244,30 @@
         </div>
     
         <div id="trendSummary" class="summary"></div>
+
+        <div class="trend-chart-container">
+            <div class="chart-header">
+                <h4>📈 差枚推移グラフ</h4>
+                <div class="chart-controls">
+                    <label>
+                        <input type="checkbox" id="chartShowTop" checked>
+                        上位5台
+                    </label>
+                    <label>
+                        <input type="checkbox" id="chartShowBottom">
+                        下位5台
+                    </label>
+                    <select id="chartDisplayCount">
+                        <option value="5">5台表示</option>
+                        <option value="10">10台表示</option>
+                        <option value="20">20台表示</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
     
         <!-- コピー・ダウンロードボタン -->
         <div class="table-actions">
@@ -491,6 +510,7 @@
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/data.js"></script>
+    <script src="js/chart.js"></script>
     <script src="js/daily.js"></script>
     <script src="js/trend.js"></script>
     <script src="js/stats.js"></script>
