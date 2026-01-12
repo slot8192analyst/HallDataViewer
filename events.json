@@ -1,6 +1,43 @@
 {
   "events": [
     {
+      "date": "2025_12_05",
+      "type": "event",
+      "media": "その他",
+      "name": "特定日"
+    },
+    {
+      "date": "2025_12_10",
+      "type": "event",
+      "media": "その他",
+      "name": "特定日"
+    },
+    {
+      "date": "2025_12_15",
+      "type": "event",
+      "media": "その他",
+      "name": "特定日"
+    },
+    {
+      "date": "2025_12_20",
+      "type": "event",
+      "media": "その他",
+      "name": "特定日"
+    },
+    {
+      "date": "2025_12_21",
+      "type": "dmm",
+      "media": "DMMぱちタウン",
+      "name": ["天運総撃"],
+      "note": "新鬼武者2,東京喰種,化物語"
+    },
+    {
+      "date": "2025_12_25",
+      "type": "event",
+      "media": "その他",
+      "name": "特定日"
+    },
+    {
       "date": "2025_12_27",
       "type": "anniversary",
       "media": "その他",
@@ -28,9 +65,23 @@
       "media": "",
       "name": ["新台入替"],
       "note": "北斗の拳転生の章2,鉄拳6,スマートキングハナハナ"
+    },
+    {
+      "date": "2026_01_10",
+      "type": "event",
+      "media": "その他",
+      "name": ["特定日"]
+    },
+    {
+      "date": "2026_01_11",
+      "type": "dmm",
+      "media": "DMMぱちタウン",
+      "name": ["天運総撃"],
+      "note": "秘宝伝系,ゴッドイーター,ヴァルヴレイヴ2"
     }
   ],
   "mediaTypes": [
+    "DMMぱちタウン",
     "その他"
   ],
   "performers": [
