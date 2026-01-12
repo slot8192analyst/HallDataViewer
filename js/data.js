@@ -316,41 +316,54 @@ async function loadAllCSV() {
     await loadAllData();
 }
 
-// ===================
-// UI初期化
-// ===================
-function populateDateSelectors() {
-    const selectors = ['dateSelect', 'statsDateSelect', 'statsPeriodStart', 'statsPeriodEnd'];
+// UI初期化（イベント情報付き）
+async function populateDateSelectors() {
+    await loadEventData();
+    
     const sortedFiles = sortFilesByDate(CSV_FILES, true);
 
-    selectors.forEach(id => {
-        const select = document.getElementById(id);
-        if (select) {
-            const currentValue = select.value;
-            select.innerHTML = sortedFiles.map(f =>
-                `<option value="${f}">${formatDate(f)}</option>`
-            ).join('');
-            
-            // 以前の選択値を維持
-            if (currentValue && sortedFiles.includes(currentValue)) {
-                select.value = currentValue;
-            }
-        }
-    });
+    // 日別データタブの日付セレクター
+    const dateSelect = document.getElementById('dateSelect');
+    if (dateSelect) {
+        const currentValue = dateSelect.value;
+        dateSelect.innerHTML = sortedFiles.map((f, index) => {
+            const isSelected = currentValue ? f === currentValue : index === 0;
+            return createDateSelectOption(f, isSelected);
+        }).join('');
+    }
 
-    if (sortedFiles.length > 0) {
-        const periodEnd = document.getElementById('statsPeriodEnd');
-        if (periodEnd && !periodEnd.value) {
-            periodEnd.value = sortedFiles[0];
-        }
+    // 統計タブの日付セレクター
+    const statsDateSelect = document.getElementById('statsDateSelect');
+    if (statsDateSelect) {
+        const currentValue = statsDateSelect.value;
+        statsDateSelect.innerHTML = sortedFiles.map((f, index) => {
+            const isSelected = currentValue ? f === currentValue : index === 0;
+            return createDateSelectOption(f, isSelected);
+        }).join('');
+    }
 
-        const periodStart = document.getElementById('statsPeriodStart');
-        if (periodStart && !periodStart.value) {
-            const startIdx = Math.min(6, sortedFiles.length - 1);
-            periodStart.value = sortedFiles[startIdx];
-        }
+    // 期間セレクター
+    const periodStart = document.getElementById('statsPeriodStart');
+    const periodEnd = document.getElementById('statsPeriodEnd');
+    
+    if (periodEnd) {
+        const currentEndValue = periodEnd.value;
+        periodEnd.innerHTML = sortedFiles.map((f, index) => {
+            const isSelected = currentEndValue ? f === currentEndValue : index === 0;
+            return createDateSelectOption(f, isSelected);
+        }).join('');
+    }
+
+    if (periodStart) {
+        const currentStartValue = periodStart.value;
+        const startIdx = Math.min(6, sortedFiles.length - 1);
+        periodStart.innerHTML = sortedFiles.map((f, index) => {
+            const isSelected = currentStartValue ? f === currentStartValue : index === startIdx;
+            return createDateSelectOption(f, isSelected);
+        }).join('');
     }
 }
+
 
 function populateMachineFilters() {
     const sortedMachines = [...allMachines].sort();

@@ -47,7 +47,6 @@ function setupTabEventListeners() {
 async function init() {
     console.log('アプリケーション初期化開始...');
     
-    // 初期データ読み込み（最新月のみ）
     const success = await loadInitialData();
     
     if (!success || CSV_FILES.length === 0) {
@@ -56,7 +55,6 @@ async function init() {
         return;
     }
 
-    // カレンダーの初期年月を設定
     const sortedFiles = sortFilesByDate(CSV_FILES, true);
     const latestParsed = parseDateFromFilename(sortedFiles[0]);
     if (latestParsed) {
@@ -68,31 +66,31 @@ async function init() {
         calendarMonth = now.getMonth() + 1;
     }
 
-    // UI初期化
+    // イベントデータを先に読み込む
+    await loadEventData();
+
     populateDateSelectors();
     populateMachineFilters();
 
-    // 各タブのイベントリスナーを設定
     setupTabEventListeners();
     setupDailyEventListeners();
     setupTrendEventListeners();
     setupStatsEventListeners();
     setupCalendarEventListeners();
 
-    // フィルターパネルのトグルを設定
     setupFilterPanelToggle('trendFilterToggle', 'trendFilterContent');
 
-    // 初期表示
     updateLoadingProgress(100, 100, '表示準備中...');
+    
+    // 日付セレクトボックスをイベント付きで初期化
+    await initDateSelectWithEvents();
     
     await filterAndRender();
     
-    // ローディング画面を非表示
     hideLoadingScreen();
     
     console.log('初期表示完了');
     
-    // バックグラウンドで残りのデータを読み込み
     setTimeout(() => {
         loadRemainingDataInBackground();
     }, 500);

@@ -2994,3 +2994,127 @@ tr:nth-child(odd) {
         justify-content: center;
     }
 }
+
+/* ===================
+   日付セレクター イベント表示
+   =================== */
+
+/* 日別データタブのイベントバッジ */
+.daily-event-info {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0;
+    padding: 8px;
+}
+
+.daily-event-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+.daily-event-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 0.85em;
+    border: 1px solid;
+    white-space: nowrap;
+}
+
+.daily-event-badge.performer-badge {
+    background: #ec489920;
+    border-color: #ec4899;
+    color: #ec4899;
+}
+
+/* 統計タブのイベントバッジ */
+.stats-event-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: 8px;
+}
+
+.stats-event-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    border: 1px solid;
+}
+
+.stats-event-badge.performer-badge {
+    background: #ec489920;
+    border-color: #ec4899;
+    color: #ec4899;
+}
+
+.stats-event-note {
+    display: block;
+    width: 100%;
+    font-size: 0.85em;
+    padding: 4px 8px;
+    margin-top: 4px;
+    opacity: 0.8;
+}
+
+/* データなしメッセージ */
+.no-data-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary, #666);
+    font-size: 1.1em;
+}
+
+/* 日付セレクトのオプションでイベント表示 */
+select option {
+    padding: 4px 8px;
+}
+
+/* セレクトボックス幅を広げてイベント名が見えるように */
+#dateSelect,
+#statsDateSelect,
+#statsPeriodStart,
+#statsPeriodEnd {
+    min-width: 280px;
+    max-width: 400px;
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+    .stats-event-badges {
+        background: var(--bg-secondary, #2d2d2d);
+    }
+    
+    .daily-event-badge,
+    .stats-event-badge {
+        color: inherit;
+    }
+}
+
+/* モバイル対応 */
+@media (max-width: 768px) {
+    .daily-event-badges,
+    .stats-event-badges {
+        justify-content: flex-start;
+    }
+    
+    #dateSelect,
+    #statsDateSelect,
+    #statsPeriodStart,
+    #statsPeriodEnd {
+        min-width: 100%;
+        max-width: 100%;
+    }
+}
