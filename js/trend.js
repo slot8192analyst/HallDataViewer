@@ -374,6 +374,12 @@ function saveTrendColumnSettings() {
     localStorage.setItem('trendShowAvg', trendShowAvg);
 }
 
+// トレンドフィルターパネルに位置フィルターを追加
+// trend.js のフィルターパネル描画部分を修正
+let selectedTrendPositionFilter = '';
+
+
+// loadTrendData 関数を修正（位置フィルターを追加）
 async function loadTrendData() {
     const daysSelect = document.getElementById('trendDays');
     const selectedMachines = trendMachineFilterSelect ? trendMachineFilterSelect.getSelectedValues() : [];
@@ -419,6 +425,12 @@ async function loadTrendData() {
             
             // 機種フィルター（複数選択対応）
             if (selectedMachines.length > 0 && !selectedMachines.includes(machine)) continue;
+            
+            // 位置フィルター
+            if (selectedTrendPositionFilter) {
+                const tags = getPositionTags(num);
+                if (!tags.includes(selectedTrendPositionFilter)) continue;
+            }
 
             const key = `${machine}_${num}`;
             if (!machineData[key]) {
@@ -504,6 +516,15 @@ async function loadTrendData() {
         machineInfo = ` | 機種: ${selectedMachines.length}機種選択中`;
     }
 
+    // 位置フィルター情報
+    let positionInfo = '';
+    if (selectedTrendPositionFilter) {
+        const tagInfo = POSITION_TAGS[selectedTrendPositionFilter];
+        if (tagInfo) {
+            positionInfo = ` | 位置: <span style="color: ${tagInfo.color}">${tagInfo.icon} ${tagInfo.label}</span>`;
+        }
+    }
+
     // フィルター情報の表示
     let filterInfo = '';
     if (totalFilterType && totalFilterValue) {
@@ -512,13 +533,58 @@ async function loadTrendData() {
     }
     
     summaryEl.innerHTML = `
-        表示: ${results.length}台 | 期間: ${targetFiles.length}日間${machineInfo}${filterInfo} |
+        表示: ${results.length}台 | 期間: ${targetFiles.length}日間${machineInfo}${positionInfo}${filterInfo} |
         合計差枚: <span class="${saClass}">${totalSa >= 0 ? '+' : ''}${totalSa.toLocaleString()}</span>
     `;
 
     renderTrendTables(results, targetFiles);
 }
 
+// トレンドフィルターパネルに位置フィルターを追加
+function renderTrendPositionFilter() {
+    const container = document.getElementById('trendFilterContent');
+    if (!container) return;
+    
+    // 既存の位置フィルターセクションを確認
+    let positionSection = container.querySelector('.trend-position-filter-section');
+    
+    if (!positionSection) {
+        // 新しいセクションを作成
+        positionSection = document.createElement('div');
+        positionSection.className = 'filter-section trend-position-filter-section';
+        
+        // 最初のフィルターセクションの前に挿入
+        const firstSection = container.querySelector('.filter-section');
+        if (firstSection) {
+            firstSection.before(positionSection);
+        } else {
+            container.prepend(positionSection);
+        }
+    }
+    
+    const positionTags = getAllPositionTags();
+    
+    let html = '<h5>📍 位置フィルター</h5>';
+    html += '<div class="position-filter">';
+    html += `<button class="position-filter-btn ${selectedTrendPositionFilter === '' ? 'active' : ''}" data-position="" style="background: ${selectedTrendPositionFilter === '' ? 'var(--primary-color)' : ''}">全て</button>`;
+    
+    positionTags.forEach(tag => {
+        const isActive = selectedTrendPositionFilter === tag.value;
+        html += `<button class="position-filter-btn ${isActive ? 'active' : ''}" data-position="${tag.value}" style="${isActive ? `background: ${tag.color}; border-color: ${tag.color};` : `border-color: ${tag.color}40;`}">${tag.icon} ${tag.label}</button>`;
+    });
+    
+    html += '</div>';
+    positionSection.innerHTML = html;
+    
+    // イベントリスナーを設定
+    positionSection.querySelectorAll('.position-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectedTrendPositionFilter = btn.dataset.position;
+            renderTrendPositionFilter();
+            loadTrendData();
+        });
+    });
+}
 
 function renderTrendTables(results, targetFiles) {
     const fixedThead = document.querySelector('#trend-fixed-table thead');
@@ -527,7 +593,8 @@ function renderTrendTables(results, targetFiles) {
     const scrollThead = document.querySelector('#trend-scroll-table thead');
     const scrollTbody = document.querySelector('#trend-scroll-table tbody');
 
-    fixedThead.innerHTML = '<tr><th>機種名</th><th>台番号</th></tr>';
+    // 固定列ヘッダーに位置列を追加
+    fixedThead.innerHTML = '<tr><th>機種名</th><th>台番号</th><th>位置</th></tr>';
 
     // スクロールヘッダーを構築（列表示設定を反映）
     let scrollHeaderCells = targetFiles.map(file => `<th>${formatDateShort(file)}</th>`).join('');
@@ -539,7 +606,10 @@ function renderTrendTables(results, targetFiles) {
     const scrollRows = [];
 
     for (const row of results) {
-        fixedRows.push(`<tr><td>${row.machine}</td><td>${row.num}</td></tr>`);
+        // 位置タグを取得
+        const positionHtml = renderPositionTags(row.num, { compact: true }) || '-';
+        
+        fixedRows.push(`<tr><td>${row.machine}</td><td>${row.num}</td><td>${positionHtml}</td></tr>`);
 
         const dateCells = [];
         for (const file of targetFiles) {
@@ -668,6 +738,7 @@ function resetTrendFilters() {
     loadTrendData();
 }
 
+// setupTrendEventListeners に位置フィルター描画を追加
 function setupTrendEventListeners() {
     document.getElementById('trendDays')?.addEventListener('change', (e) => {
         if (e.target.value !== 'custom') {
@@ -712,6 +783,9 @@ function setupTrendEventListeners() {
 
     // 列表示設定の初期化
     initTrendColumnSettings();
+    
+    // 位置フィルターの描画
+    renderTrendPositionFilter();
 
     // 列表示チェックボックスのイベント
     document.getElementById('trendShowTotal')?.addEventListener('change', loadTrendData);
@@ -722,7 +796,11 @@ function setupTrendEventListeners() {
     document.getElementById('trendTotalFilterValue')?.addEventListener('input', debounce(loadTrendData, 500));
 
     // フィルターリセットボタン
-    document.getElementById('resetTrendFilter')?.addEventListener('click', resetTrendFilters);
+    document.getElementById('resetTrendFilter')?.addEventListener('click', () => {
+        resetTrendFilters();
+        selectedTrendPositionFilter = '';
+        renderTrendPositionFilter();
+    });
 
     // コピー・ダウンロードボタンのイベントリスナー
     document.getElementById('copyTrendTableBtn')?.addEventListener('click', copyTrendTable);

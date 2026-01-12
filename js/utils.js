@@ -1387,3 +1387,199 @@ async function updateDateSelectWithEvents(selectId, files, selectedValue = null)
         return createDateSelectOption(file, isSelected);
     }).join('');
 }
+
+// utils.js の末尾に追加
+
+// ===================
+// 位置タグ関連
+// ===================
+
+// 位置タグのマスターデータ
+const POSITION_TAGS = {
+    '角': { label: '角', icon: '', color: '#ef4444', priority: 1 },
+    '角2': { label: '角2', icon: '', color: '#f97316', priority: 2 },
+    '角3': { label: '角3', icon: '', color: '#eab308', priority: 3 },
+    '円卓': { label: '円卓', icon: '', color: '#22c55e', priority: 4 },
+    '奇数': { label: '奇数', icon: '', color: '#3b82f6', priority: 10 },
+    '偶数': { label: '偶数', icon: '', color: '#8b5cf6', priority: 11 }
+};
+
+// 位置データキャッシュ
+let positionDataCache = null;
+
+/**
+ * 位置データCSVを読み込み
+ * @returns {Promise<Object>} 台番号をキーとした位置データ
+ */
+async function loadPositionData() {
+    if (positionDataCache) {
+        return positionDataCache;
+    }
+
+    try {
+        const response = await fetch('data/position.csv');
+        if (!response.ok) {
+            console.warn('position.csv not found');
+            return {};
+        }
+
+        const text = await response.text();
+        const lines = text.trim().split('\n');
+        
+        if (lines.length < 2) {
+            return {};
+        }
+
+        // ヘッダー行をパース
+        const headers = lines[0].split(',').map(h => h.trim());
+        
+        positionDataCache = {};
+
+        // データ行をパース
+        for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',').map(v => v.trim());
+            const unitNum = values[0];
+            
+            if (!unitNum) continue;
+
+            const positionInfo = {
+                tags: [],
+                raw: {}
+            };
+
+            // 各位置フラグをチェック
+            headers.forEach((header, idx) => {
+                if (idx === 0) return; // 台番号はスキップ
+                
+                const value = parseInt(values[idx]) || 0;
+                positionInfo.raw[header] = value;
+                
+                if (value === 1 && POSITION_TAGS[header]) {
+                    positionInfo.tags.push(header);
+                }
+            });
+
+            // タグを優先度順にソート
+            positionInfo.tags.sort((a, b) => {
+                const priorityA = POSITION_TAGS[a]?.priority || 99;
+                const priorityB = POSITION_TAGS[b]?.priority || 99;
+                return priorityA - priorityB;
+            });
+
+            positionDataCache[unitNum] = positionInfo;
+        }
+
+        console.log(`位置データ読み込み完了: ${Object.keys(positionDataCache).length}台`);
+        return positionDataCache;
+
+    } catch (e) {
+        console.error('位置データ読み込みエラー:', e);
+        return {};
+    }
+}
+
+/**
+ * 台番号から位置タグを取得
+ * @param {string|number} unitNum 台番号
+ * @returns {Array<string>} タグ名の配列
+ */
+function getPositionTags(unitNum) {
+    if (!positionDataCache) return [];
+    
+    const key = String(unitNum);
+    const info = positionDataCache[key];
+    
+    return info ? info.tags : [];
+}
+
+/**
+ * 台番号から位置情報を取得（詳細）
+ * @param {string|number} unitNum 台番号
+ * @returns {Object|null} 位置情報オブジェクト
+ */
+function getPositionInfo(unitNum) {
+    if (!positionDataCache) return null;
+    
+    const key = String(unitNum);
+    return positionDataCache[key] || null;
+}
+
+/**
+ * 位置タグのHTMLを生成
+ * @param {string|number} unitNum 台番号
+ * @param {Object} options オプション
+ * @returns {string} HTMLタグ文字列
+ */
+function renderPositionTags(unitNum, options = {}) {
+    const { compact = false, maxTags = 3 } = options;
+    const tags = getPositionTags(unitNum);
+    
+    if (tags.length === 0) return '';
+
+    const displayTags = tags.slice(0, maxTags);
+    const remaining = tags.length - maxTags;
+
+    let html = '<span class="position-tags">';
+    
+    displayTags.forEach(tagName => {
+        const tagInfo = POSITION_TAGS[tagName];
+        if (tagInfo) {
+            // アイコンがある場合のみ表示
+            const iconPart = tagInfo.icon ? `${tagInfo.icon} ` : '';
+            if (compact) {
+                html += `<span class="position-tag compact" style="background: ${tagInfo.color}20; border-color: ${tagInfo.color};" title="${tagInfo.label}">${iconPart}${tagInfo.label}</span>`;
+            } else {
+                html += `<span class="position-tag" style="background: ${tagInfo.color}20; border-color: ${tagInfo.color};">${iconPart}${tagInfo.label}</span>`;
+            }
+        }
+    });
+
+    if (remaining > 0) {
+        html += `<span class="position-tag-more">+${remaining}</span>`;
+    }
+
+    html += '</span>';
+    return html;
+}
+
+
+/**
+ * 位置タグのテキスト表示（CSV出力用）
+ * @param {string|number} unitNum 台番号
+ * @returns {string} カンマ区切りのタグ文字列
+ */
+function getPositionTagsText(unitNum) {
+    const tags = getPositionTags(unitNum);
+    return tags.join(',');
+}
+
+/**
+ * 特定の位置タグを持つ台をフィルタ
+ * @param {Array} data データ配列
+ * @param {string} tagName タグ名
+ * @param {string} unitKey 台番号のキー名
+ * @returns {Array} フィルタされたデータ
+ */
+function filterByPositionTag(data, tagName, unitKey = '台番号') {
+    if (!tagName) return data;
+    
+    return data.filter(row => {
+        const unitNum = row[unitKey];
+        const tags = getPositionTags(unitNum);
+        return tags.includes(tagName);
+    });
+}
+
+/**
+ * 全ての利用可能な位置タグを取得
+ * @returns {Array<Object>} タグ情報の配列
+ */
+function getAllPositionTags() {
+    return Object.entries(POSITION_TAGS).map(([key, info]) => ({
+        value: key,
+        label: info.label,
+        icon: info.icon,
+        color: info.color,
+        priority: info.priority
+    })).sort((a, b) => a.priority - b.priority);
+}

@@ -198,6 +198,10 @@ async function loadInitialData() {
     
     const startTime = performance.now();
     
+    // 位置データを先に読み込み
+    updateLoadingProgress(5, 100, '位置データを読み込み中...');
+    await loadPositionData();
+    
     // 最新月（最大2ヶ月分）を読み込み
     const initialFiles = monthlyFiles.slice(0, 2);
     let loaded = 0;
@@ -205,7 +209,7 @@ async function loadInitialData() {
     for (const file of initialFiles) {
         await loadMonthlyJSON(file);
         loaded++;
-        const progress = (loaded / initialFiles.length) * 100;
+        const progress = 10 + (loaded / initialFiles.length) * 90;
         updateLoadingProgress(progress, 100, `${file.split('/').pop()} 読み込み完了`);
     }
     

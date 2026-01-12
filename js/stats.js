@@ -8,6 +8,7 @@ let statsMediaFilterSelect = null;
 let statsPerformerFilterSelect = null;
 let statsMachineFilterSelect = null;
 let statsDailyMachineFilterSelect = null;
+let selectedStatsPositionFilter = '';
 
 // メイン表示切り替え関数
 function showStats() {
@@ -362,6 +363,45 @@ function renderDetailedEventSummary(files) {
     return html;
 }
 
+// 位置フィルターセクションを描画する関数
+function renderStatsPositionFilter(containerId = 'stats-daily-content') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    // 既存の位置フィルターを削除
+    const existing = container.querySelector('.stats-position-filter');
+    if (existing) existing.remove();
+    
+    const positionTags = getAllPositionTags();
+    
+    let html = '<div class="stats-position-filter" style="margin-bottom: 10px;">';
+    html += '<div class="control-group"><label>位置:</label>';
+    html += '<div class="position-filter">';
+    html += `<button class="position-filter-btn ${selectedStatsPositionFilter === '' ? 'active' : ''}" data-position="" style="background: ${selectedStatsPositionFilter === '' ? 'var(--primary-color)' : ''}">全て</button>`;
+    
+    positionTags.forEach(tag => {
+        const isActive = selectedStatsPositionFilter === tag.value;
+        html += `<button class="position-filter-btn ${isActive ? 'active' : ''}" data-position="${tag.value}" style="${isActive ? `background: ${tag.color}; border-color: ${tag.color};` : `border-color: ${tag.color}40;`}">${tag.icon} ${tag.label}</button>`;
+    });
+    
+    html += '</div></div></div>';
+    
+    // controlsの後に挿入
+    const controls = container.querySelector('.controls');
+    if (controls) {
+        controls.insertAdjacentHTML('afterend', html);
+    }
+    
+    // イベントリスナーを設定
+    container.querySelectorAll('.stats-position-filter .position-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectedStatsPositionFilter = btn.dataset.position;
+            renderStatsPositionFilter(containerId);
+            showStats();
+        });
+    });
+}
+
 // 統計用のイベントバッジ表示（noteの表示を含む）
 function renderStatsEventBadges(events) {
     if (!events || events.length === 0) return '';
@@ -637,6 +677,9 @@ async function showDailyStats() {
     await updateStatsDateLabel();
     updateStatsDateNavButtons();
     updateStatsDailyMachineFilter();
+    
+    // 位置フィルターを描画
+    renderStatsPositionFilter('stats-daily-content');
 
     let data = await loadCSV(dateFile);
     
@@ -647,12 +690,16 @@ async function showDailyStats() {
     const eventHtml = renderStatsEventBadges(events);
 
     if (!data || data.length === 0) {
-        // データがない場合でもイベント情報は表示
         document.getElementById('statsContent').innerHTML = `
             ${eventHtml}
             <p class="no-data-message">この日のデータはありません</p>
         `;
         return;
+    }
+
+    // 位置フィルター
+    if (selectedStatsPositionFilter) {
+        data = filterByPositionTag(data, selectedStatsPositionFilter, '台番号');
     }
 
     // 複数機種フィルター
@@ -730,11 +777,10 @@ function showAllStats(data, sortBy, mode, unitSuffixFilter = '', eventHtml = '',
         };
     });
 
-    // ソート（機種別）
+    // ソート
     const machineSortFunc = getStatsSortFunction(sortBy);
     machineResults.sort(machineSortFunc);
     
-    // ソート（台別）
     const unitSortFunc = getStatsSortFunction(sortBy);
     unitResults.sort(unitSortFunc);
 
@@ -756,9 +802,19 @@ function showAllStats(data, sortBy, mode, unitSuffixFilter = '', eventHtml = '',
         machineFilterInfo = `<div class="filter-info"><span class="active-filter">${selectedMachines.length}機種選択中</span></div>`;
     }
 
+    // 位置フィルター情報
+    let positionFilterInfo = '';
+    if (selectedStatsPositionFilter) {
+        const tagInfo = POSITION_TAGS[selectedStatsPositionFilter];
+        if (tagInfo) {
+            positionFilterInfo = `<span class="active-filter" style="background: ${tagInfo.color}20; border-color: ${tagInfo.color};">${tagInfo.icon} ${tagInfo.label}</span>`;
+        }
+    }
+
     let html = `
         ${eventHtml}
         ${machineFilterInfo}
+        ${positionFilterInfo ? `<div class="filter-info">${positionFilterInfo}</div>` : ''}
         <div class="stats-summary-block">
             <h4 class="block-title">📊 全体サマリー</h4>
             <div class="stats-summary-grid">
@@ -844,6 +900,7 @@ function showAllStats(data, sortBy, mode, unitSuffixFilter = '', eventHtml = '',
                         <tr>
                             <th>機種名</th>
                             <th>台番号</th>
+                            <th>位置</th>
                             <th>G数</th>
                             <th>差枚</th>
                             <th>機械割</th>
@@ -855,10 +912,12 @@ function showAllStats(data, sortBy, mode, unitSuffixFilter = '', eventHtml = '',
             const saCls = r.totalSa > 0 ? 'plus' : r.totalSa < 0 ? 'minus' : '';
             const rateCls = getMechanicalRateClass(r.rate);
             const rateText = formatMechanicalRate(r.rate);
+            const positionHtml = renderPositionTags(r.num, { compact: true }) || '-';
             html += `
                 <tr>
                     <td>${r.machine}</td>
                     <td>${r.num}</td>
+                    <td>${positionHtml}</td>
                     <td>${r.totalGames.toLocaleString()}</td>
                     <td class="${saCls}">${r.totalSa >= 0 ? '+' : ''}${r.totalSa.toLocaleString()}</td>
                     <td class="${rateCls}">${rateText}</td>
@@ -1006,6 +1065,9 @@ async function showPeriodStats() {
 
     if (!startDate || !endDate) return;
 
+    // 位置フィルターを描画
+    renderStatsPositionFilter('stats-period-content');
+
     await loadEventData();
 
     const startNum = getDateNumber(startDate);
@@ -1049,6 +1111,13 @@ async function showPeriodStats() {
                 if (selectedMachines.length > 0 && !selectedMachines.includes(row['機種名'])) {
                     return;
                 }
+                // 位置フィルター
+                if (selectedStatsPositionFilter) {
+                    const tags = getPositionTags(row['台番号']);
+                    if (!tags.includes(selectedStatsPositionFilter)) {
+                        return;
+                    }
+                }
                 allData.push({ ...row, _file: file, _date: formatDate(file) });
             });
         }
@@ -1083,6 +1152,13 @@ async function showPeriodStats() {
     }
     if (selectedMachines.length > 0) {
         filterLabels.push(`${selectedMachines.length}機種`);
+    }
+    // 位置フィルター情報を追加
+    if (selectedStatsPositionFilter) {
+        const tagInfo = POSITION_TAGS[selectedStatsPositionFilter];
+        if (tagInfo) {
+            filterLabels.push(`${tagInfo.icon} ${tagInfo.label}`);
+        }
     }
     const filterLabel = filterLabels.length > 0 ? `（${filterLabels.join('・')}）` : '';
 
