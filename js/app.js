@@ -45,20 +45,15 @@ function setupTabEventListeners() {
 }
 
 async function init() {
-    try {
-        const response = await fetch('files.json');
-        CSV_FILES = await response.json();
-    } catch (e) {
-        console.error('files.json の読み込みに失敗しました:', e);
-        document.getElementById('summary').innerHTML = 'files.json の読み込みに失敗しました';
-        return;
-    }
+    // データ読み込み（data.jsのloadAllData関数を使用）
+    await loadAllData();
 
     if (CSV_FILES.length === 0) {
         document.getElementById('summary').innerHTML = 'CSVファイルがありません';
         return;
     }
 
+    // カレンダーの初期年月を設定
     const sortedFiles = sortFilesByDate(CSV_FILES, true);
     const latestParsed = parseDateFromFilename(sortedFiles[0]);
     if (latestParsed) {
@@ -70,7 +65,6 @@ async function init() {
         calendarMonth = now.getMonth() + 1;
     }
 
-    await loadAllCSV();
     populateDateSelectors();
     populateMachineFilters();
 
