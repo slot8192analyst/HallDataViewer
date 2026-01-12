@@ -420,6 +420,16 @@ async function renderCalendar() {
     const daysInMonth = lastDay.getDate();
 
     const dateStats = {};
+    
+    // 月間サマリー用の変数
+    let monthTotalSa = 0;
+    let firstHalfSa = 0;  // 上旬（1日〜15日）
+    let secondHalfSa = 0; // 下旬（16日〜月末）
+    let monthTotalGames = 0;
+    let monthTotalCount = 0;
+    let monthPlusCount = 0;
+    let daysWithData = 0;
+    
     for (const file of CSV_FILES) {
         const parsed = parseDateFromFilename(file);
         if (parsed && parsed.year === year && parsed.month === month) {
@@ -436,9 +446,26 @@ async function renderCalendar() {
                     winRate: ((plusCount / data.length) * 100).toFixed(1),
                     totalSa: totalSa
                 };
+                
+                // 月間サマリーに加算
+                monthTotalSa += totalSa;
+                monthTotalGames += totalGames;
+                monthTotalCount += data.length;
+                monthPlusCount += plusCount;
+                daysWithData++;
+                
+                // 上旬・下旬の判定
+                if (parsed.day <= 15) {
+                    firstHalfSa += totalSa;
+                } else {
+                    secondHalfSa += totalSa;
+                }
             }
         }
     }
+    
+    // 月間サマリーを表示
+    renderMonthSummary(monthTotalSa, firstHalfSa, secondHalfSa, monthTotalGames, monthTotalCount, monthPlusCount, daysWithData);
 
     let html = '';
 
@@ -518,6 +545,69 @@ async function renderCalendar() {
     }
 
     container.innerHTML = html;
+}
+
+/**
+ * 月間サマリーを表示
+ */
+function renderMonthSummary(totalSa, firstHalfSa, secondHalfSa, totalGames, totalCount, plusCount, daysWithData) {
+    // 既存のサマリーを削除
+    const existingSummary = document.getElementById('calendarMonthSummary');
+    if (existingSummary) {
+        existingSummary.remove();
+    }
+    
+    // カレンダーヘッダーの後に挿入
+    const calendarHeader = document.querySelector('.calendar-header');
+    if (!calendarHeader) return;
+    
+    // クラス計算
+    const totalSaClass = totalSa > 0 ? 'plus' : totalSa < 0 ? 'minus' : '';
+    const firstHalfClass = firstHalfSa > 0 ? 'plus' : firstHalfSa < 0 ? 'minus' : '';
+    const secondHalfClass = secondHalfSa > 0 ? 'plus' : secondHalfSa < 0 ? 'minus' : '';
+    
+    // 機械割計算
+    const mechRate = totalGames > 0 ? calculateMechanicalRate(totalGames, totalSa) : null;
+    const mechRateText = formatMechanicalRate(mechRate);
+    const mechRateClass = getMechanicalRateClass(mechRate);
+    
+    // 勝率計算
+    const winRate = totalCount > 0 ? ((plusCount / totalCount) * 100).toFixed(1) : '0.0';
+    
+    // サマリーHTML
+    const summaryHtml = `
+        <div id="calendarMonthSummary" class="calendar-month-summary">
+            <div class="month-summary-item main">
+                <span class="summary-label">月間合計</span>
+                <span class="summary-value ${totalSaClass}">${totalSa >= 0 ? '+' : ''}${totalSa.toLocaleString()}枚</span>
+            </div>
+            <div class="month-summary-divider"></div>
+            <div class="month-summary-item">
+                <span class="summary-label">上旬 (1〜15日)</span>
+                <span class="summary-value ${firstHalfClass}">${firstHalfSa >= 0 ? '+' : ''}${firstHalfSa.toLocaleString()}</span>
+            </div>
+            <div class="month-summary-item">
+                <span class="summary-label">下旬 (16日〜)</span>
+                <span class="summary-value ${secondHalfClass}">${secondHalfSa >= 0 ? '+' : ''}${secondHalfSa.toLocaleString()}</span>
+            </div>
+            <div class="month-summary-divider"></div>
+            <div class="month-summary-item">
+                <span class="summary-label">機械割</span>
+                <span class="summary-value ${mechRateClass}">${mechRateText}</span>
+            </div>
+            <div class="month-summary-item">
+                <span class="summary-label">勝率</span>
+                <span class="summary-value">${winRate}%</span>
+            </div>
+            <div class="month-summary-item">
+                <span class="summary-label">データ</span>
+                <span class="summary-value">${daysWithData}日</span>
+            </div>
+        </div>
+    `;
+    
+    // ヘッダーの後に挿入
+    calendarHeader.insertAdjacentHTML('afterend', summaryHtml);
 }
 
 function changeCalendarMonth(delta) {
