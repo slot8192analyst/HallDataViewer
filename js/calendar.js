@@ -6,6 +6,49 @@ let calendarEventFilter = null;
 let calendarMediaFilter = null;
 let calendarPerformerFilter = null;
 
+
+// ===================
+// カレンダーから日別データへ遷移
+// ===================
+
+/**
+ * カレンダーの日付クリックで日別データタブに遷移
+ * @param {string} dateKey - 日付キー（YYYY_MM_DD形式）
+ */
+function navigateToDailyData(dateKey) {
+    const filename = `data/${dateKey}.csv`;
+    const sortedFiles = sortFilesByDate(CSV_FILES, true);
+    const fileIndex = sortedFiles.indexOf(filename);
+    
+    // データが存在する場合のみ遷移
+    if (fileIndex === -1) {
+        showCopyToast('この日のデータはありません', true);
+        return;
+    }
+    
+    // 日別データタブに切り替え
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    const dailyTabBtn = document.querySelector('.tab-btn[data-tab="daily"]');
+    const dailyTabContent = document.getElementById('daily');
+    
+    if (dailyTabBtn && dailyTabContent) {
+        dailyTabBtn.classList.add('active');
+        dailyTabContent.classList.add('active');
+        
+        // 日付インデックスを更新
+        currentDateIndex = fileIndex;
+        
+        // 日付セレクターを更新してデータを表示
+        initDateSelectWithEvents();
+        filterAndRender();
+        
+        // ページ上部にスクロール
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
 // カレンダーフィルター用の複数選択コンポーネント初期化
 function initCalendarMultiSelect(containerId, options, placeholder, onChange) {
     const container = document.getElementById(containerId);
@@ -414,11 +457,15 @@ async function renderCalendar() {
         let dayClass = 'calendar-day';
         if (dayOfWeek === 0) dayClass += ' sunday';
         if (dayOfWeek === 6) dayClass += ' saturday';
-        if (stats) dayClass += ' has-data';
+        if (stats) dayClass += ' has-data clickable';
         if (displayableEvents.length > 0) dayClass += ' has-event';
         if (!matchesFilter) dayClass += ' filtered-out';
 
-        html += `<div class="${dayClass}">`;
+        // データがある場合はクリック可能にする
+        const clickHandler = stats ? `onclick="navigateToDailyData('${dateKey}')"` : '';
+        const titleAttr = stats ? `title="クリックで日別データを表示"` : '';
+
+        html += `<div class="${dayClass}" ${clickHandler} ${titleAttr}>`;
         html += `<div class="day-number">${day}</div>`;
 
         if (displayableEvents.length > 0) {

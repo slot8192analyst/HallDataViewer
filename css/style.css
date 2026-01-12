@@ -2903,3 +2903,72 @@ select option {
         color: inherit;
     }
 }
+
+/* ===================
+   カレンダー日付クリック
+   =================== */
+.calendar-day.clickable {
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+    position: relative;
+}
+
+.calendar-day.clickable:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+    background: var(--bg-medium);
+}
+
+.calendar-day.clickable:active {
+    transform: scale(0.98);
+}
+
+/* ホバー時のオーバーレイ */
+.calendar-day.clickable::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--primary-color);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.calendar-day.clickable:hover::after {
+    opacity: 0.08;
+}
+
+/* クリック可能を示す矢印アイコン */
+.calendar-day.clickable .day-number::after {
+    content: ' →';
+    font-size: 0.7em;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    color: var(--accent-info);
+}
+
+.calendar-day.clickable:hover .day-number::after {
+    opacity: 0.8;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 480px) {
+    .calendar-day.clickable:hover {
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .calendar-day.clickable:active {
+        transform: scale(0.95);
+        background: var(--primary-dark);
+    }
+    
+    .calendar-day.clickable .day-number::after {
+        display: none;
+    }
+}
