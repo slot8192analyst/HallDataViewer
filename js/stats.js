@@ -175,7 +175,6 @@ function setupSuffixTableActions(uniqueId) {
     }
 }
 
-
 // トグル動作のセットアップ
 function setupSuffixStatsToggle(uniqueId) {
     const header = document.querySelector(`[data-toggle-id="${uniqueId}"]`);
@@ -189,112 +188,17 @@ function setupSuffixStatsToggle(uniqueId) {
     }
 }
 
-// ファイル名から日付キーを取得
-function getDateKeyFromFile(file) {
-    const match = file.match(/(\d{4}_\d{2}_\d{2})/);
-    return match ? match[1] : null;
-}
-
-// イベントが有効かどうかをチェック
-function isStatsValidEvent(event) {
-    if (!event) return false;
-    
-    const hasValidType = event.type && event.type.trim() !== '';
-    const hasValidMedia = event.media && event.media.trim() !== '';
-    
-    let hasValidName = false;
-    if (Array.isArray(event.name)) {
-        hasValidName = event.name.some(n => n && n.trim() !== '');
-    } else if (event.name) {
-        hasValidName = event.name.trim() !== '';
-    }
-    
-    return hasValidType || hasValidMedia || hasValidName;
-}
-
-// イベントまたは演者が存在するかチェック
-function hasStatsEventOrPerformers(event) {
-    if (!event) return false;
-    
-    const hasEvent = isStatsValidEvent(event);
-    const hasPerformers = event.performers && event.performers.length > 0;
-    
-    return hasEvent || hasPerformers;
-}
-
-// イベントの表示名を取得
-function getStatsEventDisplayName(event) {
-    if (!event) return { icon: '', name: '', typeInfo: null };
-    
-    const typeInfo = getEventTypeInfo(event.type);
-    const icon = typeInfo ? typeInfo.icon : '';
-    
-    let eventName = '';
-    if (Array.isArray(event.name)) {
-        eventName = event.name.filter(n => n && n.trim() !== '').join(', ');
-    } else if (event.name && event.name.trim() !== '') {
-        eventName = event.name;
-    }
-    
-    if (!eventName && event.media) {
-        eventName = event.media;
-    }
-    
-    if (!eventName && typeInfo) {
-        eventName = typeInfo.name;
-    }
-    
-    return { icon, name: eventName, typeInfo, event };
-}
-
-// 統計用のイベントバッジ表示
-function renderStatsEventBadges(events) {
-    if (!events || events.length === 0) return '';
-
-    const relevantEvents = events.filter(event => hasStatsEventOrPerformers(event));
-    
-    if (relevantEvents.length === 0) return '';
-
-    let html = '<div class="stats-event-badges">';
-    
-    relevantEvents.forEach(event => {
-        if (isStatsValidEvent(event)) {
-            const { icon, name, typeInfo } = getStatsEventDisplayName(event);
-            const color = typeInfo ? typeInfo.color : '#888';
-            
-            if (name) {
-                html += `
-                    <span class="stats-event-badge" style="background: ${color}20; border-color: ${color};">
-                        ${icon} ${name}
-                    </span>
-                `;
-            }
-        }
-
-        if (event.performers && event.performers.length > 0) {
-            html += `
-                <span class="stats-event-badge performer-badge">
-                    🎤 ${event.performers.join(', ')}
-                </span>
-            `;
-        }
-    });
-    
-    html += '</div>';
-    return html;
-}
-
 // ファイルがフィルターに一致するかチェック
 function fileMatchesEventFilter(file, eventFilterValue, mediaFilterValue, performerFilterValue) {
-    const dateKey = getDateKeyFromFile(file);
+    const dateKey = getDateKeyFromFilename(file);
     const events = getEventsForDate(dateKey);
 
     if (eventFilterValue === 'has_event') {
-        if (!events.some(e => hasStatsEventOrPerformers(e))) {
+        if (!events.some(e => hasEventOrPerformers(e))) {
             return false;
         }
     } else if (eventFilterValue === 'no_event') {
-        if (events.some(e => hasStatsEventOrPerformers(e))) {
+        if (events.some(e => hasEventOrPerformers(e))) {
             return false;
         }
     } else if (eventFilterValue && eventFilterValue.startsWith('type:')) {
@@ -334,7 +238,7 @@ function getAllEventNamesFromFiles(files) {
     const eventNames = new Set();
     
     files.forEach(file => {
-        const dateKey = getDateKeyFromFile(file);
+        const dateKey = getDateKeyFromFilename(file);
         const events = getEventsForDate(dateKey);
         
         events.forEach(event => {
@@ -361,15 +265,15 @@ function getDetailedEventSummaryForFiles(files) {
     const performerCounts = {};
 
     files.forEach(file => {
-        const dateKey = getDateKeyFromFile(file);
+        const dateKey = getDateKeyFromFilename(file);
         const events = getEventsForDate(dateKey);
         const formattedDate = formatDate(file);
 
         events.forEach(event => {
-            if (hasStatsEventOrPerformers(event)) {
-                const { icon, name, typeInfo } = getStatsEventDisplayName(event);
+            if (hasEventOrPerformers(event)) {
+                const { icon, name, typeInfo } = getEventDisplayName(event);
                 
-                if (isStatsValidEvent(event) && name) {
+                if (isValidEvent(event) && name) {
                     eventDetails.push({
                         date: formattedDate,
                         icon: icon,
@@ -454,6 +358,51 @@ function renderDetailedEventSummary(files) {
         html += '</div>';
     }
 
+    html += '</div>';
+    return html;
+}
+
+// 統計用のイベントバッジ表示（noteの表示を含む）
+function renderStatsEventBadges(events) {
+    if (!events || events.length === 0) return '';
+
+    const relevantEvents = events.filter(event => hasEventOrPerformers(event));
+    
+    if (relevantEvents.length === 0) return '';
+
+    let html = '<div class="stats-event-badges">';
+    
+    relevantEvents.forEach(event => {
+        if (isValidEvent(event)) {
+            const { icon, name, color } = getEventDisplayName(event);
+            
+            if (name) {
+                html += `
+                    <span class="stats-event-badge" style="background: ${color}20; border-color: ${color};">
+                        ${icon} ${name}
+                    </span>
+                `;
+                
+                // noteがある場合は別途表示
+                if (event.note) {
+                    html += `
+                        <span class="stats-event-note" style="color: ${color};">
+                            📝 ${event.note}
+                        </span>
+                    `;
+                }
+            }
+        }
+
+        if (event.performers && event.performers.length > 0) {
+            html += `
+                <span class="stats-event-badge performer-badge">
+                    🎤 ${event.performers.join(', ')}
+                </span>
+            `;
+        }
+    });
+    
     html += '</div>';
     return html;
 }
@@ -558,7 +507,6 @@ function updateStatsDailyMachineFilter() {
     }
 }
 
-
 function updateUnitSuffixFilterVisibility() {
     const dailyFilter = document.querySelector('.stats-unit-suffix-filter');
     const periodFilter = document.querySelector('.stats-period-unit-suffix-filter');
@@ -571,8 +519,51 @@ function updateUnitSuffixFilterVisibility() {
     }
 }
 
-// 日付ナビゲーションのラベルを更新
-function updateStatsDateLabel() {
+// ===================
+// 日付セレクター関連
+// ===================
+
+// 日付セレクトボックスをイベント情報付きで初期化
+async function initStatsDateSelectWithEvents() {
+    await loadEventData();
+    
+    const dateSelect = document.getElementById('statsDateSelect');
+    if (!dateSelect) return;
+    
+    const sortedFiles = sortFilesByDate(CSV_FILES, true);
+    
+    dateSelect.innerHTML = sortedFiles.map((file, index) => {
+        return createDateSelectOption(file, index === 0);
+    }).join('');
+}
+
+// 期間セレクターにイベント情報を追加
+async function initStatsPeriodSelectsWithEvents() {
+    await loadEventData();
+    
+    const startSelect = document.getElementById('statsPeriodStart');
+    const endSelect = document.getElementById('statsPeriodEnd');
+    
+    if (!startSelect || !endSelect) return;
+    
+    const sortedFiles = sortFilesByDate(CSV_FILES, true);
+    
+    // 終了日（最新を選択）
+    endSelect.innerHTML = sortedFiles.map((file, index) => {
+        return createDateSelectOption(file, index === 0);
+    }).join('');
+    
+    // 開始日（7日前を選択）
+    const startIdx = Math.min(6, sortedFiles.length - 1);
+    startSelect.innerHTML = sortedFiles.map((file, index) => {
+        return createDateSelectOption(file, index === startIdx);
+    }).join('');
+}
+
+// 日付ナビゲーションのラベルを更新（イベント情報付き）
+async function updateStatsDateLabel() {
+    await loadEventData();
+    
     const dateSelect = document.getElementById('statsDateSelect');
     const dateLabel = document.getElementById('statsCurrentDateLabel');
     
@@ -631,6 +622,10 @@ function updateStatsDateNavButtons() {
     nextBtn.disabled = currentIndex <= 0;
 }
 
+// ===================
+// 日別統計表示
+// ===================
+
 async function showDailyStats() {
     const dateFile = document.getElementById('statsDateSelect')?.value;
     const selectedMachines = statsDailyMachineFilterSelect ? statsDailyMachineFilterSelect.getSelectedValues() : [];
@@ -639,21 +634,26 @@ async function showDailyStats() {
 
     if (!dateFile) return;
 
-    updateStatsDateLabel();
+    await updateStatsDateLabel();
     updateStatsDateNavButtons();
     updateStatsDailyMachineFilter();
 
     let data = await loadCSV(dateFile);
-    if (!data) {
-        document.getElementById('statsContent').innerHTML = '<p>データがありません</p>';
+    
+    // イベント情報を取得
+    await loadEventData();
+    const dateKey = getDateKeyFromFilename(dateFile);
+    const events = getEventsForDate(dateKey);
+    const eventHtml = renderStatsEventBadges(events);
+
+    if (!data || data.length === 0) {
+        // データがない場合でもイベント情報は表示
+        document.getElementById('statsContent').innerHTML = `
+            ${eventHtml}
+            <p class="no-data-message">この日のデータはありません</p>
+        `;
         return;
     }
-
-    await loadEventData();
-    const dateKey = getDateKeyFromFile(dateFile);
-    const events = getEventsForDate(dateKey);
-    
-    const eventHtml = renderStatsEventBadges(events);
 
     // 複数機種フィルター
     if (selectedMachines.length > 0) {
@@ -985,6 +985,10 @@ function showMachineDetail(data, machine, sortBy, unitSuffixFilter = '', eventHt
     html += '</tbody></table></div>';
     document.getElementById('statsContent').innerHTML = html;
 }
+
+// ===================
+// 期間統計表示
+// ===================
 
 async function showPeriodStats() {
     const startDate = document.getElementById('statsPeriodStart')?.value;
@@ -1447,6 +1451,10 @@ function showPeriodMachineDetail(allData, machine, targetFiles, sortBy, periodLa
     document.getElementById('statsContent').innerHTML = html;
 }
 
+// ===================
+// イベントリスナー設定
+// ===================
+
 function setupStatsEventListeners() {
     // モード切り替え
     document.querySelectorAll('.stats-mode-btn').forEach(btn => {
@@ -1488,20 +1496,23 @@ function setupStatsEventListeners() {
     // 検索可能フィルターを初期化
     initStatsFilters();
     
+    // イベント情報付き日付セレクターを初期化
+    initStatsDateSelectWithEvents();
+    initStatsPeriodSelectsWithEvents();
+    
     // 初期表示時に日付ラベルとボタン状態を更新
     setTimeout(() => {
         updateStatsDateLabel();
         updateStatsDateNavButtons();
     }, 100);
 
-    // コピー・ダウンロードボタンのイベントリスナーを追加
+    // コピー・ダウンロードボタンのイベントリスナー
     document.getElementById('copyStatsTableBtn')?.addEventListener('click', copyStatsTable);
     document.getElementById('downloadStatsCsvBtn')?.addEventListener('click', downloadStatsCSV);
 }
 
 // 統計テーブルのコピー
 function copyStatsTable() {
-    // statsContent内の最初のstats-tableを取得
     const table = document.querySelector('#statsContent .stats-table');
     if (!table) {
         showCopyToast('コピーするテーブルがありません', true);
@@ -1521,7 +1532,6 @@ function downloadStatsCSV() {
     }
     const data = getTableData(table);
     
-    // ファイル名を生成
     const today = new Date().toISOString().split('T')[0].replace(/-/g, '_');
     let filename = '';
     
@@ -1589,238 +1599,5 @@ function getStatsSortFunction(sortBy) {
             };
         default:
             return (a, b) => b.totalSa - a.totalSa;
-    }
-}
-
-// ===================
-// 日付セレクター関連の修正
-// ===================
-
-// 日付セレクトボックスをイベント情報付きで初期化
-async function initStatsDateSelectWithEvents() {
-    await loadEventData();
-    
-    const dateSelect = document.getElementById('statsDateSelect');
-    if (!dateSelect) return;
-    
-    const sortedFiles = sortFilesByDate(CSV_FILES, true);
-    
-    dateSelect.innerHTML = sortedFiles.map((file, index) => {
-        return createDateSelectOption(file, index === 0);
-    }).join('');
-}
-
-// 期間セレクターにイベント情報を追加
-async function initStatsPeriodSelectsWithEvents() {
-    await loadEventData();
-    
-    const startSelect = document.getElementById('statsPeriodStart');
-    const endSelect = document.getElementById('statsPeriodEnd');
-    
-    if (!startSelect || !endSelect) return;
-    
-    const sortedFiles = sortFilesByDate(CSV_FILES, true);
-    
-    // 終了日（最新を選択）
-    endSelect.innerHTML = sortedFiles.map((file, index) => {
-        return createDateSelectOption(file, index === 0);
-    }).join('');
-    
-    // 開始日（7日前を選択）
-    const startIdx = Math.min(6, sortedFiles.length - 1);
-    startSelect.innerHTML = sortedFiles.map((file, index) => {
-        return createDateSelectOption(file, index === startIdx);
-    }).join('');
-}
-
-// 日付ナビゲーションのラベルを更新（イベント情報付き）
-async function updateStatsDateLabelWithEvents() {
-    await loadEventData();
-    
-    const dateSelect = document.getElementById('statsDateSelect');
-    const dateLabel = document.getElementById('statsCurrentDateLabel');
-    
-    if (!dateSelect || !dateLabel) return;
-    
-    const selectedFile = dateSelect.value;
-    if (selectedFile) {
-        const formattedDate = formatDate(selectedFile);
-        const dayOfWeek = getDayOfWeekName(getDayOfWeek(selectedFile));
-        dateLabel.textContent = `${formattedDate}（${dayOfWeek}）`;
-    } else {
-        dateLabel.textContent = '-';
-    }
-}
-
-// showDailyStats を修正（イベントバッジを追加）
-async function showDailyStats() {
-    const dateFile = document.getElementById('statsDateSelect')?.value;
-    const selectedMachines = statsDailyMachineFilterSelect ? statsDailyMachineFilterSelect.getSelectedValues() : [];
-    const sortBy = document.getElementById('statsSortBy')?.value || 'total_desc';
-    const unitSuffixFilter = document.getElementById('statsUnitSuffixFilter')?.value || '';
-
-    if (!dateFile) return;
-
-    await updateStatsDateLabelWithEvents();
-    updateStatsDateNavButtons();
-    updateStatsDailyMachineFilter();
-
-    let data = await loadCSV(dateFile);
-    
-    // イベント情報を取得
-    await loadEventData();
-    const dateKey = getDateKeyFromFilename(dateFile);
-    const events = getEventsForDate(dateKey);
-    const eventHtml = renderStatsEventBadgesEnhanced(events);
-
-    if (!data || data.length === 0) {
-        // データがない場合でもイベント情報は表示
-        document.getElementById('statsContent').innerHTML = `
-            ${eventHtml}
-            <p class="no-data-message">この日のデータはありません</p>
-        `;
-        return;
-    }
-
-    // 複数機種フィルター
-    if (selectedMachines.length > 0) {
-        data = data.filter(row => selectedMachines.includes(row['機種名']));
-    }
-
-    if (selectedMachines.length === 1) {
-        showMachineDetail(data, selectedMachines[0], sortBy, unitSuffixFilter, eventHtml);
-    } else {
-        showAllStats(data, sortBy, 'daily', unitSuffixFilter, eventHtml, selectedMachines);
-    }
-}
-
-// イベントバッジ表示を強化（noteの表示を追加）
-function renderStatsEventBadgesEnhanced(events) {
-    if (!events || events.length === 0) return '';
-
-    const relevantEvents = events.filter(event => hasEventOrPerformers(event));
-    
-    if (relevantEvents.length === 0) return '';
-
-    let html = '<div class="stats-event-badges">';
-    
-    relevantEvents.forEach(event => {
-        if (isValidEvent(event)) {
-            const { icon, name, typeInfo } = getStatsEventDisplayName(event);
-            const color = typeInfo ? typeInfo.color : (event.color || '#888');
-            
-            if (name) {
-                html += `
-                    <span class="stats-event-badge" style="background: ${color}20; border-color: ${color};">
-                        ${icon} ${name}
-                    </span>
-                `;
-                
-                // noteがある場合は別途表示
-                if (event.note) {
-                    html += `
-                        <span class="stats-event-note" style="color: ${color};">
-                            📝 ${event.note}
-                        </span>
-                    `;
-                }
-            }
-        }
-
-        if (event.performers && event.performers.length > 0) {
-            html += `
-                <span class="stats-event-badge performer-badge">
-                    🎤 ${event.performers.join(', ')}
-                </span>
-            `;
-        }
-    });
-    
-    html += '</div>';
-    return html;
-}
-
-// setupStatsEventListeners を修正
-function setupStatsEventListeners() {
-    // モード切り替え
-    document.querySelectorAll('.stats-mode-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.stats-mode-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.stats-mode-content').forEach(c => c.classList.remove('active'));
-            btn.classList.add('active');
-
-            statsMode = btn.dataset.mode;
-            document.getElementById(`stats-${statsMode}-content`).classList.add('active');
-            updateUnitSuffixFilterVisibility();
-            showStats();
-        });
-    });
-
-    // 日別モード - 日付セレクト
-    document.getElementById('statsDateSelect')?.addEventListener('change', () => {
-        updateStatsDateLabelWithEvents();
-        updateStatsDateNavButtons();
-        showStats();
-    });
-    
-    // 日別モード - 前日/翌日ボタン
-    document.getElementById('statsPrevDate')?.addEventListener('click', goToPrevStatsDate);
-    document.getElementById('statsNextDate')?.addEventListener('click', goToNextStatsDate);
-    
-    // 日別モード - その他
-    document.getElementById('statsSortBy')?.addEventListener('change', showStats);
-    document.getElementById('statsUnitSuffixFilter')?.addEventListener('change', showStats);
-
-    // 期間集計モード
-    document.getElementById('statsPeriodStart')?.addEventListener('change', showStats);
-    document.getElementById('statsPeriodEnd')?.addEventListener('change', showStats);
-    document.getElementById('statsDayOfWeek')?.addEventListener('change', showStats);
-    document.getElementById('statsDateSuffix')?.addEventListener('change', showStats);
-    document.getElementById('statsPeriodSortBy')?.addEventListener('change', showStats);
-    document.getElementById('statsPeriodUnitSuffixFilter')?.addEventListener('change', showStats);
-
-    // 検索可能フィルターを初期化
-    initStatsFilters();
-    
-    // イベント情報付き日付セレクターを初期化
-    initStatsDateSelectWithEvents();
-    initStatsPeriodSelectsWithEvents();
-    
-    // 初期表示時に日付ラベルとボタン状態を更新
-    setTimeout(() => {
-        updateStatsDateLabelWithEvents();
-        updateStatsDateNavButtons();
-    }, 100);
-
-    // コピー・ダウンロードボタンのイベントリスナー
-    document.getElementById('copyStatsTableBtn')?.addEventListener('click', copyStatsTable);
-    document.getElementById('downloadStatsCsvBtn')?.addEventListener('click', downloadStatsCSV);
-}
-
-// 前日に移動（修正）
-function goToPrevStatsDate() {
-    const dateSelect = document.getElementById('statsDateSelect');
-    if (!dateSelect) return;
-    
-    const currentIndex = dateSelect.selectedIndex;
-    if (currentIndex < dateSelect.options.length - 1) {
-        dateSelect.selectedIndex = currentIndex + 1;
-        updateStatsDateLabelWithEvents();
-        updateStatsDateNavButtons();
-        showStats();
-    }
-}
-
-// 翌日に移動（修正）
-function goToNextStatsDate() {
-    const dateSelect = document.getElementById('statsDateSelect');
-    if (!dateSelect) return;
-    
-    const currentIndex = dateSelect.selectedIndex;
-    if (currentIndex > 0) {
-        dateSelect.selectedIndex = currentIndex - 1;
-        updateStatsDateLabelWithEvents();
-        updateStatsDateNavButtons();
-        showStats();
     }
 }

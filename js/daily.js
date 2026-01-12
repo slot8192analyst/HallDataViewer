@@ -268,12 +268,6 @@ function updateFilterBadge() {
     }
 }
 
-// ファイル名から日付キーを取得（日別用）
-function getDailyDateKeyFromFile(file) {
-    const match = file.match(/(\d{4}_\d{2}_\d{2})/);
-    return match ? match[1] : null;
-}
-
 // 日別用のイベントバッジ表示
 function renderDailyEventBadges(events) {
     if (!events || events.length === 0) return '';
@@ -308,40 +302,6 @@ function renderDailyEventBadges(events) {
     
     html += '</div>';
     return html;
-}
-
-// 日付セレクトボックス用のイベント表示テキストを生成
-function getEventTextForSelect(events) {
-    if (!events || events.length === 0) return '';
-    
-    const relevantEvents = events.filter(event => hasEventOrPerformers(event));
-    if (relevantEvents.length === 0) return '';
-    
-    const displayItems = [];
-    
-    relevantEvents.forEach(event => {
-        if (isValidEvent(event)) {
-            const { icon, name } = getEventDisplayName(event);
-            if (name) {
-                displayItems.push(`${icon}${name}`);
-            }
-        }
-        
-        // 演者のみの場合
-        if (!isValidEvent(event) && event.performers && event.performers.length > 0) {
-            const performerText = event.performers.slice(0, 2).join(',');
-            const suffix = event.performers.length > 2 ? '...' : '';
-            displayItems.push(`🎤${performerText}${suffix}`);
-        }
-    });
-    
-    if (displayItems.length === 0) return '';
-    
-    if (displayItems.length <= 2) {
-        return ' ' + displayItems.join(' / ');
-    } else {
-        return ' ' + displayItems.slice(0, 2).join(' / ') + '...';
-    }
 }
 
 // 日付セレクトボックスにイベント情報を含めて初期化
