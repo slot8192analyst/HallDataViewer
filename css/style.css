@@ -1104,36 +1104,41 @@ tr:nth-child(odd) {
    日別データタブ イベント情報
    =================== */
 .daily-event-info {
-    margin-bottom: 15px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0;
+    padding: 8px;
 }
 
 .daily-event-badges {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 8px;
-    padding: 10px;
-    background: var(--bg-light);
-    border-radius: var(--radius-md);
 }
 
 .daily-event-badge {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 5px 10px;
-    border-radius: var(--radius-sm);
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 0.85em;
     border: 1px solid;
-    font-size: var(--font-size-sm);
-    color: var(--text-primary);
+    white-space: nowrap;
 }
 
 .daily-event-badge.performer-badge {
     background: #ec489920;
-    border-color: var(--accent-pink);
+    border-color: #ec4899;
+    color: #ec4899;
 }
 
 #dateSelect {
     min-width: 280px;
+    max-width: 400px;
 }
 
 #dateSelect option {
@@ -1147,26 +1152,35 @@ tr:nth-child(odd) {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 15px;
-    padding: 10px;
-    background: var(--bg-light);
-    border-radius: var(--radius-md);
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: 8px;
 }
 
 .stats-event-badge {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 5px 10px;
-    border-radius: var(--radius-sm);
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
     border: 1px solid;
-    font-size: var(--font-size-sm);
-    color: var(--text-primary);
 }
 
 .stats-event-badge.performer-badge {
     background: #ec489920;
-    border-color: var(--accent-pink);
+    border-color: #ec4899;
+    color: #ec4899;
+}
+
+.stats-event-note {
+    display: block;
+    width: 100%;
+    font-size: 0.85em;
+    padding: 4px 8px;
+    margin-top: 4px;
+    opacity: 0.8;
 }
 
 /* イベント・演者サマリー */
@@ -1274,6 +1288,7 @@ tr:nth-child(odd) {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
+    align-items: center;
 }
 
 .calendar-filters .filter-group {
@@ -1300,6 +1315,20 @@ tr:nth-child(odd) {
 }
 
 .calendar-filters .searchable-select-dropdown {
+    z-index: 1001;
+}
+
+.calendar-filters .btn-small {
+    padding: 8px 12px;
+    margin-left: auto;
+}
+
+/* カレンダーフィルターのマルチセレクト調整 */
+.calendar-filters .multi-select-filter {
+    min-width: 140px;
+}
+
+.calendar-filters .multi-select-dropdown {
     z-index: 1001;
 }
 
@@ -1644,12 +1673,13 @@ tr:nth-child(odd) {
 .date-checkbox-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
+    gap: 8px;
+    padding: 10px 12px;
     background: var(--bg-input);
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: background var(--transition-fast);
+    flex-wrap: wrap;
 }
 
 .date-checkbox-item:hover {
@@ -1660,18 +1690,23 @@ tr:nth-child(odd) {
     width: 18px;
     height: 18px;
     cursor: pointer;
+    flex-shrink: 0;
+    accent-color: var(--primary-color);
 }
 
 .date-checkbox-item label {
-    flex: 1;
     cursor: pointer;
     color: var(--text-primary);
     font-size: var(--font-size-md);
+    flex-shrink: 0;
+    min-width: 90px;
 }
 
 .date-checkbox-item .day-of-week {
     color: var(--text-muted);
     font-size: var(--font-size-sm);
+    flex-shrink: 0;
+    min-width: 35px;
 }
 
 .date-checkbox-item .day-of-week.sunday {
@@ -1680,6 +1715,19 @@ tr:nth-child(odd) {
 
 .date-checkbox-item .day-of-week.saturday {
     color: var(--accent-info);
+}
+
+.date-event-info {
+    font-size: var(--font-size-xs);
+    color: var(--accent-warning);
+    background: var(--bg-dark);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    margin-left: auto;
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* ===================
@@ -1701,445 +1749,6 @@ tr:nth-child(odd) {
 
 .site-footer .copyright {
     color: var(--text-dark);
-}
-
-/* ===================
-   レスポンシブ: スマホ (〜480px)
-   =================== */
-@media (max-width: 480px) {
-    :root {
-        --font-size-xs: 9px;
-        --font-size-sm: 11px;
-        --font-size-md: 12px;
-        --font-size-lg: 14px;
-        --font-size-xl: 16px;
-        --font-size-2xl: 18px;
-        --font-size-3xl: 20px;
-    }
-
-    body {
-        padding: 5px;
-    }
-
-    .tabs {
-        gap: 3px;
-    }
-
-    .tab-btn {
-        padding: 8px 10px;
-    }
-
-    .controls input,
-    .controls select {
-        padding: 8px;
-        min-width: 80px;
-    }
-
-    .control-group {
-        width: 100%;
-    }
-
-    .control-group select {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .filter-panel-header {
-        padding: 10px 12px;
-    }
-
-    .filter-panel-content.open {
-        padding: 12px;
-    }
-
-    .filter-item {
-        padding: 5px 8px;
-    }
-
-    .filter-item input {
-        width: 60px;
-    }
-
-    .column-selector-controls {
-        flex-wrap: wrap;
-    }
-
-    .btn-small {
-        padding: 6px 12px;
-    }
-
-    .column-checkboxes {
-        gap: 4px;
-    }
-
-    .column-checkbox-item {
-        padding: 5px 8px;
-    }
-
-    .column-checkbox-item input[type="checkbox"] {
-        width: 14px;
-        height: 14px;
-    }
-
-    th,
-    td {
-        padding: 5px 6px;
-    }
-
-    #data-table td:nth-child(1),
-    #data-table th:nth-child(1) {
-        min-width: 100px;
-        max-width: 130px;
-    }
-
-    #trend-fixed-table th:first-child,
-    #trend-fixed-table td:first-child {
-        min-width: 90px;
-        max-width: 120px;
-    }
-
-    .summary {
-        padding: 8px;
-    }
-
-    .summary span {
-        margin-right: 8px;
-    }
-
-    .stats-summary-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 6px;
-    }
-
-    .stat-box {
-        padding: 8px;
-    }
-
-    .date-nav button {
-        padding: 6px 10px;
-    }
-
-    .searchable-select {
-        min-width: 100px;
-    }
-
-    .searchable-select-display {
-        padding: 6px 8px;
-    }
-
-    .searchable-select-option {
-        padding: 6px 8px;
-    }
-
-    .calendar-header {
-        padding: 10px 12px;
-    }
-
-    .calendar-header h2 {
-        flex: 1;
-        text-align: center;
-    }
-
-    .calendar-header button {
-        padding: 6px 10px;
-    }
-
-    .calendar-filter-container {
-        padding: 8px 10px;
-    }
-
-    .calendar-filters {
-        gap: 8px;
-    }
-
-    .calendar-filters .filter-group {
-        width: 100%;
-    }
-
-    .calendar-filters .filter-group .searchable-select {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .calendar-filters .filter-group label {
-        min-width: 50px;
-    }
-
-    .calendar-days,
-    .calendar-weekdays {
-        min-width: 600px;
-    }
-
-    .calendar-day {
-        min-height: 100px;
-        min-width: 85px;
-        padding: 3px;
-    }
-
-    .calendar-day .histogram {
-        gap: 3px;
-    }
-
-    .calendar-day .bar-row {
-        height: 10px;
-        gap: 1px;
-    }
-
-    .calendar-day .bar-label {
-        font-size: 6px;
-        width: 18px;
-    }
-
-    .calendar-day .bar-track {
-        height: 6px;
-        min-width: 20px;
-    }
-
-    .calendar-day .bar-value {
-        font-size: 6px;
-        width: 30px;
-    }
-
-    .event-badge {
-        font-size: 7px;
-        padding: 1px 3px;
-    }
-
-    .event-icon {
-        font-size: 8px;
-    }
-
-    .event-performers {
-        font-size: 6px;
-    }
-
-    .calendar-legend {
-        padding: 8px 10px;
-        gap: 8px;
-    }
-
-    .legend-bar {
-        width: 14px;
-        height: 5px;
-    }
-
-    .suffix-stats-block {
-        padding: 10px;
-    }
-
-    .suffix-stats-table th,
-    .suffix-stats-table td {
-        padding: 6px 4px;
-    }
-
-    .suffix-stats-header {
-        padding: 10px 12px;
-    }
-
-    .suffix-stats-content.open {
-        padding: 10px 12px;
-    }
-
-    .stats-event-badges {
-        padding: 8px;
-        gap: 5px;
-    }
-
-    .event-summary {
-        padding: 8px 10px;
-    }
-
-    .event-summary-section {
-        gap: 5px;
-    }
-
-    .event-summary-label {
-        width: 100%;
-    }
-
-    .daily-event-info {
-        margin-bottom: 10px;
-    }
-
-    .daily-event-badges {
-        padding: 8px;
-        gap: 5px;
-    }
-
-    #dateSelect {
-        min-width: 200px;
-    }
-
-    .stats-date-nav {
-        gap: 5px;
-    }
-
-    .stats-date-nav button {
-        padding: 6px 10px;
-    }
-}
-
-/* ===================
-   レスポンシブ: タブレット (481px〜768px)
-   =================== */
-@media (min-width: 481px) and (max-width: 768px) {
-    :root {
-        --font-size-xs: 10px;
-        --font-size-sm: 12px;
-        --font-size-md: 13px;
-        --font-size-lg: 15px;
-        --font-size-xl: 17px;
-        --font-size-2xl: 19px;
-        --font-size-3xl: 22px;
-    }
-
-    th,
-    td {
-        padding: 8px 10px;
-    }
-
-    .calendar-days,
-    .calendar-weekdays {
-        min-width: 650px;
-    }
-
-    .calendar-day {
-        min-height: 110px;
-        min-width: 90px;
-    }
-
-    .calendar-filters .filter-group {
-        flex: 1;
-        min-width: 150px;
-    }
-}
-
-/* ===================
-   レスポンシブ: PC (769px〜)
-   =================== */
-@media (min-width: 769px) {
-    :root {
-        --font-size-xs: 11px;
-        --font-size-sm: 13px;
-        --font-size-md: 14px;
-        --font-size-lg: 16px;
-        --font-size-xl: 18px;
-        --font-size-2xl: 20px;
-        --font-size-3xl: 24px;
-    }
-
-    body {
-        padding: 20px;
-    }
-
-    .tabs {
-        gap: 8px;
-    }
-
-    .tab-btn {
-        padding: 12px 20px;
-    }
-
-    th,
-    td {
-        padding: 12px 16px;
-    }
-
-    #data-table td:nth-child(1),
-    #data-table th:nth-child(1) {
-        min-width: 180px;
-        max-width: 250px;
-    }
-
-    .stats-summary-grid {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    }
-
-    .summary {
-        padding: 15px;
-    }
-
-    .date-nav button {
-        padding: 12px 20px;
-    }
-
-    .filter-panel-header {
-        padding: 14px 18px;
-    }
-
-    .filter-panel-content.open {
-        padding: 18px;
-    }
-
-    .column-checkbox-item {
-        padding: 8px 12px;
-    }
-
-    .calendar-days,
-    .calendar-weekdays {
-        min-width: auto;
-    }
-
-    .calendar-day {
-        min-height: 140px;
-        min-width: auto;
-        padding: 6px;
-    }
-
-    .calendar-day .histogram {
-        gap: 5px;
-    }
-
-    .calendar-day .bar-row {
-        height: 14px;
-        gap: 4px;
-    }
-
-    .calendar-day .bar-label {
-        font-size: 9px;
-        width: 24px;
-    }
-
-    .calendar-day .bar-track {
-        height: 10px;
-    }
-
-    .calendar-day .bar-value {
-        font-size: 9px;
-        width: 40px;
-    }
-
-    .event-badge {
-        font-size: 9px;
-        padding: 2px 5px;
-    }
-
-    .event-icon {
-        font-size: 10px;
-    }
-
-    .event-performers {
-        font-size: 8px;
-    }
-
-    #dateSelect {
-        min-width: 320px;
-    }
-}
-
-/* ===================
-   レスポンシブ: 大画面PC (1200px〜)
-   =================== */
-@media (min-width: 1200px) {
-    :root {
-        --font-size-xs: 11px;
-        --font-size-sm: 13px;
-        --font-size-md: 15px;
-        --font-size-lg: 17px;
-        --font-size-xl: 20px;
-        --font-size-2xl: 22px;
-        --font-size-3xl: 26px;
-    }
 }
 
 /* ===================
@@ -2214,80 +1823,6 @@ tr:nth-child(odd) {
     border-color: var(--accent-minus);
 }
 
-/* レスポンシブ */
-@media (max-width: 480px) {
-    .table-actions {
-        flex-wrap: wrap;
-    }
-
-    .btn-copy,
-    .btn-download {
-        flex: 1;
-        justify-content: center;
-        padding: 10px 12px;
-    }
-}
-
-/* ===================
-   日付選択モーダルのイベント情報
-   =================== */
-.date-checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    background: var(--bg-input);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: background var(--transition-fast);
-    flex-wrap: wrap;
-}
-
-.date-checkbox-item:hover {
-    background: var(--primary-dark);
-}
-
-.date-checkbox-item input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    flex-shrink: 0;
-}
-
-.date-checkbox-item label {
-    cursor: pointer;
-    color: var(--text-primary);
-    font-size: var(--font-size-md);
-    flex-shrink: 0;
-}
-
-.date-checkbox-item .day-of-week {
-    color: var(--text-muted);
-    font-size: var(--font-size-sm);
-    flex-shrink: 0;
-}
-
-.date-checkbox-item .day-of-week.sunday {
-    color: var(--accent-minus);
-}
-
-.date-checkbox-item .day-of-week.saturday {
-    color: var(--accent-info);
-}
-
-.date-event-info {
-    font-size: var(--font-size-xs);
-    color: var(--accent-warning);
-    background: var(--bg-dark);
-    padding: 2px 8px;
-    border-radius: var(--radius-sm);
-    margin-left: auto;
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 /* 台番号末尾統計のテーブルアクション */
 .suffix-table-actions {
     display: flex;
@@ -2299,31 +1834,6 @@ tr:nth-child(odd) {
 .suffix-table-actions .btn-download {
     padding: 5px 10px;
     font-size: var(--font-size-sm);
-}
-
-/* レスポンシブ対応 */
-@media (max-width: 480px) {
-    .date-checkbox-item {
-        flex-wrap: wrap;
-        gap: 5px;
-    }
-
-    .date-event-info {
-        width: 100%;
-        margin-left: 28px;
-        margin-top: 4px;
-        max-width: none;
-    }
-
-    .suffix-table-actions {
-        flex-wrap: wrap;
-    }
-
-    .suffix-table-actions .btn-copy,
-    .suffix-table-actions .btn-download {
-        flex: 1;
-        justify-content: center;
-    }
 }
 
 /* ===================
@@ -2438,126 +1948,6 @@ tr:nth-child(odd) {
 .date-tag.double-digit {
     background: var(--accent-warning);
     color: #000;
-}
-
-/* 日付選択リストの改善 */
-.date-checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    background: var(--bg-input);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: background var(--transition-fast);
-    flex-wrap: wrap;
-}
-
-.date-checkbox-item:hover {
-    background: var(--primary-dark);
-}
-
-.date-checkbox-item input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    flex-shrink: 0;
-    accent-color: var(--primary-color);
-}
-
-.date-checkbox-item label {
-    cursor: pointer;
-    color: var(--text-primary);
-    font-size: var(--font-size-md);
-    flex-shrink: 0;
-    min-width: 90px;
-}
-
-.date-checkbox-item .day-of-week {
-    color: var(--text-muted);
-    font-size: var(--font-size-sm);
-    flex-shrink: 0;
-    min-width: 35px;
-}
-
-.date-checkbox-item .day-of-week.sunday {
-    color: var(--accent-minus);
-}
-
-.date-checkbox-item .day-of-week.saturday {
-    color: var(--accent-info);
-}
-
-.date-event-info {
-    font-size: var(--font-size-xs);
-    color: var(--accent-warning);
-    background: var(--bg-dark);
-    padding: 2px 8px;
-    border-radius: var(--radius-sm);
-    margin-left: auto;
-    max-width: 250px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* レスポンシブ対応 */
-@media (max-width: 480px) {
-    .calendar-modal-large {
-        max-width: 95%;
-        max-height: 95vh;
-    }
-
-    .trend-filter-group {
-        flex-direction: column;
-        gap: 5px;
-    }
-
-    .trend-filter-group > label {
-        min-width: auto;
-        padding-top: 0;
-    }
-
-    .trend-filter-btn {
-        padding: 8px 10px;
-        font-size: var(--font-size-xs);
-    }
-
-    .trend-filter-special {
-        width: 100%;
-    }
-
-    .trend-filter-actions {
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .date-checkbox-item {
-        flex-wrap: wrap;
-        gap: 5px;
-    }
-
-    .date-checkbox-item label {
-        min-width: 80px;
-    }
-
-    .date-event-info {
-        width: 100%;
-        margin-left: 26px;
-        margin-top: 4px;
-        max-width: none;
-    }
-
-    .date-tag {
-        font-size: 8px;
-    }
-}
-
-@media (min-width: 481px) and (max-width: 768px) {
-    .trend-filter-special {
-        flex: 1;
-        min-width: 120px;
-    }
 }
 
 /* ===================
@@ -2773,91 +2163,6 @@ tr:nth-child(odd) {
     background: var(--primary-hover);
 }
 
-/* レスポンシブ対応 */
-@media (max-width: 480px) {
-    .multi-select-filter {
-        min-width: 120px;
-    }
-
-    .multi-select-display {
-        padding: 6px 10px;
-    }
-
-    .multi-select-dropdown {
-        min-width: 250px;
-        position: fixed;
-        left: 10px;
-        right: 10px;
-        top: auto;
-        bottom: 10px;
-        max-height: 60vh;
-        border-radius: var(--radius-md);
-        border: 1px solid var(--primary-color);
-    }
-
-    .multi-select-options {
-        max-height: none;
-        flex: 1;
-    }
-
-    .multi-select-option {
-        padding: 10px;
-    }
-
-    .multi-select-option input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        min-width: 18px;
-        max-width: 18px;
-    }
-}
-
-/* カレンダーフィルターのリセットボタン */
-.calendar-filters {
-    position: relative;
-    z-index: 100;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-}
-
-.calendar-filters .btn-small {
-    padding: 8px 12px;
-    margin-left: auto;
-}
-
-/* カレンダーフィルターのマルチセレクト調整 */
-.calendar-filters .multi-select-filter {
-    min-width: 140px;
-}
-
-.calendar-filters .multi-select-dropdown {
-    z-index: 1001;
-}
-
-/* レスポンシブ */
-@media (max-width: 480px) {
-    .calendar-filters {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .calendar-filters .filter-group {
-        width: 100%;
-    }
-
-    .calendar-filters .btn-small {
-        margin-left: 0;
-        margin-top: 5px;
-    }
-
-    .calendar-filters .multi-select-filter {
-        flex: 1;
-        min-width: 0;
-    }
-}
-
 /* ===================
    ローディング画面
    =================== */
@@ -2977,8 +2282,430 @@ tr:nth-child(odd) {
     color: var(--text-muted);
 }
 
-/* レスポンシブ対応 */
+/* ===================
+   データなしメッセージ
+   =================== */
+.no-data-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary, #666);
+    font-size: 1.1em;
+}
+
+/* セレクトボックス幅を広げてイベント名が見えるように */
+#statsDateSelect,
+#statsPeriodStart,
+#statsPeriodEnd {
+    min-width: 280px;
+    max-width: 400px;
+}
+
+/* セレクトのオプションでイベント表示 */
+select option {
+    padding: 4px 8px;
+}
+
+/* ===================
+   レスポンシブ: スマホ (〜480px)
+   =================== */
 @media (max-width: 480px) {
+    :root {
+        --font-size-xs: 9px;
+        --font-size-sm: 11px;
+        --font-size-md: 12px;
+        --font-size-lg: 14px;
+        --font-size-xl: 16px;
+        --font-size-2xl: 18px;
+        --font-size-3xl: 20px;
+    }
+
+    body {
+        padding: 5px;
+    }
+
+    .tabs {
+        gap: 3px;
+    }
+
+    .tab-btn {
+        padding: 8px 10px;
+    }
+
+    .controls input,
+    .controls select {
+        padding: 8px;
+        min-width: 80px;
+    }
+
+    .control-group {
+        width: 100%;
+    }
+
+    .control-group select {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .filter-panel-header {
+        padding: 10px 12px;
+    }
+
+    .filter-panel-content.open {
+        padding: 12px;
+    }
+
+    .filter-item {
+        padding: 5px 8px;
+    }
+
+    .filter-item input {
+        width: 60px;
+    }
+
+    .column-selector-controls {
+        flex-wrap: wrap;
+    }
+
+    .btn-small {
+        padding: 6px 12px;
+    }
+
+    .column-checkboxes {
+        gap: 4px;
+    }
+
+    .column-checkbox-item {
+        padding: 5px 8px;
+    }
+
+    .column-checkbox-item input[type="checkbox"] {
+        width: 14px;
+        height: 14px;
+    }
+
+    th,
+    td {
+        padding: 5px 6px;
+    }
+
+    #data-table td:nth-child(1),
+    #data-table th:nth-child(1) {
+        min-width: 100px;
+        max-width: 130px;
+    }
+
+    #trend-fixed-table th:first-child,
+    #trend-fixed-table td:first-child {
+        min-width: 90px;
+        max-width: 120px;
+    }
+
+    .summary {
+        padding: 8px;
+    }
+
+    .summary span {
+        margin-right: 8px;
+    }
+
+    .stats-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+
+    .stat-box {
+        padding: 8px;
+    }
+
+    .date-nav button {
+        padding: 6px 10px;
+    }
+
+    .searchable-select {
+        min-width: 100px;
+    }
+
+    .searchable-select-display {
+        padding: 6px 8px;
+    }
+
+    .searchable-select-option {
+        padding: 6px 8px;
+    }
+
+    .calendar-header {
+        padding: 10px 12px;
+    }
+
+    .calendar-header h2 {
+        flex: 1;
+        text-align: center;
+    }
+
+    .calendar-header button {
+        padding: 6px 10px;
+    }
+
+    .calendar-filter-container {
+        padding: 8px 10px;
+    }
+
+    .calendar-filters {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .calendar-filters .filter-group {
+        width: 100%;
+    }
+
+    .calendar-filters .filter-group .searchable-select {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .calendar-filters .filter-group label {
+        min-width: 50px;
+    }
+
+    .calendar-filters .btn-small {
+        margin-left: 0;
+        margin-top: 5px;
+    }
+
+    .calendar-filters .multi-select-filter {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .calendar-days,
+    .calendar-weekdays {
+        min-width: 600px;
+    }
+
+    .calendar-day {
+        min-height: 100px;
+        min-width: 85px;
+        padding: 3px;
+    }
+
+    .calendar-day .histogram {
+        gap: 3px;
+    }
+
+    .calendar-day .bar-row {
+        height: 10px;
+        gap: 1px;
+    }
+
+    .calendar-day .bar-label {
+        font-size: 6px;
+        width: 18px;
+    }
+
+    .calendar-day .bar-track {
+        height: 6px;
+        min-width: 20px;
+    }
+
+    .calendar-day .bar-value {
+        font-size: 6px;
+        width: 30px;
+    }
+
+    .event-badge {
+        font-size: 7px;
+        padding: 1px 3px;
+    }
+
+    .event-icon {
+        font-size: 8px;
+    }
+
+    .event-performers {
+        font-size: 6px;
+    }
+
+    .calendar-legend {
+        padding: 8px 10px;
+        gap: 8px;
+    }
+
+    .legend-bar {
+        width: 14px;
+        height: 5px;
+    }
+
+    .suffix-stats-block {
+        padding: 10px;
+    }
+
+    .suffix-stats-table th,
+    .suffix-stats-table td {
+        padding: 6px 4px;
+    }
+
+    .suffix-stats-header {
+        padding: 10px 12px;
+    }
+
+    .suffix-stats-content.open {
+        padding: 10px 12px;
+    }
+
+    .stats-event-badges {
+        padding: 8px;
+        gap: 5px;
+    }
+
+    .event-summary {
+        padding: 8px 10px;
+    }
+
+    .event-summary-section {
+        gap: 5px;
+    }
+
+    .event-summary-label {
+        width: 100%;
+    }
+
+    .daily-event-info {
+        margin-bottom: 10px;
+    }
+
+    .daily-event-badges {
+        padding: 8px;
+        gap: 5px;
+    }
+
+    #dateSelect {
+        min-width: 100%;
+        max-width: 100%;
+    }
+
+    #statsDateSelect,
+    #statsPeriodStart,
+    #statsPeriodEnd {
+        min-width: 100%;
+        max-width: 100%;
+    }
+
+    .stats-date-nav {
+        gap: 5px;
+    }
+
+    .stats-date-nav button {
+        padding: 6px 10px;
+    }
+
+    .table-actions {
+        flex-wrap: wrap;
+    }
+
+    .btn-copy,
+    .btn-download {
+        flex: 1;
+        justify-content: center;
+        padding: 10px 12px;
+    }
+
+    .suffix-table-actions {
+        flex-wrap: wrap;
+    }
+
+    .suffix-table-actions .btn-copy,
+    .suffix-table-actions .btn-download {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .calendar-modal-large {
+        max-width: 95%;
+        max-height: 95vh;
+    }
+
+    .trend-filter-group {
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .trend-filter-group > label {
+        min-width: auto;
+        padding-top: 0;
+    }
+
+    .trend-filter-btn {
+        padding: 8px 10px;
+        font-size: var(--font-size-xs);
+    }
+
+    .trend-filter-special {
+        width: 100%;
+    }
+
+    .trend-filter-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .date-checkbox-item {
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .date-checkbox-item label {
+        min-width: 80px;
+    }
+
+    .date-event-info {
+        width: 100%;
+        margin-left: 26px;
+        margin-top: 4px;
+        max-width: none;
+    }
+
+    .date-tag {
+        font-size: 8px;
+    }
+
+    .multi-select-filter {
+        min-width: 120px;
+    }
+
+    .multi-select-display {
+        padding: 6px 10px;
+    }
+
+    .multi-select-dropdown {
+        min-width: 250px;
+        position: fixed;
+        left: 10px;
+        right: 10px;
+        top: auto;
+        bottom: 10px;
+        max-height: 60vh;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--primary-color);
+    }
+
+    .multi-select-options {
+        max-height: none;
+        flex: 1;
+    }
+
+    .multi-select-option {
+        padding: 10px;
+    }
+
+    .multi-select-option input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        min-width: 18px;
+        max-width: 18px;
+    }
+
     .loading-content {
         padding: 20px;
     }
@@ -2992,5 +2719,373 @@ tr:nth-child(odd) {
         right: 10px;
         left: 10px;
         justify-content: center;
+    }
+}
+
+/* ===================
+   レスポンシブ: タブレット (481px〜768px)
+   =================== */
+@media (min-width: 481px) and (max-width: 768px) {
+    :root {
+        --font-size-xs: 10px;
+        --font-size-sm: 12px;
+        --font-size-md: 13px;
+        --font-size-lg: 15px;
+        --font-size-xl: 17px;
+        --font-size-2xl: 19px;
+        --font-size-3xl: 22px;
+    }
+
+    th,
+    td {
+        padding: 8px 10px;
+    }
+
+    .calendar-days,
+    .calendar-weekdays {
+        min-width: 650px;
+    }
+
+    .calendar-day {
+        min-height: 110px;
+        min-width: 90px;
+    }
+
+    .calendar-filters .filter-group {
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .trend-filter-special {
+        flex: 1;
+        min-width: 120px;
+    }
+}
+
+/* ===================
+   レスポンシブ: PC (769px〜)
+   =================== */
+@media (min-width: 769px) {
+    :root {
+        --font-size-xs: 11px;
+        --font-size-sm: 13px;
+        --font-size-md: 14px;
+        --font-size-lg: 16px;
+        --font-size-xl: 18px;
+        --font-size-2xl: 20px;
+        --font-size-3xl: 24px;
+    }
+
+    body {
+        padding: 20px;
+    }
+
+    .tabs {
+        gap: 8px;
+    }
+
+    .tab-btn {
+        padding: 12px 20px;
+    }
+
+    th,
+    td {
+        padding: 12px 16px;
+    }
+
+    #data-table td:nth-child(1),
+    #data-table th:nth-child(1) {
+        min-width: 180px;
+        max-width: 250px;
+    }
+
+    .stats-summary-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+
+    .summary {
+        padding: 15px;
+    }
+
+    .date-nav button {
+        padding: 12px 20px;
+    }
+
+    .filter-panel-header {
+        padding: 14px 18px;
+    }
+
+    .filter-panel-content.open {
+        padding: 18px;
+    }
+
+    .column-checkbox-item {
+        padding: 8px 12px;
+    }
+
+    .calendar-days,
+    .calendar-weekdays {
+        min-width: auto;
+    }
+
+    .calendar-day {
+        min-height: 140px;
+        min-width: auto;
+        padding: 6px;
+    }
+
+    .calendar-day .histogram {
+        gap: 5px;
+    }
+
+    .calendar-day .bar-row {
+        height: 14px;
+        gap: 4px;
+    }
+
+    .calendar-day .bar-label {
+        font-size: 9px;
+        width: 24px;
+    }
+
+    .calendar-day .bar-track {
+        height: 10px;
+    }
+
+    .calendar-day .bar-value {
+        font-size: 9px;
+        width: 40px;
+    }
+
+    .event-badge {
+        font-size: 9px;
+        padding: 2px 5px;
+    }
+
+    .event-icon {
+        font-size: 10px;
+    }
+
+    .event-performers {
+        font-size: 8px;
+    }
+
+    #dateSelect {
+        min-width: 320px;
+    }
+}
+
+/* ===================
+   レスポンシブ: 大画面PC (1200px〜)
+   =================== */
+@media (min-width: 1200px) {
+    :root {
+        --font-size-xs: 11px;
+        --font-size-sm: 13px;
+        --font-size-md: 15px;
+        --font-size-lg: 17px;
+        --font-size-xl: 20px;
+        --font-size-2xl: 22px;
+        --font-size-3xl: 26px;
+    }
+}
+
+/* ===================
+   ダークモード対応
+   =================== */
+@media (prefers-color-scheme: dark) {
+    .stats-event-badges {
+        background: var(--bg-secondary, #2d2d2d);
+    }
+    
+    .daily-event-badge,
+    .stats-event-badge {
+        color: inherit;
+    }
+}
+
+/* ===================
+   カレンダー日付クリック
+   =================== */
+.calendar-day.clickable {
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+    position: relative;
+}
+
+.calendar-day.clickable:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+    background: var(--bg-medium);
+}
+
+.calendar-day.clickable:active {
+    transform: scale(0.98);
+}
+
+/* ホバー時のオーバーレイ */
+.calendar-day.clickable::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--primary-color);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.calendar-day.clickable:hover::after {
+    opacity: 0.08;
+}
+
+/* クリック可能を示す矢印アイコン */
+.calendar-day.clickable .day-number::after {
+    content: ' →';
+    font-size: 0.7em;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    color: var(--accent-info);
+}
+
+.calendar-day.clickable:hover .day-number::after {
+    opacity: 0.8;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 480px) {
+    .calendar-day.clickable:hover {
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .calendar-day.clickable:active {
+        transform: scale(0.95);
+        background: var(--primary-dark);
+    }
+    
+    .calendar-day.clickable .day-number::after {
+        display: none;
+    }
+}
+
+/* ===================
+   カレンダー月間サマリー
+   =================== */
+.calendar-month-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.month-summary-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 12px;
+}
+
+.month-summary-item.main {
+    background: var(--bg-light);
+    border-radius: var(--radius-md);
+    padding: 8px 16px;
+}
+
+.month-summary-item .summary-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.month-summary-item .summary-value {
+    font-size: var(--font-size-md);
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.month-summary-item.main .summary-value {
+    font-size: var(--font-size-lg);
+}
+
+.month-summary-divider {
+    width: 1px;
+    height: 30px;
+    background: var(--border-color);
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .calendar-month-summary {
+        gap: 8px;
+        padding: 10px 12px;
+    }
+    
+    .month-summary-item {
+        padding: 4px 8px;
+    }
+    
+    .month-summary-item.main {
+        width: 100%;
+        flex-direction: row;
+        justify-content: center;
+        gap: 10px;
+        padding: 8px 12px;
+    }
+    
+    .month-summary-item .summary-value {
+        font-size: var(--font-size-sm);
+    }
+    
+    .month-summary-item.main .summary-value {
+        font-size: var(--font-size-md);
+    }
+    
+    .month-summary-divider {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .calendar-month-summary {
+        gap: 4px;
+        padding: 8px;
+    }
+    
+    .month-summary-item {
+        flex: 1;
+        min-width: 70px;
+        padding: 4px;
+    }
+    
+    .month-summary-item.main {
+        flex: none;
+        width: 100%;
+        margin-bottom: 4px;
+    }
+    
+    .month-summary-item .summary-label {
+        font-size: 9px;
+    }
+    
+    .month-summary-item .summary-value {
+        font-size: var(--font-size-xs);
+    }
+    
+    .month-summary-item.main .summary-label {
+        font-size: var(--font-size-xs);
+    }
+    
+    .month-summary-item.main .summary-value {
+        font-size: var(--font-size-md);
     }
 }

@@ -1,101 +1,52 @@
 // ===================
-// カレンダータブ（演者対応版）
+// カレンダータブ
 // ===================
 
-let eventData = null;
 let calendarEventFilter = null;
 let calendarMediaFilter = null;
 let calendarPerformerFilter = null;
 
-// イベントデータを読み込み
-async function loadEventData() {
-    if (eventData) return eventData;
 
-    try {
-        const response = await fetch('events.json');
-        if (response.ok) {
-            eventData = await response.json();
-        } else {
-            eventData = { events: [], mediaTypes: [], eventTypes: [], performers: [] };
-        }
-    } catch (e) {
-        console.log('events.json not found, using empty events');
-        eventData = { events: [], mediaTypes: [], eventTypes: [], performers: [] };
+// ===================
+// カレンダーから日別データへ遷移
+// ===================
+
+/**
+ * カレンダーの日付クリックで日別データタブに遷移
+ * @param {string} dateKey - 日付キー（YYYY_MM_DD形式）
+ */
+function navigateToDailyData(dateKey) {
+    const filename = `data/${dateKey}.csv`;
+    const sortedFiles = sortFilesByDate(CSV_FILES, true);
+    const fileIndex = sortedFiles.indexOf(filename);
+    
+    // データが存在する場合のみ遷移
+    if (fileIndex === -1) {
+        showCopyToast('この日のデータはありません', true);
+        return;
     }
-    return eventData;
-}
-
-// 日付のイベントを取得
-function getEventsForDate(dateKey) {
-    if (!eventData || !eventData.events) return [];
-    return eventData.events.filter(e => e.date === dateKey);
-}
-
-// イベントタイプの情報を取得
-function getEventTypeInfo(typeId) {
-    if (!eventData || !eventData.eventTypes) return null;
-    return eventData.eventTypes.find(t => t.id === typeId);
-}
-
-// 全CSVファイルからイベント名を収集
-function getAllEventNames() {
-    if (!eventData || !eventData.events) return [];
     
-    const eventNames = new Set();
+    // 日別データタブに切り替え
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
     
-    eventData.events.forEach(event => {
-        if (Array.isArray(event.name)) {
-            event.name.forEach(n => {
-                if (n && n.trim() !== '') {
-                    eventNames.add(n.trim());
-                }
-            });
-        } else if (event.name && event.name.trim() !== '') {
-            eventNames.add(event.name.trim());
-        }
-    });
+    const dailyTabBtn = document.querySelector('.tab-btn[data-tab="daily"]');
+    const dailyTabContent = document.getElementById('daily');
     
-    return [...eventNames].sort();
-}
-
-// イベントバッジのHTML生成
-function renderEventBadges(events) {
-    if (!events || events.length === 0) return '';
-
-    const displayableEvents = events.filter(event => {
-        return event.name || event.media;
-    });
-
-    if (displayableEvents.length === 0) return '';
-
-    return displayableEvents.map(event => {
-        const typeInfo = getEventTypeInfo(event.type);
-        const icon = typeInfo ? typeInfo.icon : '📌';
-        const color = typeInfo ? typeInfo.color : '#888';
-
-        let displayName = '';
-        if (Array.isArray(event.name)) {
-            displayName = event.name.filter(n => n && n.trim() !== '').join(', ');
-        } else if (event.name) {
-            displayName = event.name;
-        }
-        if (!displayName) {
-            displayName = event.media;
-        }
-
-        let performerHtml = '';
-        if (event.performers && event.performers.length > 0) {
-            performerHtml = `<div class="event-performers">🎤 ${event.performers.join(', ')}</div>`;
-        }
-
-        return `
-            <div class="event-badge" style="background: ${color}20; border-color: ${color};" title="${displayName}${event.media ? ' (' + event.media + ')' : ''}${event.note ? ' - ' + event.note : ''}">
-                <span class="event-icon">${icon}</span>
-                <span class="event-name">${displayName}</span>
-            </div>
-            ${performerHtml}
-        `;
-    }).join('');
+    if (dailyTabBtn && dailyTabContent) {
+        dailyTabBtn.classList.add('active');
+        dailyTabContent.classList.add('active');
+        
+        // 日付インデックスを更新
+        currentDateIndex = fileIndex;
+        
+        // 日付セレクターを更新してデータを表示
+        initDateSelectWithEvents();
+        filterAndRender();
+        
+        // ページ上部にスクロール
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 }
 
 // カレンダーフィルター用の複数選択コンポーネント初期化
@@ -150,10 +101,10 @@ function initCalendarMultiSelect(containerId, options, placeholder, onChange) {
 
             const checked = selectedValues.has(value) ? 'checked' : '';
             html += `
-                <label class="multi-select-option">
-                    <input type="checkbox" value="${value}" ${checked}>
+                <div class="multi-select-option" data-value="${value}">
+                    <input type="checkbox" ${checked}>
                     <span class="option-label">${icon ? icon + ' ' : ''}${label}</span>
-                </label>
+                </div>
             `;
         });
 
@@ -163,12 +114,18 @@ function initCalendarMultiSelect(containerId, options, placeholder, onChange) {
 
         optionsContainer.innerHTML = html;
 
-        optionsContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-            cb.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    selectedValues.add(e.target.value);
+        optionsContainer.querySelectorAll('.multi-select-option').forEach(opt => {
+            const checkbox = opt.querySelector('input[type="checkbox"]');
+            const value = opt.dataset.value;
+            
+            opt.addEventListener('click', (e) => {
+                if (e.target.tagName !== 'INPUT') {
+                    checkbox.checked = !checkbox.checked;
+                }
+                if (checkbox.checked) {
+                    selectedValues.add(value);
                 } else {
-                    selectedValues.delete(e.target.value);
+                    selectedValues.delete(value);
                 }
                 updateDisplay();
                 if (onChange) onChange(getSelectedValues());
@@ -206,14 +163,10 @@ function initCalendarMultiSelect(containerId, options, placeholder, onChange) {
 
     function openDropdown() {
         document.querySelectorAll('.multi-select-dropdown.open').forEach(dd => {
-            if (dd !== dropdown) {
-                dd.classList.remove('open');
-            }
+            if (dd !== dropdown) dd.classList.remove('open');
         });
         document.querySelectorAll('.multi-select-display.open').forEach(d => {
-            if (d !== display) {
-                d.classList.remove('open');
-            }
+            if (d !== display) d.classList.remove('open');
         });
 
         isOpen = true;
@@ -260,64 +213,36 @@ function initCalendarMultiSelect(containerId, options, placeholder, onChange) {
 
     display.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (isOpen) {
-            closeDropdown();
-        } else {
-            openDropdown();
-        }
+        isOpen ? closeDropdown() : openDropdown();
     });
 
-    searchInput.addEventListener('input', (e) => {
-        renderOptions(e.target.value);
-    });
-
-    searchInput.addEventListener('click', (e) => {
-        e.stopPropagation();
-    });
-
-    dropdown.addEventListener('click', (e) => {
-        e.stopPropagation();
-    });
-
-    selectAllBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        selectAll();
-    });
-
-    deselectAllBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deselectAll();
-    });
+    searchInput.addEventListener('input', (e) => renderOptions(e.target.value));
+    searchInput.addEventListener('click', (e) => e.stopPropagation());
+    dropdown.addEventListener('click', (e) => e.stopPropagation());
+    selectAllBtn.addEventListener('click', (e) => { e.stopPropagation(); selectAll(); });
+    deselectAllBtn.addEventListener('click', (e) => { e.stopPropagation(); deselectAll(); });
 
     document.addEventListener('click', (e) => {
-        if (!container.contains(e.target) && isOpen) {
-            closeDropdown();
-        }
+        if (!container.contains(e.target) && isOpen) closeDropdown();
     });
 
     display.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            closeDropdown();
-        } else if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+        if (e.key === 'Escape') closeDropdown();
+        else if (['Enter', ' ', 'ArrowDown'].includes(e.key)) {
             e.preventDefault();
-            if (!isOpen) {
-                openDropdown();
-            }
+            if (!isOpen) openDropdown();
         }
     });
 
     searchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            closeDropdown();
-            display.focus();
-        }
+        if (e.key === 'Escape') { closeDropdown(); display.focus(); }
     });
 
     renderOptions();
     updateDisplay();
 
     return {
-        getSelectedValues: () => getSelectedValues(),
+        getSelectedValues,
         setSelectedValues: (values) => {
             selectedValues = new Set(values);
             renderOptions(searchInput?.value || '');
@@ -327,9 +252,7 @@ function initCalendarMultiSelect(containerId, options, placeholder, onChange) {
             currentOptions = newOptions;
             const validValues = new Set(newOptions.map(o => o.value));
             selectedValues = new Set([...selectedValues].filter(v => validValues.has(v)));
-            if (isOpen) {
-                renderOptions(searchInput.value);
-            }
+            if (isOpen) renderOptions(searchInput.value);
             updateDisplay();
         },
         reset: () => {
@@ -344,8 +267,8 @@ function initCalendarMultiSelect(containerId, options, placeholder, onChange) {
             updateDisplay();
             if (onChange) onChange(getSelectedValues());
         },
-        close: () => closeDropdown(),
-        open: () => openDropdown()
+        close: closeDropdown,
+        open: openDropdown
     };
 }
 
@@ -372,70 +295,37 @@ function renderCalendarFilters() {
         </div>
     `;
 
-    // イベントフィルター
     const eventOptions = [];
     
-    // イベントタイプを追加
     if (eventData && eventData.eventTypes) {
         eventData.eventTypes.forEach(type => {
-            eventOptions.push({ 
-                value: `type:${type.id}`, 
-                label: type.name,
-                icon: type.icon
-            });
+            eventOptions.push({ value: `type:${type.id}`, label: type.name, icon: type.icon });
         });
     }
     
-    // イベント名を追加
-    const allEventNames = getAllEventNames();
-    allEventNames.forEach(name => {
-        eventOptions.push({ 
-            value: `name:${name}`, 
-            label: name,
-            icon: '📌'
-        });
+    const allEventNamesList = getAllEventNames();
+    allEventNamesList.forEach(name => {
+        eventOptions.push({ value: `name:${name}`, label: name, icon: '📌' });
     });
     
-    calendarEventFilter = initCalendarMultiSelect(
-        'calendarEventFilter', 
-        eventOptions, 
-        '全イベント', 
-        () => renderCalendar()
-    );
+    calendarEventFilter = initCalendarMultiSelect('calendarEventFilter', eventOptions, '全イベント', () => renderCalendar());
 
-    // メディアフィルター
     const mediaOptions = [];
     if (eventData && eventData.mediaTypes) {
         eventData.mediaTypes.forEach(media => {
             mediaOptions.push({ value: media, label: media });
         });
     }
-    calendarMediaFilter = initCalendarMultiSelect(
-        'calendarMediaFilter', 
-        mediaOptions, 
-        '全メディア', 
-        () => renderCalendar()
-    );
+    calendarMediaFilter = initCalendarMultiSelect('calendarMediaFilter', mediaOptions, '全メディア', () => renderCalendar());
 
-    // 演者フィルター
     const performerOptions = [];
     if (eventData && eventData.performers) {
         eventData.performers.forEach(performer => {
-            performerOptions.push({ 
-                value: performer, 
-                label: performer,
-                icon: '🎤'
-            });
+            performerOptions.push({ value: performer, label: performer, icon: '🎤' });
         });
     }
-    calendarPerformerFilter = initCalendarMultiSelect(
-        'calendarPerformerFilter', 
-        performerOptions, 
-        '全演者', 
-        () => renderCalendar()
-    );
+    calendarPerformerFilter = initCalendarMultiSelect('calendarPerformerFilter', performerOptions, '全演者', () => renderCalendar());
 
-    // リセットボタン
     document.getElementById('calendarFilterReset')?.addEventListener('click', () => {
         if (calendarEventFilter) calendarEventFilter.reset();
         if (calendarMediaFilter) calendarMediaFilter.reset();
@@ -444,37 +334,9 @@ function renderCalendarFilters() {
     });
 }
 
-// イベントが有効かどうかをチェック
-function isCalendarValidEvent(event) {
-    if (!event) return false;
-    
-    const hasValidType = event.type && event.type.trim() !== '';
-    const hasValidMedia = event.media && event.media.trim() !== '';
-    
-    let hasValidName = false;
-    if (Array.isArray(event.name)) {
-        hasValidName = event.name.some(n => n && n.trim() !== '');
-    } else if (event.name) {
-        hasValidName = event.name.trim() !== '';
-    }
-    
-    return hasValidType || hasValidMedia || hasValidName;
-}
-
-// イベントまたは演者が存在するかチェック
-function hasCalendarEventOrPerformers(event) {
-    if (!event) return false;
-    
-    const hasEvent = isCalendarValidEvent(event);
-    const hasPerformers = event.performers && event.performers.length > 0;
-    
-    return hasEvent || hasPerformers;
-}
-
 // イベントが指定された名前を持つかチェック
 function eventHasName(event, targetName) {
     if (!event) return false;
-    
     if (Array.isArray(event.name)) {
         return event.name.some(n => n === targetName);
     }
@@ -485,38 +347,30 @@ function eventHasName(event, targetName) {
 function dateMatchesCalendarFilter(dateKey) {
     const events = getEventsForDate(dateKey);
 
-    // フィルター値を取得
     const selectedEvents = calendarEventFilter ? calendarEventFilter.getSelectedValues() : [];
     const selectedMedia = calendarMediaFilter ? calendarMediaFilter.getSelectedValues() : [];
     const selectedPerformers = calendarPerformerFilter ? calendarPerformerFilter.getSelectedValues() : [];
 
-    // フィルターが全て空なら全て表示
     if (selectedEvents.length === 0 && selectedMedia.length === 0 && selectedPerformers.length === 0) {
         return true;
     }
 
-    // イベントがない日はフィルターが設定されていれば非表示
-    if (events.length === 0) {
-        return false;
-    }
+    if (events.length === 0) return false;
 
     let matchesEvent = selectedEvents.length === 0;
     let matchesMedia = selectedMedia.length === 0;
     let matchesPerformer = selectedPerformers.length === 0;
 
     events.forEach(event => {
-        // イベントフィルターチェック
         if (selectedEvents.length > 0 && !matchesEvent) {
             for (const filter of selectedEvents) {
                 if (filter.startsWith('type:')) {
-                    const typeId = filter.replace('type:', '');
-                    if (event.type === typeId) {
+                    if (event.type === filter.replace('type:', '')) {
                         matchesEvent = true;
                         break;
                     }
                 } else if (filter.startsWith('name:')) {
-                    const eventName = filter.replace('name:', '');
-                    if (eventHasName(event, eventName)) {
+                    if (eventHasName(event, filter.replace('name:', ''))) {
                         matchesEvent = true;
                         break;
                     }
@@ -524,14 +378,10 @@ function dateMatchesCalendarFilter(dateKey) {
             }
         }
 
-        // メディアフィルターチェック
         if (selectedMedia.length > 0 && !matchesMedia) {
-            if (selectedMedia.includes(event.media)) {
-                matchesMedia = true;
-            }
+            if (selectedMedia.includes(event.media)) matchesMedia = true;
         }
 
-        // 演者フィルターチェック
         if (selectedPerformers.length > 0 && !matchesPerformer) {
             if (event.performers && event.performers.some(p => selectedPerformers.includes(p))) {
                 matchesPerformer = true;
@@ -540,6 +390,11 @@ function dateMatchesCalendarFilter(dateKey) {
     });
 
     return matchesEvent && matchesMedia && matchesPerformer;
+}
+
+// カレンダー用のイベントバッジ表示
+function renderCalendarEventBadges(events) {
+    return renderEventBadges(events);
 }
 
 // カレンダー描画
@@ -565,14 +420,24 @@ async function renderCalendar() {
     const daysInMonth = lastDay.getDate();
 
     const dateStats = {};
+    
+    // 月間サマリー用の変数
+    let monthTotalSa = 0;
+    let firstHalfSa = 0;  // 上旬（1日〜15日）
+    let secondHalfSa = 0; // 下旬（16日〜月末）
+    let monthTotalGames = 0;
+    let monthTotalCount = 0;
+    let monthPlusCount = 0;
+    let daysWithData = 0;
+    
     for (const file of CSV_FILES) {
         const parsed = parseDateFromFilename(file);
         if (parsed && parsed.year === year && parsed.month === month) {
             const data = await loadCSV(file);
             if (data) {
-                const totalGames = data.reduce((sum, r) => sum + (parseInt(r['G数']) || 0), 0);
-                const totalSa = data.reduce((sum, r) => sum + (parseInt(r['差枚']) || 0), 0);
-                const plusCount = data.filter(r => (parseInt(r['差枚']) || 0) > 0).length;
+                const totalGames = data.reduce((sum, r) => sum + (parseInt(String(r['G数']).replace(/,/g, '')) || 0), 0);
+                const totalSa = data.reduce((sum, r) => sum + (parseInt(String(r['差枚']).replace(/,/g, '')) || 0), 0);
+                const plusCount = data.filter(r => (parseInt(String(r['差枚']).replace(/,/g, '')) || 0) > 0).length;
 
                 dateStats[parsed.day] = {
                     count: data.length,
@@ -581,9 +446,26 @@ async function renderCalendar() {
                     winRate: ((plusCount / data.length) * 100).toFixed(1),
                     totalSa: totalSa
                 };
+                
+                // 月間サマリーに加算
+                monthTotalSa += totalSa;
+                monthTotalGames += totalGames;
+                monthTotalCount += data.length;
+                monthPlusCount += plusCount;
+                daysWithData++;
+                
+                // 上旬・下旬の判定
+                if (parsed.day <= 15) {
+                    firstHalfSa += totalSa;
+                } else {
+                    secondHalfSa += totalSa;
+                }
             }
         }
     }
+    
+    // 月間サマリーを表示
+    renderMonthSummary(monthTotalSa, firstHalfSa, secondHalfSa, monthTotalGames, monthTotalCount, monthPlusCount, daysWithData);
 
     let html = '';
 
@@ -596,19 +478,21 @@ async function renderCalendar() {
         const dayOfWeek = (startDayOfWeek + day - 1) % 7;
         const dateKey = `${year}_${String(month).padStart(2, '0')}_${String(day).padStart(2, '0')}`;
         const events = getEventsForDate(dateKey);
-
-        const displayableEvents = events.filter(e => hasCalendarEventOrPerformers(e));
-
+        const displayableEvents = events.filter(e => hasEventOrPerformers(e));
         const matchesFilter = dateMatchesCalendarFilter(dateKey);
 
         let dayClass = 'calendar-day';
         if (dayOfWeek === 0) dayClass += ' sunday';
         if (dayOfWeek === 6) dayClass += ' saturday';
-        if (stats) dayClass += ' has-data';
+        if (stats) dayClass += ' has-data clickable';
         if (displayableEvents.length > 0) dayClass += ' has-event';
         if (!matchesFilter) dayClass += ' filtered-out';
 
-        html += `<div class="${dayClass}">`;
+        // データがある場合はクリック可能にする
+        const clickHandler = stats ? `onclick="navigateToDailyData('${dateKey}')"` : '';
+        const titleAttr = stats ? `title="クリックで日別データを表示"` : '';
+
+        html += `<div class="${dayClass}" ${clickHandler} ${titleAttr}>`;
         html += `<div class="day-number">${day}</div>`;
 
         if (displayableEvents.length > 0) {
@@ -618,7 +502,6 @@ async function renderCalendar() {
         if (stats) {
             const avgSaClass = stats.avgSa > 0 ? 'plus' : stats.avgSa < 0 ? 'minus' : '';
             const totalSaClass = stats.totalSa > 0 ? 'plus' : stats.totalSa < 0 ? 'minus' : '';
-
             const avgSaWidth = Math.min(Math.abs(stats.avgSa) / 1000 * 100, 100);
             const avgGameWidth = Math.min(stats.avgGame / 8000 * 100, 100);
             const winRateWidth = Math.min(parseFloat(stats.winRate) / 75 * 100, 100);
@@ -664,51 +547,67 @@ async function renderCalendar() {
     container.innerHTML = html;
 }
 
-// カレンダー用のイベントバッジ表示（演者のみの場合も対応）
-function renderCalendarEventBadges(events) {
-    if (!events || events.length === 0) return '';
-
-    const relevantEvents = events.filter(e => hasCalendarEventOrPerformers(e));
+/**
+ * 月間サマリーを表示
+ */
+function renderMonthSummary(totalSa, firstHalfSa, secondHalfSa, totalGames, totalCount, plusCount, daysWithData) {
+    // 既存のサマリーを削除
+    const existingSummary = document.getElementById('calendarMonthSummary');
+    if (existingSummary) {
+        existingSummary.remove();
+    }
     
-    if (relevantEvents.length === 0) return '';
-
-    let html = '';
+    // カレンダーヘッダーの後に挿入
+    const calendarHeader = document.querySelector('.calendar-header');
+    if (!calendarHeader) return;
     
-    relevantEvents.forEach(event => {
-        if (isCalendarValidEvent(event)) {
-            const typeInfo = getEventTypeInfo(event.type);
-            const icon = typeInfo ? typeInfo.icon : '📌';
-            const color = typeInfo ? typeInfo.color : '#888';
-
-            let displayName = '';
-            if (Array.isArray(event.name)) {
-                displayName = event.name.filter(n => n && n.trim() !== '').join(', ');
-            } else if (event.name && event.name.trim() !== '') {
-                displayName = event.name;
-            }
-            if (!displayName && event.media) {
-                displayName = event.media;
-            }
-            if (!displayName && typeInfo) {
-                displayName = typeInfo.name;
-            }
-
-            if (displayName) {
-                html += `
-                    <div class="event-badge" style="background: ${color}20; border-color: ${color};" title="${displayName}${event.media ? ' (' + event.media + ')' : ''}${event.note ? ' - ' + event.note : ''}">
-                        <span class="event-icon">${icon}</span>
-                        <span class="event-name">${displayName}</span>
-                    </div>
-                `;
-            }
-        }
-
-        if (event.performers && event.performers.length > 0) {
-            html += `<div class="event-performers">🎤 ${event.performers.join(', ')}</div>`;
-        }
-    });
-
-    return html;
+    // クラス計算
+    const totalSaClass = totalSa > 0 ? 'plus' : totalSa < 0 ? 'minus' : '';
+    const firstHalfClass = firstHalfSa > 0 ? 'plus' : firstHalfSa < 0 ? 'minus' : '';
+    const secondHalfClass = secondHalfSa > 0 ? 'plus' : secondHalfSa < 0 ? 'minus' : '';
+    
+    // 機械割計算
+    const mechRate = totalGames > 0 ? calculateMechanicalRate(totalGames, totalSa) : null;
+    const mechRateText = formatMechanicalRate(mechRate);
+    const mechRateClass = getMechanicalRateClass(mechRate);
+    
+    // 勝率計算
+    const winRate = totalCount > 0 ? ((plusCount / totalCount) * 100).toFixed(1) : '0.0';
+    
+    // サマリーHTML
+    const summaryHtml = `
+        <div id="calendarMonthSummary" class="calendar-month-summary">
+            <div class="month-summary-item main">
+                <span class="summary-label">月間合計</span>
+                <span class="summary-value ${totalSaClass}">${totalSa >= 0 ? '+' : ''}${totalSa.toLocaleString()}枚</span>
+            </div>
+            <div class="month-summary-divider"></div>
+            <div class="month-summary-item">
+                <span class="summary-label">上旬 (1〜15日)</span>
+                <span class="summary-value ${firstHalfClass}">${firstHalfSa >= 0 ? '+' : ''}${firstHalfSa.toLocaleString()}</span>
+            </div>
+            <div class="month-summary-item">
+                <span class="summary-label">下旬 (16日〜)</span>
+                <span class="summary-value ${secondHalfClass}">${secondHalfSa >= 0 ? '+' : ''}${secondHalfSa.toLocaleString()}</span>
+            </div>
+            <div class="month-summary-divider"></div>
+            <div class="month-summary-item">
+                <span class="summary-label">機械割</span>
+                <span class="summary-value ${mechRateClass}">${mechRateText}</span>
+            </div>
+            <div class="month-summary-item">
+                <span class="summary-label">勝率</span>
+                <span class="summary-value">${winRate}%</span>
+            </div>
+            <div class="month-summary-item">
+                <span class="summary-label">データ</span>
+                <span class="summary-value">${daysWithData}日</span>
+            </div>
+        </div>
+    `;
+    
+    // ヘッダーの後に挿入
+    calendarHeader.insertAdjacentHTML('afterend', summaryHtml);
 }
 
 function changeCalendarMonth(delta) {

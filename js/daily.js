@@ -10,8 +10,11 @@ let dailyMachineFilterSelect = null;
 
 // 機械割を計算する関数
 function calculateMechanicalRate(games, saMai) {
-    const g = parseInt(games) || 0;
-    const sa = parseInt(saMai) || 0;
+    const gStr = String(games).replace(/,/g, '');
+    const saStr = String(saMai).replace(/,/g, '');
+    
+    const g = parseInt(gStr) || 0;
+    const sa = parseInt(saStr) || 0;
     
     if (g <= 0) return null;
     
@@ -265,64 +268,6 @@ function updateFilterBadge() {
     }
 }
 
-// ファイル名から日付キーを取得（日別用）
-function getDailyDateKeyFromFile(file) {
-    const match = file.match(/(\d{4}_\d{2}_\d{2})/);
-    return match ? match[1] : null;
-}
-
-// イベントが有効かどうかをチェック（日別用）
-function isDailyValidEvent(event) {
-    if (!event) return false;
-    
-    const hasValidType = event.type && event.type.trim() !== '';
-    const hasValidMedia = event.media && event.media.trim() !== '';
-    
-    let hasValidName = false;
-    if (Array.isArray(event.name)) {
-        hasValidName = event.name.some(n => n && n.trim() !== '');
-    } else if (event.name) {
-        hasValidName = event.name.trim() !== '';
-    }
-    
-    return hasValidType || hasValidMedia || hasValidName;
-}
-
-// イベントまたは演者が存在するかチェック
-function hasEventOrPerformers(event) {
-    if (!event) return false;
-    
-    const hasEvent = isDailyValidEvent(event);
-    const hasPerformers = event.performers && event.performers.length > 0;
-    
-    return hasEvent || hasPerformers;
-}
-
-// イベントの表示名を取得
-function getEventDisplayName(event) {
-    if (!event) return '';
-    
-    const typeInfo = getEventTypeInfo(event.type);
-    const icon = typeInfo ? typeInfo.icon : '';
-    
-    let eventName = '';
-    if (Array.isArray(event.name)) {
-        eventName = event.name.filter(n => n && n.trim() !== '').join(', ');
-    } else if (event.name && event.name.trim() !== '') {
-        eventName = event.name;
-    }
-    
-    if (!eventName && event.media) {
-        eventName = event.media;
-    }
-    
-    if (!eventName && typeInfo) {
-        eventName = typeInfo.name;
-    }
-    
-    return { icon, name: eventName, typeInfo, event };
-}
-
 // 日別用のイベントバッジ表示
 function renderDailyEventBadges(events) {
     if (!events || events.length === 0) return '';
@@ -334,9 +279,8 @@ function renderDailyEventBadges(events) {
     let html = '<div class="daily-event-badges">';
     
     relevantEvents.forEach(event => {
-        if (isDailyValidEvent(event)) {
-            const { icon, name, typeInfo } = getEventDisplayName(event);
-            const color = typeInfo ? typeInfo.color : '#888';
+        if (isValidEvent(event)) {
+            const { icon, name, color } = getEventDisplayName(event);
             
             if (name) {
                 html += `
@@ -360,39 +304,6 @@ function renderDailyEventBadges(events) {
     return html;
 }
 
-// 日付セレクトボックス用のイベント表示テキストを生成
-function getEventTextForSelect(events) {
-    if (!events || events.length === 0) return '';
-    
-    const relevantEvents = events.filter(event => hasEventOrPerformers(event));
-    if (relevantEvents.length === 0) return '';
-    
-    const displayItems = [];
-    
-    relevantEvents.forEach(event => {
-        if (isDailyValidEvent(event)) {
-            const { icon, name } = getEventDisplayName(event);
-            if (name) {
-                displayItems.push(`${icon}${name}`);
-            }
-        }
-        
-        if (!isDailyValidEvent(event) && event.performers && event.performers.length > 0) {
-            const performerText = event.performers.slice(0, 2).join(',');
-            const suffix = event.performers.length > 2 ? '...' : '';
-            displayItems.push(`🎤${performerText}${suffix}`);
-        }
-    });
-    
-    if (displayItems.length === 0) return '';
-    
-    if (displayItems.length <= 2) {
-        return ' ' + displayItems.join(' / ');
-    } else {
-        return ' ' + displayItems.slice(0, 2).join(' / ') + '...';
-    }
-}
-
 // 日付セレクトボックスにイベント情報を含めて初期化
 async function initDateSelectWithEvents() {
     await loadEventData();
@@ -403,19 +314,10 @@ async function initDateSelectWithEvents() {
     const sortedFiles = sortFilesByDate(CSV_FILES, true);
     
     dateSelect.innerHTML = sortedFiles.map((file, index) => {
-        const dateKey = getDailyDateKeyFromFile(file);
-        const formattedDate = formatDate(file);
-        const dayOfWeek = getDayOfWeekName(getDayOfWeek(file));
-        
-        const events = getEventsForDate(dateKey);
-        const eventText = getEventTextForSelect(events);
-        
-        const label = `${formattedDate}（${dayOfWeek}）${eventText}`;
-        const selected = index === currentDateIndex ? 'selected' : '';
-        
-        return `<option value="${file}" ${selected}>${label}</option>`;
+        return createDateSelectOption(file, index === currentDateIndex);
     }).join('');
 }
+
 
 // 日付ラベルの更新（イベント情報を含む）
 async function updateDateNavWithEvents() {
@@ -426,6 +328,7 @@ async function updateDateNavWithEvents() {
     
     if (!currentFile) return;
     
+    // 日付ラベル更新
     const dateLabel = document.getElementById('currentDateLabel');
     if (dateLabel) {
         const formattedDate = formatDate(currentFile);
@@ -433,7 +336,8 @@ async function updateDateNavWithEvents() {
         dateLabel.textContent = `${formattedDate}（${dayOfWeek}）`;
     }
     
-    const dateKey = getDailyDateKeyFromFile(currentFile);
+    // イベントバッジを表示
+    const dateKey = getDateKeyFromFilename(currentFile);
     const events = getEventsForDate(dateKey);
     
     let eventContainer = document.getElementById('dailyEventInfo');
@@ -452,6 +356,7 @@ async function updateDateNavWithEvents() {
         eventContainer.innerHTML = eventHtml;
     }
     
+    // ナビゲーションボタンの状態更新
     const prevBtn = document.getElementById('prevDate');
     const nextBtn = document.getElementById('nextDate');
     
@@ -462,10 +367,49 @@ async function updateDateNavWithEvents() {
         nextBtn.disabled = currentDateIndex <= 0;
     }
     
+    // セレクトボックスの選択状態を同期
     const dateSelect = document.getElementById('dateSelect');
     if (dateSelect && dateSelect.value !== currentFile) {
         dateSelect.value = currentFile;
     }
+}
+
+// renderDailyEventBadges を以下のように修正（noteの表示を追加）
+function renderDailyEventBadges(events) {
+    if (!events || events.length === 0) return '';
+
+    const relevantEvents = events.filter(event => hasEventOrPerformers(event));
+    
+    if (relevantEvents.length === 0) return '';
+
+    let html = '<div class="daily-event-badges">';
+    
+    relevantEvents.forEach(event => {
+        if (isValidEvent(event)) {
+            const { icon, name, color } = getEventDisplayName(event);
+            
+            if (name) {
+                // noteがある場合はツールチップとして表示
+                const tooltip = event.note ? ` title="${event.note}"` : '';
+                html += `
+                    <span class="daily-event-badge" style="background: ${color}20; border-color: ${color};"${tooltip}>
+                        ${icon} ${name}
+                    </span>
+                `;
+            }
+        }
+
+        if (event.performers && event.performers.length > 0) {
+            html += `
+                <span class="daily-event-badge performer-badge">
+                    🎤 ${event.performers.join(', ')}
+                </span>
+            `;
+        }
+    });
+    
+    html += '</div>';
+    return html;
 }
 
 // メインのフィルター＆レンダリング関数
@@ -519,9 +463,9 @@ async function filterAndRender() {
     if (saFilterType && saFilterValue) {
         const val = parseInt(saFilterValue);
         if (saFilterType === 'gte') {
-            data = data.filter(row => (parseInt(row['差枚']) || 0) >= val);
+            data = data.filter(row => (parseInt(String(row['差枚']).replace(/,/g, '')) || 0) >= val);
         } else if (saFilterType === 'lte') {
-            data = data.filter(row => (parseInt(row['差枚']) || 0) <= val);
+            data = data.filter(row => (parseInt(String(row['差枚']).replace(/,/g, '')) || 0) <= val);
         }
     }
 
@@ -531,9 +475,9 @@ async function filterAndRender() {
     if (gameFilterType && gameFilterValue) {
         const val = parseInt(gameFilterValue);
         if (gameFilterType === 'gte') {
-            data = data.filter(row => (parseInt(row['G数']) || 0) >= val);
+            data = data.filter(row => (parseInt(String(row['G数']).replace(/,/g, '')) || 0) >= val);
         } else if (gameFilterType === 'lte') {
-            data = data.filter(row => (parseInt(row['G数']) || 0) <= val);
+            data = data.filter(row => (parseInt(String(row['G数']).replace(/,/g, '')) || 0) <= val);
         }
     }
 
@@ -571,13 +515,13 @@ async function filterAndRender() {
     if (sortBy) {
         switch (sortBy) {
             case 'sa_desc':
-                data.sort((a, b) => (parseInt(b['差枚']) || 0) - (parseInt(a['差枚']) || 0));
+                data.sort((a, b) => (parseInt(String(b['差枚']).replace(/,/g, '')) || 0) - (parseInt(String(a['差枚']).replace(/,/g, '')) || 0));
                 break;
             case 'sa_asc':
-                data.sort((a, b) => (parseInt(a['差枚']) || 0) - (parseInt(b['差枚']) || 0));
+                data.sort((a, b) => (parseInt(String(a['差枚']).replace(/,/g, '')) || 0) - (parseInt(String(b['差枚']).replace(/,/g, '')) || 0));
                 break;
             case 'game_desc':
-                data.sort((a, b) => (parseInt(b['G数']) || 0) - (parseInt(a['G数']) || 0));
+                data.sort((a, b) => (parseInt(String(b['G数']).replace(/,/g, '')) || 0) - (parseInt(String(a['G数']).replace(/,/g, '')) || 0));
                 break;
             case 'rate_desc':
                 data.sort((a, b) => {
@@ -638,13 +582,13 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
             }
 
             if (h === '差枚') {
-                const numVal = parseInt(val) || 0;
+                const numVal = parseInt(String(val).replace(/,/g, '')) || 0;
                 const cls = numVal > 0 ? 'plus' : numVal < 0 ? 'minus' : '';
                 return `<td class="${cls}">${numVal >= 0 ? '+' : ''}${numVal.toLocaleString()}</td>`;
             }
 
             if (h === 'G数') {
-                const numVal = parseInt(val) || 0;
+                const numVal = parseInt(String(val).replace(/,/g, '')) || 0;
                 return `<td>${numVal.toLocaleString()}</td>`;
             }
 
@@ -660,9 +604,9 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
     if (summaryId) {
         const summaryEl = document.getElementById(summaryId);
         if (summaryEl) {
-            const totalSa = data.reduce((sum, r) => sum + (parseInt(r['差枚']) || 0), 0);
-            const totalGames = data.reduce((sum, r) => sum + (parseInt(r['G数']) || 0), 0);
-            const plusCount = data.filter(r => (parseInt(r['差枚']) || 0) > 0).length;
+            const totalSa = data.reduce((sum, r) => sum + (parseInt(String(r['差枚']).replace(/,/g, '')) || 0), 0);
+            const totalGames = data.reduce((sum, r) => sum + (parseInt(String(r['G数']).replace(/,/g, '')) || 0), 0);
+            const plusCount = data.filter(r => (parseInt(String(r['差枚']).replace(/,/g, '')) || 0) > 0).length;
             const winRate = data.length > 0 ? ((plusCount / data.length) * 100).toFixed(1) : '0.0';
             const saClass = totalSa > 0 ? 'plus' : totalSa < 0 ? 'minus' : '';
 
@@ -705,13 +649,11 @@ function getDisplayedTableData() {
             
             const headerName = headers[index];
             
-            // 確率形式（1/xxx.x）はそのまま保持
             if (value.includes('/')) {
                 rowData.push(value);
                 return;
             }
             
-            // 機械割（%付き）の処理
             if (headerName && headerName.includes('機械割') && value.includes('%')) {
                 let numStr = value.replace('%', '');
                 const num = parseFloat(numStr);
@@ -722,7 +664,6 @@ function getDisplayedTableData() {
                 return;
             }
             
-            // G数、差枚、BB、RB、ARTなどの数値処理
             if (['G数', '差枚', 'BB', 'RB', 'ART'].some(h => headerName && headerName.includes(h))) {
                 let numStr = value.replace(/[+,]/g, '');
                 const num = parseFloat(numStr);
@@ -769,6 +710,7 @@ function setupDailyEventListeners() {
         const sortedFiles = sortFilesByDate(CSV_FILES, true);
         if (currentDateIndex < sortedFiles.length - 1) {
             currentDateIndex++;
+            initDateSelectWithEvents();
             filterAndRender();
         }
     });
@@ -776,6 +718,7 @@ function setupDailyEventListeners() {
     document.getElementById('nextDate')?.addEventListener('click', () => {
         if (currentDateIndex > 0) {
             currentDateIndex--;
+            initDateSelectWithEvents();
             filterAndRender();
         }
     });

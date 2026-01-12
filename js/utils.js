@@ -633,22 +633,22 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
     function renderOptions(filter = '') {
         const filterLower = filter.toLowerCase().trim();
         let html = '';
-    
+
         currentOptions.forEach((opt) => {
             const value = opt.value;
             const label = opt.label;
             const count = opt.count || 0;
-        
+
             // フィルタリング
             if (filterLower && !label.toLowerCase().includes(filterLower)) {
                 return;
             }
-        
+
             const checked = selectedValues.has(value) ? 'checked' : '';
             // value属性をエスケープして安全にする
             const escapedValue = value.replace(/"/g, '&quot;');
             const escapedLabel = label.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            
+
             html += `
                 <div class="multi-select-option" data-value="${escapedValue}">
                     <input type="checkbox" ${checked}>
@@ -657,18 +657,18 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
                 </div>
             `;
         });
-    
+
         if (filterLower && html === '') {
             html = `<div class="multi-select-no-results">該当する機種がありません</div>`;
         }
-    
+
         optionsContainer.innerHTML = html;
-    
+
         // イベントリスナーを修正（divクリックで動作するように）
         optionsContainer.querySelectorAll('.multi-select-option').forEach(opt => {
             const checkbox = opt.querySelector('input[type="checkbox"]');
             const value = opt.dataset.value;
-            
+
             opt.addEventListener('click', (e) => {
                 if (e.target.tagName !== 'INPUT') {
                     checkbox.checked = !checkbox.checked;
@@ -1009,4 +1009,381 @@ function getSortFunction(sortBy) {
         default:
             return (a, b) => b.totalSa - a.totalSa;
     }
+}
+
+// ===================
+// イベント関連（共通）
+// ===================
+
+let eventData = null;
+
+/**
+ * イベントデータを読み込み
+ */
+async function loadEventData() {
+    if (eventData) return eventData;
+
+    try {
+        const response = await fetch('events.json');
+        if (response.ok) {
+            eventData = await response.json();
+        } else {
+            eventData = { events: [], recurringEvents: [], mediaTypes: [], eventTypes: [], performers: [] };
+        }
+    } catch (e) {
+        console.log('events.json not found, using empty events');
+        eventData = { events: [], recurringEvents: [], mediaTypes: [], eventTypes: [], performers: [] };
+    }
+    return eventData;
+}
+
+/**
+ * 日付キーをパース（YYYY_MM_DD → {year, month, day}）
+ */
+function parseDateKeyToComponents(dateKey) {
+    const match = dateKey.match(/(\d{4})_(\d{2})_(\d{2})/);
+    if (match) {
+        return {
+            year: parseInt(match[1]),
+            month: parseInt(match[2]),
+            day: parseInt(match[3])
+        };
+    }
+    return null;
+}
+
+/**
+ * 繰り返しイベントのルールに一致するかチェック
+ */
+function getRecurringEventsForDate(dateKey) {
+    if (!eventData || !eventData.recurringEvents) return [];
+    
+    const parsed = parseDateKeyToComponents(dateKey);
+    if (!parsed) return [];
+    
+    const { year, month, day } = parsed;
+    const date = new Date(year, month - 1, day);
+    const dayOfWeek = date.getDay();
+    const dateSuffix = day % 10;
+    
+    const matchedEvents = [];
+    
+    eventData.recurringEvents.forEach(rule => {
+        let matches = false;
+        
+        switch (rule.rule) {
+            case 'dateSuffix':
+                if (rule.suffix && rule.suffix.includes(dateSuffix)) {
+                    matches = true;
+                }
+                break;
+                
+            case 'dayOfWeek':
+                if (rule.days && rule.days.includes(dayOfWeek)) {
+                    matches = true;
+                }
+                break;
+                
+            case 'monthDay':
+                if (rule.days && rule.days.includes(day)) {
+                    matches = true;
+                }
+                break;
+                
+            case 'nthWeekday':
+                const weekOfMonth = Math.ceil(day / 7);
+                if (rule.week === weekOfMonth && rule.dayOfWeek === dayOfWeek) {
+                    matches = true;
+                }
+                break;
+        }
+        
+        if (matches && rule.excludeDates && rule.excludeDates.includes(dateKey)) {
+            matches = false;
+        }
+        
+        if (matches && rule.startDate) {
+            if (dateKey < rule.startDate) {
+                matches = false;
+            }
+        }
+        if (matches && rule.endDate) {
+            if (dateKey > rule.endDate) {
+                matches = false;
+            }
+        }
+        
+        if (matches) {
+            matchedEvents.push({
+                type: rule.type || 'event',
+                name: rule.name,
+                icon: rule.icon,
+                media: rule.media || '',
+                isRecurring: true
+            });
+        }
+    });
+    
+    return matchedEvents;
+}
+
+/**
+ * 日付のイベントを取得（通常イベント + 繰り返しイベント）
+ */
+function getEventsForDate(dateKey) {
+    if (!eventData) return [];
+    
+    const normalEvents = (eventData.events || []).filter(e => e.date === dateKey);
+    const recurringEvents = getRecurringEventsForDate(dateKey);
+    
+    const normalEventNames = normalEvents.map(e => {
+        if (Array.isArray(e.name)) {
+            return e.name;
+        }
+        return [e.name];
+    }).flat();
+    
+    const filteredRecurring = recurringEvents.filter(re => {
+        return !normalEventNames.includes(re.name);
+    });
+    
+    return [...normalEvents, ...filteredRecurring];
+}
+
+/**
+ * イベントタイプの情報を取得
+ */
+function getEventTypeInfo(typeId) {
+    if (!eventData || !eventData.eventTypes) return null;
+    return eventData.eventTypes.find(t => t.id === typeId);
+}
+
+/**
+ * 全イベント名を収集
+ */
+function getAllEventNames() {
+    if (!eventData) return [];
+    
+    const eventNames = new Set();
+    
+    if (eventData.events) {
+        eventData.events.forEach(event => {
+            if (Array.isArray(event.name)) {
+                event.name.forEach(n => {
+                    if (n && n.trim() !== '') {
+                        eventNames.add(n.trim());
+                    }
+                });
+            } else if (event.name && event.name.trim() !== '') {
+                eventNames.add(event.name.trim());
+            }
+        });
+    }
+    
+    if (eventData.recurringEvents) {
+        eventData.recurringEvents.forEach(rule => {
+            if (rule.name && rule.name.trim() !== '') {
+                eventNames.add(rule.name.trim());
+            }
+        });
+    }
+    
+    return [...eventNames].sort();
+}
+
+/**
+ * イベントが有効かどうかをチェック
+ */
+function isValidEvent(event) {
+    if (!event) return false;
+    
+    if (event.isRecurring) return true;
+    
+    const hasValidType = event.type && event.type.trim() !== '';
+    const hasValidMedia = event.media && event.media.trim() !== '';
+    
+    let hasValidName = false;
+    if (Array.isArray(event.name)) {
+        hasValidName = event.name.some(n => n && n.trim() !== '');
+    } else if (event.name) {
+        hasValidName = event.name.trim() !== '';
+    }
+    
+    return hasValidType || hasValidMedia || hasValidName;
+}
+
+/**
+ * イベントまたは演者が存在するかチェック
+ */
+function hasEventOrPerformers(event) {
+    if (!event) return false;
+    
+    const hasEvent = isValidEvent(event);
+    const hasPerformers = event.performers && event.performers.length > 0;
+    
+    return hasEvent || hasPerformers;
+}
+
+/**
+ * イベントの表示名を取得
+ */
+function getEventDisplayName(event) {
+    if (!event) return { icon: '', name: '', typeInfo: null };
+    
+    let icon = event.icon || '';
+    let color = '#8b5cf6';
+    const typeInfo = getEventTypeInfo(event.type);
+    
+    if (!event.isRecurring && typeInfo) {
+        icon = icon || typeInfo.icon;
+        color = typeInfo.color;
+    }
+    
+    if (!icon) icon = '📌';
+    
+    let eventName = '';
+    if (Array.isArray(event.name)) {
+        eventName = event.name.filter(n => n && n.trim() !== '').join(', ');
+    } else if (event.name && event.name.trim() !== '') {
+        eventName = event.name;
+    }
+    
+    if (!eventName && event.media) {
+        eventName = event.media;
+    }
+    
+    if (!eventName && typeInfo) {
+        eventName = typeInfo.name;
+    }
+    
+    return { icon, name: eventName, typeInfo, color, event };
+}
+
+/**
+ * イベントバッジのHTML生成（共通）
+ */
+function renderEventBadges(events) {
+    if (!events || events.length === 0) return '';
+
+    const displayableEvents = events.filter(event => hasEventOrPerformers(event));
+
+    if (displayableEvents.length === 0) return '';
+
+    let html = '';
+    
+    displayableEvents.forEach(event => {
+        if (isValidEvent(event)) {
+            const { icon, name, color } = getEventDisplayName(event);
+            
+            if (name) {
+                html += `
+                    <div class="event-badge" style="background: ${color}20; border-color: ${color};" title="${name}${event.media ? ' (' + event.media + ')' : ''}${event.note ? ' - ' + event.note : ''}">
+                        <span class="event-icon">${icon}</span>
+                        <span class="event-name">${name}</span>
+                    </div>
+                `;
+            }
+        }
+
+        if (event.performers && event.performers.length > 0) {
+            html += `<div class="event-performers">🎤 ${event.performers.join(', ')}</div>`;
+        }
+    });
+
+    return html;
+}
+
+// ===================
+// 日付セレクター用イベント表示（共通）
+// ===================
+
+/**
+ * 日付セレクトボックス用のイベント表示テキストを生成（共通）
+ * @param {string} dateKey - 日付キー（YYYY_MM_DD形式）
+ * @returns {string} イベント表示テキスト
+ */
+function getEventTextForDateSelect(dateKey) {
+    const events = getEventsForDate(dateKey);
+    
+    if (!events || events.length === 0) return '';
+    
+    const relevantEvents = events.filter(event => hasEventOrPerformers(event));
+    if (relevantEvents.length === 0) return '';
+    
+    const displayItems = [];
+    
+    relevantEvents.forEach(event => {
+        if (isValidEvent(event)) {
+            const { icon, name } = getEventDisplayName(event);
+            if (name) {
+                // 長い名前は省略
+                const shortName = name.length > 10 ? name.substring(0, 10) + '...' : name;
+                displayItems.push(`${icon}${shortName}`);
+            }
+        }
+        
+        // 演者のみの場合
+        if (!isValidEvent(event) && event.performers && event.performers.length > 0) {
+            const performerText = event.performers.slice(0, 2).join(',');
+            const suffix = event.performers.length > 2 ? '...' : '';
+            displayItems.push(`🎤${performerText}${suffix}`);
+        }
+    });
+    
+    if (displayItems.length === 0) return '';
+    
+    // 最大2項目まで表示
+    if (displayItems.length <= 2) {
+        return ' ' + displayItems.join(' ');
+    } else {
+        return ' ' + displayItems.slice(0, 2).join(' ') + '...';
+    }
+}
+
+/**
+ * ファイル名から日付キーを取得（共通）
+ * @param {string} file - ファイル名（data/YYYY_MM_DD.csv形式）
+ * @returns {string|null} 日付キー（YYYY_MM_DD形式）
+ */
+function getDateKeyFromFilename(file) {
+    const match = file.match(/(\d{4}_\d{2}_\d{2})/);
+    return match ? match[1] : null;
+}
+
+/**
+ * イベント情報付きの日付セレクトオプションを生成
+ * @param {string} file - ファイル名
+ * @param {boolean} isSelected - 選択状態
+ * @returns {string} option要素のHTML
+ */
+function createDateSelectOption(file, isSelected = false) {
+    const dateKey = getDateKeyFromFilename(file);
+    const formattedDate = formatDate(file);
+    const dayOfWeek = getDayOfWeekName(getDayOfWeek(file));
+    const eventText = dateKey ? getEventTextForDateSelect(dateKey) : '';
+    
+    const label = `${formattedDate}（${dayOfWeek}）${eventText}`;
+    const selected = isSelected ? 'selected' : '';
+    
+    return `<option value="${file}" ${selected}>${label}</option>`;
+}
+
+/**
+ * 日付セレクトボックスを更新（イベント情報付き）
+ * @param {string} selectId - セレクト要素のID
+ * @param {Array} files - ファイル名の配列
+ * @param {string} selectedValue - 選択中の値
+ */
+async function updateDateSelectWithEvents(selectId, files, selectedValue = null) {
+    await loadEventData();
+    
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    const sortedFiles = sortFilesByDate(files, true);
+    
+    select.innerHTML = sortedFiles.map((file, index) => {
+        const isSelected = selectedValue ? file === selectedValue : index === 0;
+        return createDateSelectOption(file, isSelected);
+    }).join('');
 }
