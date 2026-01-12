@@ -495,17 +495,27 @@ async function initStatsFilters() {
 
 // 期間集計用機種フィルターを更新（複数選択対応）
 function updateStatsMachineFilter() {
-    const machineCounts = getAllMachineCountsFromCache();
+    // 期間の日付を取得
+    const startDate = document.getElementById('statsPeriodStart')?.value;
+    const endDate = document.getElementById('statsPeriodEnd')?.value;
     
-    const machineOptions = [];
-    const sortedMachines = [...allMachines].sort();
-    sortedMachines.forEach(machine => {
-        machineOptions.push({
-            value: machine,
-            label: machine,
-            count: machineCounts[machine] || 0
+    let targetFiles = [];
+    
+    if (startDate && endDate) {
+        const startNum = getDateNumber(startDate);
+        const endNum = getDateNumber(endDate);
+        
+        targetFiles = CSV_FILES.filter(f => {
+            const fileNum = getDateNumber(f);
+            return fileNum >= startNum && fileNum <= endNum;
         });
-    });
+    } else {
+        // デフォルトは全ファイルの最新日
+        targetFiles = CSV_FILES;
+    }
+    
+    // 最新日のデータから機種オプションを取得（台数順→50音順）
+    const machineOptions = getMachineOptionsForLatestDate(targetFiles);
 
     if (statsMachineFilterSelect) {
         statsMachineFilterSelect.updateOptions(machineOptions);
@@ -522,18 +532,9 @@ function updateStatsMachineFilter() {
 // 日別用機種フィルターを更新（複数選択対応）
 function updateStatsDailyMachineFilter() {
     const dateFile = document.getElementById('statsDateSelect')?.value;
-    const data = dataCache[dateFile] || [];
-    const machineCounts = getMachineCountsFromData(data);
     
-    const machineOptions = [];
-    const sortedMachines = [...allMachines].sort();
-    sortedMachines.forEach(machine => {
-        machineOptions.push({
-            value: machine,
-            label: machine,
-            count: machineCounts[machine] || 0
-        });
-    });
+    // 選択された日付のデータから機種オプションを取得（台数順→50音順）
+    const machineOptions = getMachineOptionsForDate(dateFile);
 
     if (statsDailyMachineFilterSelect) {
         statsDailyMachineFilterSelect.updateOptions(machineOptions);

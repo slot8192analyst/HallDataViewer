@@ -89,23 +89,13 @@ function restoreFilterPanelState() {
     }
 }
 
-// 日別機種フィルターを初期化（複数選択対応）
+// 日別機種フィルターを初期化（複数選択対応）- 修正版
 function initDailyMachineFilter() {
     const sortedFiles = sortFilesByDate(CSV_FILES, true);
     const currentFile = sortedFiles[currentDateIndex];
     
-    const data = dataCache[currentFile] || [];
-    const machineCounts = getMachineCountsFromData(data);
-    
-    const machineOptions = [];
-    const sortedMachines = [...allMachines].sort();
-    sortedMachines.forEach(machine => {
-        machineOptions.push({
-            value: machine,
-            label: machine,
-            count: machineCounts[machine] || 0
-        });
-    });
+    // 現在の日付のデータから機種オプションを取得（台数順→50音順）
+    const machineOptions = getMachineOptionsForDate(currentFile);
 
     if (dailyMachineFilterSelect) {
         dailyMachineFilterSelect.updateOptions(machineOptions);
@@ -119,22 +109,13 @@ function initDailyMachineFilter() {
     }
 }
 
-// 日付変更時に機種フィルターの台数を更新
+// 日付変更時に機種フィルターの台数を更新 - 修正版
 function updateDailyMachineFilterCounts() {
     const sortedFiles = sortFilesByDate(CSV_FILES, true);
     const currentFile = sortedFiles[currentDateIndex];
-    const data = dataCache[currentFile] || [];
-    const machineCounts = getMachineCountsFromData(data);
     
-    const machineOptions = [];
-    const sortedMachines = [...allMachines].sort();
-    sortedMachines.forEach(machine => {
-        machineOptions.push({
-            value: machine,
-            label: machine,
-            count: machineCounts[machine] || 0
-        });
-    });
+    // 現在の日付のデータから機種オプションを取得（台数順→50音順）
+    const machineOptions = getMachineOptionsForDate(currentFile);
 
     if (dailyMachineFilterSelect) {
         dailyMachineFilterSelect.updateOptions(machineOptions);
