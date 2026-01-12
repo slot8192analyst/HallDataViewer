@@ -629,44 +629,54 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
     let isOpen = false;
     let currentOptions = options;
 
-    // オプションを描画
+    // renderOptions 関数内のHTML生成部分を修正
     function renderOptions(filter = '') {
         const filterLower = filter.toLowerCase().trim();
         let html = '';
-
+    
         currentOptions.forEach((opt) => {
             const value = opt.value;
             const label = opt.label;
             const count = opt.count || 0;
-
+        
             // フィルタリング
             if (filterLower && !label.toLowerCase().includes(filterLower)) {
                 return;
             }
-
+        
             const checked = selectedValues.has(value) ? 'checked' : '';
+            // value属性をエスケープして安全にする
+            const escapedValue = value.replace(/"/g, '&quot;');
+            const escapedLabel = label.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
             html += `
-                <label class="multi-select-option">
-                    <input type="checkbox" value="${value}" ${checked}>
-                    <span class="option-label">${label}</span>
+                <div class="multi-select-option" data-value="${escapedValue}">
+                    <input type="checkbox" ${checked}>
+                    <span class="option-label">${escapedLabel}</span>
                     <span class="option-count">${count}台</span>
-                </label>
+                </div>
             `;
         });
-
+    
         if (filterLower && html === '') {
             html = `<div class="multi-select-no-results">該当する機種がありません</div>`;
         }
-
+    
         optionsContainer.innerHTML = html;
-
-        // チェックボックスのイベントリスナー
-        optionsContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-            cb.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    selectedValues.add(e.target.value);
+    
+        // イベントリスナーを修正（divクリックで動作するように）
+        optionsContainer.querySelectorAll('.multi-select-option').forEach(opt => {
+            const checkbox = opt.querySelector('input[type="checkbox"]');
+            const value = opt.dataset.value;
+            
+            opt.addEventListener('click', (e) => {
+                if (e.target.tagName !== 'INPUT') {
+                    checkbox.checked = !checkbox.checked;
+                }
+                if (checkbox.checked) {
+                    selectedValues.add(value);
                 } else {
-                    selectedValues.delete(e.target.value);
+                    selectedValues.delete(value);
                 }
                 updateDisplay();
                 if (onChange) onChange(getSelectedValues());
