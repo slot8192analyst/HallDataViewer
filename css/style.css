@@ -3089,3 +3089,111 @@ select option {
         font-size: var(--font-size-md);
     }
 }
+
+/* style.css の末尾に追加 */
+
+/* ===================
+   位置タグ
+   =================== */
+.position-tags {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+
+.position-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: var(--font-size-xs);
+    border: 1px solid;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+.position-tag.compact {
+    padding: 2px 4px;
+    font-size: 10px;
+}
+
+.position-tag-more {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 4px;
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    background: var(--bg-dark);
+    border-radius: 4px;
+}
+
+/* テーブル内の位置タグ */
+td .position-tags {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 2px;
+    margin-left: 0;
+    margin-top: 2px;
+}
+
+td .position-tag {
+    padding: 1px 4px;
+    font-size: 9px;
+}
+
+td .position-tag.compact {
+    padding: 1px 3px;
+    font-size: 8px;
+}
+
+/* 位置タグフィルター */
+.position-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.position-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 5px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.position-filter-btn:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-color);
+}
+
+.position-filter-btn.active {
+    color: #fff;
+    font-weight: 500;
+}
+
+/* レスポンシブ */
+@media (max-width: 480px) {
+    .position-tag {
+        padding: 1px 4px;
+        font-size: 8px;
+    }
+    
+    .position-tag.compact {
+        padding: 1px 3px;
+        font-size: 7px;
+    }
+    
+    td .position-tag {
+        font-size: 8px;
+    }
+}

@@ -7,6 +7,7 @@ let visibleColumns = [];
 let allColumns = [];
 let filterPanelOpen = false;
 let dailyMachineFilterSelect = null;
+let selectedPositionFilter = '';
 
 // 機械割を計算する関数
 function calculateMechanicalRate(games, saMai) {
@@ -140,17 +141,29 @@ function updateDailyMachineFilterCounts() {
     }
 }
 
-// 列選択チェックボックスを生成
+// initColumnSelector 関数を修正（位置関係列を追加）
 function initColumnSelector() {
     if (headers.length === 0) return;
 
     allColumns = [...headers];
+    
+    // 機械割列を追加
     if (!allColumns.includes('機械割')) {
         const saIndex = allColumns.indexOf('差枚');
         if (saIndex !== -1) {
             allColumns.splice(saIndex + 1, 0, '機械割');
         } else {
             allColumns.push('機械割');
+        }
+    }
+    
+    // 位置関係列を追加（台番号の後）
+    if (!allColumns.includes('位置')) {
+        const unitIndex = allColumns.indexOf('台番号');
+        if (unitIndex !== -1) {
+            allColumns.splice(unitIndex + 1, 0, '位置');
+        } else {
+            allColumns.push('位置');
         }
     }
 
@@ -170,6 +183,60 @@ function initColumnSelector() {
     }
 
     renderColumnCheckboxes();
+}
+
+// 位置フィルターのHTML生成
+function renderPositionFilter() {
+    const positionTags = getAllPositionTags();
+    
+    let html = '<div class="position-filter">';
+    html += `<button class="position-filter-btn ${selectedPositionFilter === '' ? 'active' : ''}" data-position="" style="background: ${selectedPositionFilter === '' ? 'var(--primary-color)' : ''}">全て</button>`;
+    
+    positionTags.forEach(tag => {
+        const isActive = selectedPositionFilter === tag.value;
+        const bgColor = isActive ? tag.color : '';
+        html += `<button class="position-filter-btn ${isActive ? 'active' : ''}" data-position="${tag.value}" style="${isActive ? `background: ${tag.color}; border-color: ${tag.color};` : `border-color: ${tag.color}40;`}">${tag.icon} ${tag.label}</button>`;
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+// フィルターパネル内に位置フィルターを追加
+function renderPositionFilterSection() {
+    const filterContent = document.getElementById('filterContent');
+    if (!filterContent) return;
+    
+    // 既存の位置フィルターセクションを削除
+    const existingSection = filterContent.querySelector('.position-filter-section');
+    if (existingSection) {
+        existingSection.remove();
+    }
+    
+    // 新しいセクションを追加
+    const section = document.createElement('div');
+    section.className = 'filter-section position-filter-section';
+    section.innerHTML = `
+        <h5>📍 位置フィルター</h5>
+        ${renderPositionFilter()}
+    `;
+    
+    // 最初のフィルターセクションの前に挿入
+    const firstSection = filterContent.querySelector('.filter-section');
+    if (firstSection) {
+        firstSection.before(section);
+    } else {
+        filterContent.prepend(section);
+    }
+    
+    // イベントリスナーを設定
+    section.querySelectorAll('.position-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectedPositionFilter = btn.dataset.position;
+            renderPositionFilterSection(); // 再描画してアクティブ状態を更新
+            filterAndRender();
+        });
+    });
 }
 
 function renderColumnCheckboxes() {
@@ -412,7 +479,7 @@ function renderDailyEventBadges(events) {
     return html;
 }
 
-// メインのフィルター＆レンダリング関数
+// filterAndRender 関数を修正（位置フィルターを追加）
 async function filterAndRender() {
     const sortedFiles = sortFilesByDate(CSV_FILES, true);
     const currentFile = sortedFiles[currentDateIndex];
@@ -432,6 +499,9 @@ async function filterAndRender() {
         initColumnSelector();
     }
 
+    // 位置フィルターセクションを描画
+    renderPositionFilterSection();
+
     // 機種フィルターの初期化/更新
     if (!dailyMachineFilterSelect) {
         initDailyMachineFilter();
@@ -440,6 +510,11 @@ async function filterAndRender() {
     }
 
     data = [...data];
+
+    // 位置フィルター
+    if (selectedPositionFilter) {
+        data = filterByPositionTag(data, selectedPositionFilter, '台番号');
+    }
 
     // 機種フィルター（複数選択対応）
     const selectedMachines = dailyMachineFilterSelect ? dailyMachineFilterSelect.getSelectedValues() : [];
@@ -558,7 +633,7 @@ async function filterAndRender() {
 }
 
 
-// 選択された列のみ表示するテーブル描画
+// renderTableWithColumns 関数を修正（位置列を追加）
 function renderTableWithColumns(data, tableId, summaryId, columns) {
     const table = document.getElementById(tableId);
     if (!table) return;
@@ -573,6 +648,13 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
     tbody.innerHTML = data.map(row => {
         return '<tr>' + displayColumns.map(h => {
             const val = row[h];
+
+            // 位置列の処理
+            if (h === '位置') {
+                const unitNum = row['台番号'];
+                const tagsHtml = renderPositionTags(unitNum, { compact: true });
+                return `<td>${tagsHtml || '-'}</td>`;
+            }
 
             if (h === '機械割') {
                 const rate = val;
@@ -614,8 +696,17 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
             const avgRateText = formatMechanicalRate(avgRate);
             const avgRateClass = getMechanicalRateClass(avgRate);
 
+            // 位置フィルター情報を表示
+            let positionInfo = '';
+            if (selectedPositionFilter) {
+                const tagInfo = POSITION_TAGS[selectedPositionFilter];
+                if (tagInfo) {
+                    positionInfo = ` | 位置: <span style="color: ${tagInfo.color}">${tagInfo.icon} ${tagInfo.label}</span>`;
+                }
+            }
+
             summaryEl.innerHTML = `
-                表示: ${data.length}台 |
+                表示: ${data.length}台${positionInfo} |
                 総G数: ${totalGames.toLocaleString()} |
                 総差枚: <span class="${saClass}">${totalSa >= 0 ? '+' : ''}${totalSa.toLocaleString()}</span> |
                 機械割: <span class="${avgRateClass}">${avgRateText}</span> |
@@ -625,7 +716,7 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
     }
 }
 
-// 現在表示中のテーブルデータを取得
+// getDisplayedTableData 関数を修正（位置列のエクスポート対応）
 function getDisplayedTableData() {
     const table = document.getElementById('data-table');
     if (!table) return { headers: [], rows: [] };
@@ -648,6 +739,14 @@ function getDisplayedTableData() {
             let value = cell.textContent.trim();
             
             const headerName = headers[index];
+            
+            // 位置列の場合はタグテキストを取得
+            if (headerName === '位置') {
+                // アイコンを除去してテキストのみ取得
+                value = value.replace(/[🔲🔳⬜⭕🔷🔶]/g, '').trim();
+                rowData.push(value);
+                return;
+            }
             
             if (value.includes('/')) {
                 rowData.push(value);
@@ -680,7 +779,6 @@ function getDisplayedTableData() {
     return { headers, rows };
 }
 
-
 // クリップボードにコピー
 async function copyTableToClipboard() {
     const { headers, rows } = getDisplayedTableData();
@@ -705,6 +803,7 @@ function downloadTableAsCSV() {
     downloadAsCSV({ headers, rows }, filename);
 }
 
+// リセットフィルター関数を修正（位置フィルターもリセット）
 function setupDailyEventListeners() {
     document.getElementById('prevDate')?.addEventListener('click', () => {
         const sortedFiles = sortFilesByDate(CSV_FILES, true);
@@ -741,6 +840,7 @@ function setupDailyEventListeners() {
         document.getElementById('rateFilterType').value = '';
         document.getElementById('rateFilterValue').value = '';
         document.getElementById('unitSuffixFilter').value = '';
+        selectedPositionFilter = ''; // 位置フィルターもリセット
         if (dailyMachineFilterSelect) {
             dailyMachineFilterSelect.reset();
         }
