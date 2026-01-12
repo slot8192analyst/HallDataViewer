@@ -11,6 +11,72 @@ let statsMode = 'daily';
 let statsSubTab = 'machine';
 let calendarYear, calendarMonth;
 
+// 読み込み状態管理
+let loadingState = {
+    initialLoadComplete: false,
+    fullLoadComplete: false,
+    totalFiles: 0,
+    loadedFiles: 0
+};
+
+// ===================
+// ローディング制御
+// ===================
+
+function updateLoadingProgress(loaded, total, status) {
+    const progressBar = document.getElementById('loadingProgressBar');
+    const statusEl = document.getElementById('loadingStatus');
+    
+    if (progressBar) {
+        const percent = total > 0 ? (loaded / total) * 100 : 0;
+        progressBar.style.width = `${percent}%`;
+    }
+    
+    if (statusEl && status) {
+        statusEl.textContent = status;
+    }
+}
+
+function hideLoadingScreen() {
+    const loadingScreen = document.getElementById('loading-screen');
+    if (loadingScreen) {
+        loadingScreen.classList.add('hidden');
+    }
+}
+
+function showBackgroundLoadingIndicator(loaded, total) {
+    let indicator = document.getElementById('background-loading-indicator');
+    
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'background-loading-indicator';
+        indicator.className = 'background-loading-indicator';
+        indicator.innerHTML = `
+            <div class="mini-spinner"></div>
+            <div class="loading-info">
+                <div class="loading-title">過去データを読み込み中...</div>
+                <div class="loading-detail" id="bg-loading-detail">${loaded}/${total} 完了</div>
+            </div>
+        `;
+        document.body.appendChild(indicator);
+    } else {
+        const detail = document.getElementById('bg-loading-detail');
+        if (detail) {
+            detail.textContent = `${loaded}/${total} 完了`;
+        }
+    }
+}
+
+function hideBackgroundLoadingIndicator() {
+    const indicator = document.getElementById('background-loading-indicator');
+    if (indicator) {
+        indicator.classList.add('hidden');
+        setTimeout(() => {
+            indicator.remove();
+        }, 300);
+    }
+}
+
 // ===================
 // データ読み込み
 // ===================
@@ -37,47 +103,73 @@ async function loadMonthlyJSON(filepath) {
         const response = await fetch(filepath);
         if (!response.ok) {
             console.warn(`月別JSON読み込み失敗: ${filepath}`);
-            return false;
+            return { success: false, days: 0 };
         }
         
         const monthlyData = await response.json();
+        let daysLoaded = 0;
         
         // 各日付のデータをキャッシュに展開
         for (const [dateKey, records] of Object.entries(monthlyData)) {
-            const filename = `data/${dateKey}.csv`; // 仮想的なファイル名（互換性のため）
+            const filename = `data/${dateKey}.csv`;
             
-            // ヘッダーを設定（初回のみ）
             if (headers.length === 0 && records.length > 0) {
                 headers = Object.keys(records[0]);
             }
             
-            // キャッシュに格納
             dataCache[filename] = records;
             
-            // CSV_FILESリストに追加（重複チェック）
             if (!CSV_FILES.includes(filename)) {
                 CSV_FILES.push(filename);
             }
             
-            // 機種名を収集
             records.forEach(row => {
                 if (row['機種名']) {
                     allMachines.add(row['機種名']);
                 }
             });
+            
+            daysLoaded++;
         }
         
-        console.log(`月別JSON読み込み完了: ${filepath} (${Object.keys(monthlyData).length}日分)`);
-        return true;
+        console.log(`月別JSON読み込み完了: ${filepath} (${daysLoaded}日分)`);
+        return { success: true, days: daysLoaded };
         
     } catch (e) {
         console.error(`月別JSON読み込みエラー: ${filepath}`, e);
-        return false;
+        return { success: false, days: 0 };
     }
 }
 
 /**
- * キャッシュからデータを取得（互換性のため残す）
+ * 複数のJSONファイルを並列で読み込み
+ */
+async function loadMultipleJSONParallel(filepaths, onProgress) {
+    const results = [];
+    let completed = 0;
+    
+    // 並列数を制限（同時に3ファイルまで）
+    const concurrency = 3;
+    
+    for (let i = 0; i < filepaths.length; i += concurrency) {
+        const batch = filepaths.slice(i, i + concurrency);
+        const batchResults = await Promise.all(
+            batch.map(filepath => loadMonthlyJSON(filepath))
+        );
+        
+        results.push(...batchResults);
+        completed += batch.length;
+        
+        if (onProgress) {
+            onProgress(completed, filepaths.length);
+        }
+    }
+    
+    return results;
+}
+
+/**
+ * キャッシュからデータを取得
  */
 async function loadCSV(filename) {
     if (dataCache[filename]) {
@@ -87,28 +179,134 @@ async function loadCSV(filename) {
 }
 
 /**
- * 全データを読み込み
+ * 初期データ読み込み（最新月のみ）
  */
-async function loadAllData() {
+async function loadInitialData() {
     const monthlyFiles = await loadFilesList();
     
-    console.log('データ読み込み開始...');
+    if (monthlyFiles.length === 0) {
+        console.warn('読み込むファイルがありません');
+        return false;
+    }
+    
+    loadingState.totalFiles = monthlyFiles.length;
+    
+    console.log('初期データ読み込み開始...');
     console.log(`  月別JSON: ${monthlyFiles.length}ファイル`);
+    
+    updateLoadingProgress(0, 100, '最新データを読み込み中...');
     
     const startTime = performance.now();
     
-    // 月別JSONを読み込み
-    for (const monthlyFile of monthlyFiles) {
-        await loadMonthlyJSON(monthlyFile);
+    // 最新月（最大2ヶ月分）を読み込み
+    const initialFiles = monthlyFiles.slice(0, 2);
+    let loaded = 0;
+    
+    for (const file of initialFiles) {
+        await loadMonthlyJSON(file);
+        loaded++;
+        const progress = (loaded / initialFiles.length) * 100;
+        updateLoadingProgress(progress, 100, `${file.split('/').pop()} 読み込み完了`);
     }
     
-    // 日付順にソート（降順）
+    // 日付順にソート
     CSV_FILES = sortFilesByDate(CSV_FILES, true);
     
     const endTime = performance.now();
-    console.log(`データ読み込み完了: ${((endTime - startTime) / 1000).toFixed(2)}秒`);
+    console.log(`初期データ読み込み完了: ${((endTime - startTime) / 1000).toFixed(2)}秒`);
+    console.log(`  読み込み日数: ${CSV_FILES.length}日`);
+    console.log(`  機種数: ${allMachines.size}機種`);
+    
+    loadingState.initialLoadComplete = true;
+    loadingState.loadedFiles = initialFiles.length;
+    
+    return true;
+}
+
+/**
+ * 残りのデータをバックグラウンドで読み込み
+ */
+async function loadRemainingDataInBackground() {
+    const monthlyFiles = await loadFilesList();
+    
+    // 最初の2ファイルは既に読み込み済み
+    const remainingFiles = monthlyFiles.slice(2);
+    
+    if (remainingFiles.length === 0) {
+        loadingState.fullLoadComplete = true;
+        console.log('全データ読み込み済み');
+        return;
+    }
+    
+    console.log(`バックグラウンド読み込み開始: ${remainingFiles.length}ファイル`);
+    
+    showBackgroundLoadingIndicator(0, remainingFiles.length);
+    
+    const startTime = performance.now();
+    
+    // 並列で読み込み
+    await loadMultipleJSONParallel(remainingFiles, (loaded, total) => {
+        loadingState.loadedFiles = 2 + loaded;
+        showBackgroundLoadingIndicator(loaded, total);
+    });
+    
+    // 日付順にソート
+    CSV_FILES = sortFilesByDate(CSV_FILES, true);
+    
+    const endTime = performance.now();
+    console.log(`バックグラウンド読み込み完了: ${((endTime - startTime) / 1000).toFixed(2)}秒`);
     console.log(`  総日数: ${CSV_FILES.length}日`);
     console.log(`  機種数: ${allMachines.size}機種`);
+    
+    loadingState.fullLoadComplete = true;
+    
+    hideBackgroundLoadingIndicator();
+    
+    // UIを更新
+    refreshUIAfterBackgroundLoad();
+}
+
+/**
+ * バックグラウンド読み込み完了後のUI更新
+ */
+function refreshUIAfterBackgroundLoad() {
+    // 日付セレクターを更新
+    populateDateSelectors();
+    
+    // 機種フィルターを更新
+    populateMachineFilters();
+    
+    // 現在のタブに応じて更新
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (activeTab) {
+        const tabName = activeTab.dataset.tab;
+        
+        if (tabName === 'trend') {
+            // トレンドタブの機種フィルターを更新
+            if (typeof initTrendMachineFilter === 'function') {
+                initTrendMachineFilter();
+            }
+        } else if (tabName === 'stats') {
+            // 統計タブのフィルターを更新
+            if (typeof updateStatsMachineFilter === 'function') {
+                updateStatsMachineFilter();
+            }
+        } else if (tabName === 'calendar') {
+            // カレンダーを再描画
+            if (typeof renderCalendar === 'function') {
+                renderCalendar();
+            }
+        }
+    }
+    
+    console.log('UI更新完了（バックグラウンド読み込み後）');
+}
+
+/**
+ * 全データを読み込み（後方互換性）
+ */
+async function loadAllData() {
+    await loadInitialData();
 }
 
 /**
@@ -128,19 +326,26 @@ function populateDateSelectors() {
     selectors.forEach(id => {
         const select = document.getElementById(id);
         if (select) {
+            const currentValue = select.value;
             select.innerHTML = sortedFiles.map(f =>
                 `<option value="${f}">${formatDate(f)}</option>`
             ).join('');
+            
+            // 以前の選択値を維持
+            if (currentValue && sortedFiles.includes(currentValue)) {
+                select.value = currentValue;
+            }
         }
     });
 
     if (sortedFiles.length > 0) {
-        currentDateIndex = 0;
         const periodEnd = document.getElementById('statsPeriodEnd');
-        if (periodEnd) periodEnd.value = sortedFiles[0];
+        if (periodEnd && !periodEnd.value) {
+            periodEnd.value = sortedFiles[0];
+        }
 
         const periodStart = document.getElementById('statsPeriodStart');
-        if (periodStart) {
+        if (periodStart && !periodStart.value) {
             const startIdx = Math.min(6, sortedFiles.length - 1);
             periodStart.value = sortedFiles[startIdx];
         }

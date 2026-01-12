@@ -45,11 +45,14 @@ function setupTabEventListeners() {
 }
 
 async function init() {
-    // データ読み込み（data.jsのloadAllData関数を使用）
-    await loadAllData();
-
-    if (CSV_FILES.length === 0) {
-        document.getElementById('summary').innerHTML = 'CSVファイルがありません';
+    console.log('アプリケーション初期化開始...');
+    
+    // 初期データ読み込み（最新月のみ）
+    const success = await loadInitialData();
+    
+    if (!success || CSV_FILES.length === 0) {
+        hideLoadingScreen();
+        document.getElementById('summary').innerHTML = 'データの読み込みに失敗しました';
         return;
     }
 
@@ -65,6 +68,7 @@ async function init() {
         calendarMonth = now.getMonth() + 1;
     }
 
+    // UI初期化
     populateDateSelectors();
     populateMachineFilters();
 
@@ -78,7 +82,20 @@ async function init() {
     // フィルターパネルのトグルを設定
     setupFilterPanelToggle('trendFilterToggle', 'trendFilterContent');
 
-    filterAndRender();
+    // 初期表示
+    updateLoadingProgress(100, 100, '表示準備中...');
+    
+    await filterAndRender();
+    
+    // ローディング画面を非表示
+    hideLoadingScreen();
+    
+    console.log('初期表示完了');
+    
+    // バックグラウンドで残りのデータを読み込み
+    setTimeout(() => {
+        loadRemainingDataInBackground();
+    }, 500);
 }
 
 document.addEventListener('DOMContentLoaded', init);
