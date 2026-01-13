@@ -151,14 +151,26 @@ function initSearchableSelect(containerId, options, placeholder, onChange) {
     if (!container) return null;
 
     container.className = 'searchable-select';
-    container.innerHTML = `
-        <div class="searchable-select-display" tabindex="0">
-            <span class="searchable-select-text">${placeholder}</span>
-            <span class="searchable-select-arrow">▼</span>
+    ccontainer.innerHTML = `
+        <div class="multi-select-display" tabindex="0">
+            <span class="multi-select-text">${placeholder}</span>
+            <span class="multi-select-count"></span>
+            <span class="multi-select-arrow">▼</span>
         </div>
-        <div class="searchable-select-dropdown">
-            <input type="text" class="searchable-select-search" placeholder="検索...">
-            <div class="searchable-select-options"></div>
+        <div class="multi-select-dropdown">
+            <div class="multi-select-controls">
+                <input type="text" class="multi-select-search" placeholder="機種名で検索...">
+                <div class="multi-select-buttons">
+                    <button type="button" class="multi-select-btn select-all">全選択</button>
+                    <button type="button" class="multi-select-btn deselect-all">全解除</button>
+                </div>
+                <div class="multi-select-threshold">
+                    <input type="number" class="multi-select-threshold-input" placeholder="台数" min="1" max="99" value="">
+                    <span class="multi-select-threshold-label">台以上</span>
+                    <button type="button" class="multi-select-btn select-by-count">選択</button>
+                </div>
+            </div>
+            <div class="multi-select-options"></div>
         </div>
     `;
 
@@ -787,11 +799,20 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
         }
 
         let selectedCount = 0;
+        let deselectedCount = 0;
+
         currentOptions.forEach(opt => {
             const count = opt.count || 0;
             if (count >= threshold) {
+                // 指定台数以上は選択
                 selectedValues.add(opt.value);
                 selectedCount++;
+            } else {
+                // 指定台数未満はチェックを外す
+                if (selectedValues.has(opt.value)) {
+                    selectedValues.delete(opt.value);
+                    deselectedCount++;
+                }
             }
         });
 
@@ -800,7 +821,11 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
         if (onChange) onChange(getSelectedValues());
 
         if (selectedCount > 0) {
-            showCopyToast(`${threshold}台以上の${selectedCount}機種を選択しました`);
+            let message = `${threshold}台以上の${selectedCount}機種を選択`;
+            if (deselectedCount > 0) {
+                message += `、${deselectedCount}機種の選択を解除しました`;
+            }
+            showCopyToast(message);
         } else {
             showCopyToast(`${threshold}台以上の機種がありません`, true);
         }
