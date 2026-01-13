@@ -75,6 +75,14 @@ async function init() {
     setupTabEventListeners();
     setupDailyEventListeners();
     setupTrendEventListeners();
+    document.getElementById('trendViewMode')?.addEventListener('change', function() {
+    const machineValueTypeGroup = document.getElementById('machineValueTypeGroup');
+    if (this.value === 'machine') {
+        machineValueTypeGroup.style.display = 'flex';
+    } else {
+        machineValueTypeGroup.style.display = 'none';
+    }
+});
     setupStatsEventListeners();
     setupCalendarEventListeners();
 

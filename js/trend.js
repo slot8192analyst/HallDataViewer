@@ -1,5 +1,5 @@
 // ===================
-// 差枚トレンドタブ（フィルタ機能拡充版）
+// 差枚トレンドタブ（大幅機能拡充版）
 // ===================
 
 let trendDataCache = null;
@@ -9,7 +9,13 @@ let trendShowTotal = true;
 let trendShowAvg = true;
 let selectedTrendPositionFilter = '';
 
-// selectedTrendDates は data.js で宣言済みなので、ここでは宣言しない
+// 表示モード: 'unit' = 台別, 'machine' = 機種別
+let trendViewMode = 'unit';
+// 値タイプ: 'total' = 総差枚, 'avg' = 平均差枚, 'winrate' = 勝率
+let trendMachineValueType = 'total';
+
+// フィルター条件の結合方式: 'and' または 'or'
+let trendFilterLogic = 'or';
 
 // アクティブなフィルター状態を管理
 let activeTrendFilters = {
@@ -17,7 +23,7 @@ let activeTrendFilters = {
     suffix: [],
     special: [],
     events: [],
-    dateRange: { start: '', end: '' }
+    dateRange: { start: null, end: null }
 };
 
 // 日付のイベント・演者情報を取得してテキスト生成
@@ -72,7 +78,7 @@ function checkDateFilter(file, filterType, filterValue) {
             return month === day;
         
         case 'doubleDigit':
-            return day === 11 || day === 22 || day === 33;
+            return day === 11 || day === 22;
         
         case 'dayOfWeek':
             return dayOfWeek === parseInt(filterValue);
@@ -90,29 +96,234 @@ function checkDateFilter(file, filterType, filterValue) {
                 return e.name === filterValue;
             });
         
-        case 'dateAfter':
-            return getDateNumber(file) >= getDateNumber(filterValue);
-        
-        case 'dateBefore':
-            return getDateNumber(file) <= getDateNumber(filterValue);
-        
         default:
             return true;
     }
 }
 
-// フィルターに基づいて日付を選択（追加）
-function applyTrendDateFilter(filterType, filterValue) {
+// 日付を数値に変換（比較用）
+function dateToNumber(year, month, day) {
+    return year * 10000 + month * 100 + day;
+}
+
+// ファイル名から日付数値を取得
+function getFileDateNumber(file) {
+    const parsed = parseDateFromFilename(file);
+    if (!parsed) return 0;
+    return dateToNumber(parsed.year, parsed.month, parsed.day);
+}
+
+// 期間フィルター（以降/以前）を適用
+function applyDateRangeFilter() {
+    const rangeType = document.getElementById('trendDateRangeType')?.value || '';
+    const rangeYear = document.getElementById('trendRangeYear')?.value;
+    const rangeMonth = document.getElementById('trendRangeMonth')?.value;
+    const rangeDay = document.getElementById('trendRangeDay')?.value;
+    
+    if (!rangeType || (!rangeYear && !rangeMonth && !rangeDay)) {
+        showCopyToast('期間タイプと日付を指定してください', true);
+        return;
+    }
+    
+    const y = rangeYear ? parseInt(rangeYear) : (rangeType === 'after' ? 1900 : 9999);
+    const m = rangeMonth ? parseInt(rangeMonth) : (rangeType === 'after' ? 1 : 12);
+    const d = rangeDay ? parseInt(rangeDay) : (rangeType === 'after' ? 1 : 31);
+    const targetDate = dateToNumber(y, m, d);
+    
+    activeTrendFilters.dateRange = {
+        type: rangeType,
+        year: rangeYear || null,
+        month: rangeMonth || null,
+        day: rangeDay || null,
+        targetDate: targetDate
+    };
+    
+    applyAllFilters();
+}
+
+// 条件フィルターを追加/削除
+function toggleConditionFilter(filterType, filterValue) {
+    let filterArray;
+    
+    switch (filterType) {
+        case 'dayOfWeek':
+            filterArray = activeTrendFilters.dayOfWeek;
+            break;
+        case 'suffix':
+            filterArray = activeTrendFilters.suffix;
+            break;
+        case 'monthDay':
+        case 'doubleDigit':
+        case 'hasEvent':
+            filterArray = activeTrendFilters.special;
+            filterValue = filterType;
+            break;
+        case 'eventName':
+            filterArray = activeTrendFilters.events;
+            break;
+        default:
+            return;
+    }
+    
+    const index = filterArray.indexOf(filterValue);
+    if (index === -1) {
+        filterArray.push(filterValue);
+    } else {
+        filterArray.splice(index, 1);
+    }
+    
+    applyAllFilters();
+}
+
+// 全フィルターを適用して日付を選択
+function applyAllFilters() {
     const checkboxes = document.querySelectorAll('#trendDateList input[type="checkbox"]');
+    const logic = trendFilterLogic;
+    
+    const hasDateRange = activeTrendFilters.dateRange.type;
+    const hasDayOfWeek = activeTrendFilters.dayOfWeek.length > 0;
+    const hasSuffix = activeTrendFilters.suffix.length > 0;
+    const hasSpecial = activeTrendFilters.special.length > 0;
+    const hasEvents = activeTrendFilters.events.length > 0;
+    
+    const hasAnyFilter = hasDateRange || hasDayOfWeek || hasSuffix || hasSpecial || hasEvents;
+    
+    if (!hasAnyFilter) {
+        updateTrendSelectionCount();
+        updateActiveFilterDisplay();
+        return;
+    }
     
     checkboxes.forEach(cb => {
         const file = cb.value;
-        if (checkDateFilter(file, filterType, filterValue)) {
+        const parsed = parseDateFromFilename(file);
+        if (!parsed) return;
+        
+        const fileDate = getFileDateNumber(file);
+        const dayOfWeek = getDayOfWeek(file);
+        const daySuffix = parsed.day % 10;
+        const dateKey = `${parsed.year}_${String(parsed.month).padStart(2, '0')}_${String(parsed.day).padStart(2, '0')}`;
+        
+        let conditions = [];
+        
+        if (hasDateRange) {
+            const range = activeTrendFilters.dateRange;
+            if (range.type === 'after') {
+                conditions.push(fileDate >= range.targetDate);
+            } else if (range.type === 'before') {
+                conditions.push(fileDate <= range.targetDate);
+            }
+        }
+        
+        if (hasDayOfWeek) {
+            const dayMatch = activeTrendFilters.dayOfWeek.some(d => parseInt(d) === dayOfWeek);
+            conditions.push(dayMatch);
+        }
+        
+        if (hasSuffix) {
+            const suffixMatch = activeTrendFilters.suffix.some(s => parseInt(s) === daySuffix);
+            conditions.push(suffixMatch);
+        }
+        
+        if (hasSpecial) {
+            const specialMatch = activeTrendFilters.special.some(special => {
+                switch (special) {
+                    case 'monthDay':
+                        return parsed.month === parsed.day;
+                    case 'doubleDigit':
+                        return parsed.day === 11 || parsed.day === 22;
+                    case 'hasEvent':
+                        const events = getEventsForDate(dateKey);
+                        return events.some(e => hasEventOrPerformers(e));
+                    default:
+                        return false;
+                }
+            });
+            conditions.push(specialMatch);
+        }
+        
+        if (hasEvents) {
+            const eventsForDate = getEventsForDate(dateKey);
+            const eventMatch = activeTrendFilters.events.some(eventName => {
+                return eventsForDate.some(e => {
+                    if (Array.isArray(e.name)) {
+                        return e.name.includes(eventName);
+                    }
+                    return e.name === eventName;
+                });
+            });
+            conditions.push(eventMatch);
+        }
+        
+        let matches;
+        if (logic === 'and') {
+            matches = conditions.every(c => c);
+        } else {
+            matches = conditions.some(c => c);
+        }
+        
+        if (matches) {
             cb.checked = true;
         }
     });
     
     updateTrendSelectionCount();
+    updateActiveFilterDisplay();
+}
+
+// アクティブなフィルター表示を更新
+function updateActiveFilterDisplay() {
+    const container = document.getElementById('activeFiltersDisplay');
+    if (!container) return;
+    
+    const items = [];
+    
+    if (activeTrendFilters.dateRange.type) {
+        const range = activeTrendFilters.dateRange;
+        const typeLabel = range.type === 'after' ? '以降' : '以前';
+        let dateStr = '';
+        if (range.year) dateStr += range.year + '年';
+        if (range.month) dateStr += range.month + '月';
+        if (range.day) dateStr += range.day + '日';
+        items.push(`📅 ${dateStr}${typeLabel}`);
+    }
+    
+    if (activeTrendFilters.dayOfWeek.length > 0) {
+        const days = ['日', '月', '火', '水', '木', '金', '土'];
+        const dayNames = activeTrendFilters.dayOfWeek.map(d => days[parseInt(d)]).join(',');
+        items.push(`曜日: ${dayNames}`);
+    }
+    
+    if (activeTrendFilters.suffix.length > 0) {
+        items.push(`末尾: ${activeTrendFilters.suffix.join(',')}`);
+    }
+    
+    if (activeTrendFilters.special.length > 0) {
+        const specialLabels = {
+            'monthDay': '月日ぞろ目',
+            'doubleDigit': 'ぞろ目',
+            'hasEvent': 'イベント有'
+        };
+        const labels = activeTrendFilters.special.map(s => specialLabels[s] || s).join(', ');
+        items.push(labels);
+    }
+    
+    if (activeTrendFilters.events.length > 0) {
+        const eventText = activeTrendFilters.events.length <= 2 
+            ? activeTrendFilters.events.join(', ')
+            : activeTrendFilters.events.slice(0, 2).join(', ') + `...他${activeTrendFilters.events.length - 2}件`;
+        items.push(`🎯 ${eventText}`);
+    }
+    
+    if (items.length === 0) {
+        container.innerHTML = '<span class="no-filter">フィルターなし</span>';
+    } else {
+        const logicLabel = trendFilterLogic === 'and' ? 'AND' : 'OR';
+        container.innerHTML = `
+            <span class="filter-logic-badge">${logicLabel}</span>
+            ${items.map(item => `<span class="active-filter-tag">${item}</span>`).join('')}
+        `;
+    }
 }
 
 // 選択数を更新
@@ -138,134 +349,40 @@ function quickSelectDays(days) {
     updateTrendSelectionCount();
 }
 
-// 日付を数値に変換（比較用）
-function dateToNumber(year, month, day) {
-    return year * 10000 + month * 100 + day;
-}
-
-// 期間選択フィルター適用
-function applyDateRangeSelectFilter() {
-    const startYear = document.getElementById('trendStartYear')?.value;
-    const startMonth = document.getElementById('trendStartMonth')?.value;
-    const startDay = document.getElementById('trendStartDay')?.value;
-    const endYear = document.getElementById('trendEndYear')?.value;
-    const endMonth = document.getElementById('trendEndMonth')?.value;
-    const endDay = document.getElementById('trendEndDay')?.value;
-    
-    // 開始日の構築
-    let startDate = null;
-    if (startYear || startMonth || startDay) {
-        const y = startYear ? parseInt(startYear) : 1900;
-        const m = startMonth ? parseInt(startMonth) : 1;
-        const d = startDay ? parseInt(startDay) : 1;
-        startDate = dateToNumber(y, m, d);
-    }
-    
-    // 終了日の構築
-    let endDate = null;
-    if (endYear || endMonth || endDay) {
-        const y = endYear ? parseInt(endYear) : 9999;
-        const m = endMonth ? parseInt(endMonth) : 12;
-        const d = endDay ? parseInt(endDay) : 31;
-        endDate = dateToNumber(y, m, d);
-    }
-    
-    // 何も選択されていない場合
-    if (startDate === null && endDate === null) {
-        showCopyToast('開始日または終了日を指定してください', true);
-        return;
-    }
-    
-    // 開始日が終了日より後の場合
-    if (startDate !== null && endDate !== null && startDate > endDate) {
-        showCopyToast('開始日は終了日より前にしてください', true);
-        return;
-    }
-    
-    const checkboxes = document.querySelectorAll('#trendDateList input[type="checkbox"]');
-    let addedCount = 0;
-    
-    checkboxes.forEach(cb => {
-        const file = cb.value;
-        const parsed = parseDateFromFilename(file);
-        if (!parsed) return;
-        
-        const fileDate = dateToNumber(parsed.year, parsed.month, parsed.day);
-        let matches = true;
-        
-        // 開始日チェック
-        if (startDate !== null && fileDate < startDate) {
-            matches = false;
-        }
-        
-        // 終了日チェック
-        if (endDate !== null && fileDate > endDate) {
-            matches = false;
-        }
-        
-        if (matches && !cb.checked) {
-            cb.checked = true;
-            addedCount++;
-        }
-    });
-    
-    updateTrendSelectionCount();
-    
-    if (addedCount > 0) {
-        showCopyToast(`${addedCount}日を追加しました`);
-    } else {
-        showCopyToast('該当する日付がないか、既に選択済みです', true);
-    }
-}
-
-// イベントでフィルター
-function applyEventFilter(eventName) {
-    applyTrendDateFilter('eventName', eventName);
-}
-
 // フィルターパネルのHTML生成
 function renderTrendFilterPanel() {
     const sortedFilesDesc = sortFilesByDate(CSV_FILES, true);
     
-    // 利用可能な年・月・日を収集
     const availableYears = new Set();
-    const availableMonths = new Set();
-    const availableDays = new Set();
     
     sortedFilesDesc.forEach(file => {
         const parsed = parseDateFromFilename(file);
         if (parsed) {
             availableYears.add(parsed.year);
-            availableMonths.add(parsed.month);
-            availableDays.add(parsed.day);
         }
     });
     
-    // 年セレクトオプション生成（降順）
     const yearsArray = [...availableYears].sort((a, b) => b - a);
     const yearOptionsHtml = '<option value="">--</option>' + 
         yearsArray.map(year => `<option value="${year}">${year}年</option>`).join('');
     
-    // 月セレクトオプション生成
     const monthOptionsHtml = '<option value="">--</option>' + 
         Array.from({length: 12}, (_, i) => i + 1).map(month => 
             `<option value="${month}">${month}月</option>`
         ).join('');
     
-    // 日セレクトオプション生成
     const dayOptionsHtml = '<option value="">--</option>' + 
         Array.from({length: 31}, (_, i) => i + 1).map(day => 
             `<option value="${day}">${day}日</option>`
         ).join('');
     
-    // 全イベント名を取得
     const allEvents = getAllEventNames();
     
-    // イベントボタンHTML生成
     let eventButtonsHtml = '';
     if (allEvents.length > 0) {
         allEvents.slice(0, 20).forEach(eventName => {
-            eventButtonsHtml += `<button class="event-filter-btn" data-event="${escapeHtml(eventName)}">${eventName}</button>`;
+            const isActive = activeTrendFilters.events.includes(eventName) ? 'active' : '';
+            eventButtonsHtml += `<button class="event-filter-btn ${isActive}" data-event="${escapeHtml(eventName)}">${eventName}</button>`;
         });
         if (allEvents.length > 20) {
             eventButtonsHtml += `<span class="text-muted" style="padding: 4px 8px; font-size: 11px;">他${allEvents.length - 20}件...</span>`;
@@ -276,7 +393,6 @@ function renderTrendFilterPanel() {
     
     return `
         <div class="trend-filter-panel">
-            <!-- クイック選択 -->
             <div class="trend-quick-select">
                 <h4>⚡ クイック選択</h4>
                 <div class="quick-select-row">
@@ -294,108 +410,99 @@ function renderTrendFilterPanel() {
                 </div>
             </div>
             
-            <!-- 期間選択 -->
             <div class="date-range-section">
-                <h4>📆 期間で選択</h4>
-                
-                <!-- 開始日 -->
-                <div class="date-range-group">
-                    <span class="date-range-label">開始日</span>
-                    <div class="date-select-row">
-                        <div class="date-select-item">
-                            <select id="trendStartYear">${yearOptionsHtml}</select>
-                        </div>
-                        <div class="date-select-item">
-                            <select id="trendStartMonth">${monthOptionsHtml}</select>
-                        </div>
-                        <div class="date-select-item">
-                            <select id="trendStartDay">${dayOptionsHtml}</select>
-                        </div>
+                <h4>📆 期間フィルター</h4>
+                <div class="date-range-type-row">
+                    <select id="trendDateRangeType">
+                        <option value="">タイプを選択</option>
+                        <option value="after">以降</option>
+                        <option value="before">以前</option>
+                    </select>
+                </div>
+                <div class="date-select-row">
+                    <div class="date-select-item">
+                        <select id="trendRangeYear">${yearOptionsHtml}</select>
+                    </div>
+                    <div class="date-select-item">
+                        <select id="trendRangeMonth">${monthOptionsHtml}</select>
+                    </div>
+                    <div class="date-select-item">
+                        <select id="trendRangeDay">${dayOptionsHtml}</select>
                     </div>
                 </div>
-                
-                <div class="date-range-separator">〜</div>
-                
-                <!-- 終了日 -->
-                <div class="date-range-group">
-                    <span class="date-range-label">終了日</span>
-                    <div class="date-select-row">
-                        <div class="date-select-item">
-                            <select id="trendEndYear">${yearOptionsHtml}</select>
-                        </div>
-                        <div class="date-select-item">
-                            <select id="trendEndMonth">${monthOptionsHtml}</select>
-                        </div>
-                        <div class="date-select-item">
-                            <select id="trendEndDay">${dayOptionsHtml}</select>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="date-range-actions">
-                    <button class="date-range-apply-btn" id="applyDateRange">期間を選択</button>
-                </div>
-                
                 <div class="date-select-hint">
-                    ※ 開始日のみ指定で「以降」、終了日のみ指定で「以前」の日付を選択
+                    ※ 年/月/日は部分指定可能（例: 2025年1月以降、5日以前など）
                 </div>
             </div>
             
-            <!-- クイックフィルター -->
+            <div class="filter-logic-section">
+                <h4>🔗 条件の結合方式</h4>
+                <div class="filter-logic-toggle">
+                    <button class="logic-btn ${trendFilterLogic === 'or' ? 'active' : ''}" data-logic="or">
+                        OR（いずれか一致）
+                    </button>
+                    <button class="logic-btn ${trendFilterLogic === 'and' ? 'active' : ''}" data-logic="and">
+                        AND（すべて一致）
+                    </button>
+                </div>
+                <div class="filter-logic-hint">
+                    OR: 期間・曜日・末尾などいずれかに一致する日付を選択<br>
+                    AND: すべての条件に一致する日付のみ選択
+                </div>
+            </div>
+            
             <div class="trend-filter-section">
                 <h4>📅 条件フィルター</h4>
                 
-                <!-- 曜日フィルター -->
                 <div class="trend-filter-subsection">
                     <h5>曜日</h5>
-                    <div class="trend-filter-buttons">
-                        <button class="trend-filter-btn" data-filter="dayOfWeek" data-value="0">日</button>
-                        <button class="trend-filter-btn" data-filter="dayOfWeek" data-value="1">月</button>
-                        <button class="trend-filter-btn" data-filter="dayOfWeek" data-value="2">火</button>
-                        <button class="trend-filter-btn" data-filter="dayOfWeek" data-value="3">水</button>
-                        <button class="trend-filter-btn" data-filter="dayOfWeek" data-value="4">木</button>
-                        <button class="trend-filter-btn" data-filter="dayOfWeek" data-value="5">金</button>
-                        <button class="trend-filter-btn" data-filter="dayOfWeek" data-value="6">土</button>
+                    <div class="trend-filter-buttons" id="dayOfWeekFilters">
+                        ${[0,1,2,3,4,5,6].map(d => {
+                            const days = ['日', '月', '火', '水', '木', '金', '土'];
+                            const isActive = activeTrendFilters.dayOfWeek.includes(String(d)) ? 'active' : '';
+                            return `<button class="trend-filter-btn ${isActive}" data-filter="dayOfWeek" data-value="${d}">${days[d]}</button>`;
+                        }).join('')}
                     </div>
                 </div>
                 
-                <!-- 日付末尾フィルター -->
                 <div class="trend-filter-subsection">
                     <h5>日付末尾</h5>
-                    <div class="trend-filter-buttons">
-                        <button class="trend-filter-btn" data-filter="suffix" data-value="0">0</button>
-                        <button class="trend-filter-btn" data-filter="suffix" data-value="1">1</button>
-                        <button class="trend-filter-btn" data-filter="suffix" data-value="2">2</button>
-                        <button class="trend-filter-btn" data-filter="suffix" data-value="3">3</button>
-                        <button class="trend-filter-btn" data-filter="suffix" data-value="4">4</button>
-                        <button class="trend-filter-btn" data-filter="suffix" data-value="5">5</button>
-                        <button class="trend-filter-btn" data-filter="suffix" data-value="6">6</button>
-                        <button class="trend-filter-btn" data-filter="suffix" data-value="7">7</button>
-                        <button class="trend-filter-btn" data-filter="suffix" data-value="8">8</button>
-                        <button class="trend-filter-btn" data-filter="suffix" data-value="9">9</button>
+                    <div class="trend-filter-buttons" id="suffixFilters">
+                        ${[0,1,2,3,4,5,6,7,8,9].map(s => {
+                            const isActive = activeTrendFilters.suffix.includes(String(s)) ? 'active' : '';
+                            return `<button class="trend-filter-btn ${isActive}" data-filter="suffix" data-value="${s}">${s}</button>`;
+                        }).join('')}
                     </div>
                 </div>
                 
-                <!-- 特殊フィルター -->
                 <div class="trend-filter-subsection">
                     <h5>特殊日</h5>
-                    <div class="trend-filter-buttons">
-                        <button class="trend-filter-btn trend-filter-special" data-filter="monthDay" data-value="true">月日ぞろ目</button>
-                        <button class="trend-filter-btn trend-filter-special" data-filter="doubleDigit" data-value="true">日ぞろ目 (11,22)</button>
-                        <button class="trend-filter-btn trend-filter-special" data-filter="hasEvent" data-value="true">イベントあり</button>
+                    <div class="trend-filter-buttons" id="specialFilters">
+                        <button class="trend-filter-btn trend-filter-special ${activeTrendFilters.special.includes('monthDay') ? 'active' : ''}" data-filter="monthDay">月日ぞろ目</button>
+                        <button class="trend-filter-btn trend-filter-special ${activeTrendFilters.special.includes('doubleDigit') ? 'active' : ''}" data-filter="doubleDigit">日ぞろ目 (11,22)</button>
+                        <button class="trend-filter-btn trend-filter-special ${activeTrendFilters.special.includes('hasEvent') ? 'active' : ''}" data-filter="hasEvent">イベントあり</button>
                     </div>
                 </div>
             </div>
             
-            <!-- イベントフィルター -->
             <div class="trend-filter-section">
                 <h4>🎯 イベントで選択</h4>
-                <div class="event-filter-list">
+                <div class="event-filter-list" id="eventFilters">
                     ${eventButtonsHtml}
                 </div>
             </div>
             
-            <!-- アクション -->
+            <div class="filter-apply-section">
+                <button class="filter-apply-btn" id="applyFiltersBtn">🔍 フィルターを適用</button>
+            </div>
+            
+            <div class="active-filters-section">
+                <h5>適用中のフィルター</h5>
+                <div id="activeFiltersDisplay" class="active-filters-display">
+                    <span class="no-filter">フィルターなし</span>
+                </div>
+            </div>
+            
             <div class="trend-filter-actions">
                 <span id="trendSelectionCount" class="trend-selection-count">0/0日選択中</span>
                 <div class="trend-filter-action-buttons">
@@ -415,24 +522,44 @@ function escapeHtml(text) {
 
 // フィルターボタンのイベント設定
 function setupTrendFilterButtons() {
-    // 期間選択適用ボタン
-    document.getElementById('applyDateRange')?.addEventListener('click', applyDateRangeSelectFilter);
-    
-    // 曜日・日付末尾・特殊フィルターボタン
-    document.querySelectorAll('#trendFilterContainer .trend-filter-btn').forEach(btn => {
+    document.querySelectorAll('#trendFilterContainer .logic-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+            document.querySelectorAll('#trendFilterContainer .logic-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            trendFilterLogic = btn.dataset.logic;
+        });
+    });
+    
+    document.querySelectorAll('#trendFilterContainer .trend-filter-btn[data-filter="dayOfWeek"], #trendFilterContainer .trend-filter-btn[data-filter="suffix"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.classList.toggle('active');
             const filterType = btn.dataset.filter;
             const filterValue = btn.dataset.value;
-
+            
+            let filterArray = filterType === 'dayOfWeek' ? activeTrendFilters.dayOfWeek : activeTrendFilters.suffix;
+            const index = filterArray.indexOf(filterValue);
+            if (index === -1) {
+                filterArray.push(filterValue);
+            } else {
+                filterArray.splice(index, 1);
+            }
+        });
+    });
+    
+    document.querySelectorAll('#trendFilterContainer .trend-filter-btn[data-filter="monthDay"], #trendFilterContainer .trend-filter-btn[data-filter="doubleDigit"], #trendFilterContainer .trend-filter-btn[data-filter="hasEvent"]').forEach(btn => {
+        btn.addEventListener('click', () => {
             btn.classList.toggle('active');
-
-            if (btn.classList.contains('active')) {
-                applyTrendDateFilter(filterType, filterValue);
+            const filterType = btn.dataset.filter;
+            
+            const index = activeTrendFilters.special.indexOf(filterType);
+            if (index === -1) {
+                activeTrendFilters.special.push(filterType);
+            } else {
+                activeTrendFilters.special.splice(index, 1);
             }
         });
     });
 
-    // クイック選択ボタン
     document.getElementById('applyQuickDays')?.addEventListener('click', () => {
         const daysSelect = document.getElementById('trendQuickDays');
         if (daysSelect && daysSelect.value) {
@@ -440,35 +567,68 @@ function setupTrendFilterButtons() {
         }
     });
 
-    // イベントフィルターボタン
     document.querySelectorAll('#trendFilterContainer .event-filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            const eventName = btn.dataset.event;
             btn.classList.toggle('active');
+            const eventName = btn.dataset.event;
             
-            if (btn.classList.contains('active')) {
-                applyEventFilter(eventName);
+            const index = activeTrendFilters.events.indexOf(eventName);
+            if (index === -1) {
+                activeTrendFilters.events.push(eventName);
+            } else {
+                activeTrendFilters.events.splice(index, 1);
             }
         });
     });
+    
+    document.getElementById('applyFiltersBtn')?.addEventListener('click', () => {
+        const rangeType = document.getElementById('trendDateRangeType')?.value || '';
+        const rangeYear = document.getElementById('trendRangeYear')?.value;
+        const rangeMonth = document.getElementById('trendRangeMonth')?.value;
+        const rangeDay = document.getElementById('trendRangeDay')?.value;
+        
+        if (rangeType && (rangeYear || rangeMonth || rangeDay)) {
+            const y = rangeYear ? parseInt(rangeYear) : (rangeType === 'after' ? 1900 : 9999);
+            const m = rangeMonth ? parseInt(rangeMonth) : (rangeType === 'after' ? 1 : 12);
+            const d = rangeDay ? parseInt(rangeDay) : (rangeType === 'after' ? 1 : 31);
+            
+            activeTrendFilters.dateRange = {
+                type: rangeType,
+                year: rangeYear || null,
+                month: rangeMonth || null,
+                day: rangeDay || null,
+                targetDate: dateToNumber(y, m, d)
+            };
+        } else {
+            activeTrendFilters.dateRange = { type: null };
+        }
+        
+        applyAllFilters();
+    });
 
-    // フィルタークリアボタン
     document.getElementById('trendClearFilters')?.addEventListener('click', () => {
-        // 全てのフィルターボタンのactiveを解除
-        document.querySelectorAll('#trendFilterContainer .trend-filter-btn.active, #trendFilterContainer .event-filter-btn.active').forEach(btn => {
+        activeTrendFilters = {
+            dayOfWeek: [],
+            suffix: [],
+            special: [],
+            events: [],
+            dateRange: { type: null }
+        };
+        
+        document.querySelectorAll('#trendFilterContainer .trend-filter-btn.active, #trendFilterContainer .event-filter-btn.active, #trendFilterContainer .logic-btn.active').forEach(btn => {
             btn.classList.remove('active');
         });
         
-        // 全チェックを外す
+        trendFilterLogic = 'or';
+        document.querySelector('#trendFilterContainer .logic-btn[data-logic="or"]')?.classList.add('active');
+        
         document.querySelectorAll('#trendDateList input[type="checkbox"]').forEach(cb => {
             cb.checked = false;
         });
         
-        // セレクトボックスをリセット
         const selects = [
             'trendQuickDays',
-            'trendStartYear', 'trendStartMonth', 'trendStartDay',
-            'trendEndYear', 'trendEndMonth', 'trendEndDay'
+            'trendDateRangeType', 'trendRangeYear', 'trendRangeMonth', 'trendRangeDay'
         ];
         selects.forEach(id => {
             const el = document.getElementById(id);
@@ -476,6 +636,7 @@ function setupTrendFilterButtons() {
         });
         
         updateTrendSelectionCount();
+        updateActiveFilterDisplay();
     });
 }
 
@@ -484,10 +645,8 @@ async function populateTrendDateList() {
     const filterContainer = document.getElementById('trendFilterContainer');
     if (!container) return;
 
-    // イベントデータを読み込み
     await loadEventData();
 
-    // フィルターパネルを追加
     if (filterContainer) {
         filterContainer.innerHTML = renderTrendFilterPanel();
         setupTrendFilterButtons();
@@ -504,15 +663,13 @@ async function populateTrendDateList() {
         if (dayOfWeek === 0) dayClass = 'sunday';
         if (dayOfWeek === 6) dayClass = 'saturday';
 
-        // イベント・演者情報を取得
         const eventText = getTrendDateEventText(file);
 
-        // 日付情報を取得
         const parsed = parseDateFromFilename(file);
         let dateInfo = '';
         if (parsed) {
             const isMonthDay = parsed.month === parsed.day;
-            const isDoubleDigit = parsed.day === 11 || parsed.day === 22 || parsed.day === 33;
+            const isDoubleDigit = parsed.day === 11 || parsed.day === 22;
             if (isMonthDay) dateInfo += '<span class="date-tag month-day">月日ぞろ目</span>';
             if (isDoubleDigit) dateInfo += '<span class="date-tag double-digit">ぞろ目</span>';
         }
@@ -533,7 +690,6 @@ async function populateTrendDateList() {
             ${eventHtml}
         `;
 
-        // チェックボックス変更時に選択数を更新
         const checkbox = item.querySelector('input[type="checkbox"]');
         checkbox.addEventListener('change', updateTrendSelectionCount);
 
@@ -543,8 +699,8 @@ async function populateTrendDateList() {
     container.innerHTML = '';
     container.appendChild(fragment);
 
-    // 選択数を更新
     updateTrendSelectionCount();
+    updateActiveFilterDisplay();
 }
 
 function getSelectedTrendDates() {
@@ -567,7 +723,6 @@ function closeTrendCalendarModal() {
     }
 }
 
-// 期間ラベルを更新
 function updateTrendPeriodLabel() {
     const label = document.getElementById('trendPeriodLabel');
     if (!label) return;
@@ -584,20 +739,16 @@ function updateTrendPeriodLabel() {
     }
 }
 
-// トレンド用機種フィルターを初期化（複数選択対応）- 修正版
 function initTrendMachineFilter() {
-    // 選択されている日付、またはデフォルトの直近7日間を取得
     let targetFiles = [];
     
     if (selectedTrendDates && selectedTrendDates.length > 0) {
         targetFiles = selectedTrendDates;
     } else {
-        // デフォルトで直近7日間
         const sortedFilesDesc = sortFilesByDate(CSV_FILES, true);
         targetFiles = sortedFilesDesc.slice(0, 7);
     }
     
-    // 最新日のデータから機種オプションを取得（台数順→50音順）
     const machineOptions = getMachineOptionsForLatestDate(targetFiles);
 
     if (trendMachineFilterSelect) {
@@ -612,7 +763,6 @@ function initTrendMachineFilter() {
     }
 }
 
-// 列表示設定の初期化
 function initTrendColumnSettings() {
     const savedTotal = localStorage.getItem('trendShowTotal');
     const savedAvg = localStorage.getItem('trendShowAvg');
@@ -627,7 +777,6 @@ function initTrendColumnSettings() {
     if (avgCheckbox) avgCheckbox.checked = trendShowAvg;
 }
 
-// 列表示設定の保存
 function saveTrendColumnSettings() {
     localStorage.setItem('trendShowTotal', trendShowTotal);
     localStorage.setItem('trendShowAvg', trendShowAvg);
@@ -638,14 +787,15 @@ async function loadTrendData() {
     const selectedMachines = trendMachineFilterSelect ? trendMachineFilterSelect.getSelectedValues() : [];
     const sortBy = document.getElementById('trendSortBy')?.value || 'total_desc';
 
-    // 合計差枚フィルター
     const totalFilterType = document.getElementById('trendTotalFilterType')?.value || '';
     const totalFilterValue = document.getElementById('trendTotalFilterValue')?.value || '';
 
-    // 列表示設定
     trendShowTotal = document.getElementById('trendShowTotal')?.checked ?? true;
     trendShowAvg = document.getElementById('trendShowAvg')?.checked ?? true;
     saveTrendColumnSettings();
+    
+    trendViewMode = document.getElementById('trendViewMode')?.value || 'unit';
+    trendMachineValueType = document.getElementById('trendMachineValueType')?.value || 'total';
 
     const summaryEl = document.getElementById('trendSummary');
     if (!summaryEl) return;
@@ -657,7 +807,6 @@ async function loadTrendData() {
     if (selectedTrendDates && selectedTrendDates.length > 0) {
         targetFiles = sortFilesByDate(selectedTrendDates, false);
     } else {
-        // デフォルトで直近7日間
         const sortedFilesDesc = sortFilesByDate(CSV_FILES, true);
         targetFiles = sortedFilesDesc.slice(0, 7);
         targetFiles = sortFilesByDate(targetFiles, false);
@@ -668,9 +817,17 @@ async function loadTrendData() {
         return;
     }
 
-    // ★追加: 機種フィルターのオプションを更新（最新日の機種のみ、台数順）
     updateTrendMachineFilterOptions(targetFiles);
 
+    if (trendViewMode === 'machine') {
+        await loadTrendDataByMachine(targetFiles, selectedMachines, sortBy, totalFilterType, totalFilterValue);
+    } else {
+        await loadTrendDataByUnit(targetFiles, selectedMachines, sortBy, totalFilterType, totalFilterValue);
+    }
+}
+
+// 台別トレンドデータ読み込み（勝率対応版）
+async function loadTrendDataByUnit(targetFiles, selectedMachines, sortBy, totalFilterType, totalFilterValue) {
     const machineData = {};
 
     for (const file of targetFiles) {
@@ -680,11 +837,10 @@ async function loadTrendData() {
         for (const row of data) {
             const machine = row['機種名'];
             const num = row['台番号'];
+            const sa = parseInt(row['差枚']) || 0;
             
-            // 機種フィルター
             if (selectedMachines.length > 0 && !selectedMachines.includes(machine)) continue;
             
-            // 位置フィルター
             if (selectedTrendPositionFilter) {
                 const tags = typeof getPositionTags === 'function' ? getPositionTags(num) : [];
                 if (!tags.includes(selectedTrendPositionFilter)) continue;
@@ -692,9 +848,16 @@ async function loadTrendData() {
 
             const key = `${machine}_${num}`;
             if (!machineData[key]) {
-                machineData[key] = { machine, num, dates: {} };
+                machineData[key] = { 
+                    machine, 
+                    num, 
+                    dates: {},
+                    // 勝率計算用（台別は各日1データなので、その日プラスなら勝ち）
+                    dailyWin: {}
+                };
             }
-            machineData[key].dates[file] = parseInt(row['差枚']) || 0;
+            machineData[key].dates[file] = sa;
+            machineData[key].dailyWin[file] = sa > 0 ? 1 : 0;
         }
     }
 
@@ -704,6 +867,24 @@ async function loadTrendData() {
         const values = Object.values(item.dates);
         item.total = values.reduce((a, b) => a + b, 0);
         item.avg = values.length > 0 ? Math.round(item.total / values.length) : 0;
+        
+        // 勝率計算（稼働日数に対する勝ち日数の割合）
+        const winDays = Object.values(item.dailyWin).reduce((a, b) => a + b, 0);
+        const totalDays = Object.keys(item.dailyWin).length;
+        item.winRate = totalDays > 0 ? (winDays / totalDays * 100).toFixed(1) : '0.0';
+        
+        // 各日の勝率（台別の場合は勝ち=100%, 負け=0%）
+        item.dailyWinRate = {};
+        for (const file of targetFiles) {
+            if (item.dailyWin[file] !== undefined) {
+                item.dailyWinRate[file] = item.dailyWin[file] === 1 ? 100 : 0;
+            } else {
+                item.dailyWinRate[file] = null;
+            }
+        }
+        
+        // 平均差枚用（台別は dates と同じ）
+        item.dailyAvg = item.dates;
     }
 
     // 合計差枚フィルターを適用
@@ -718,8 +899,106 @@ async function loadTrendData() {
         }
     }
 
-    // ソート
     const latestFile = targetFiles[targetFiles.length - 1];
+    results = sortTrendResults(results, sortBy, latestFile);
+
+    renderTrendSummary(results, targetFiles, selectedMachines, totalFilterType, totalFilterValue, false);
+    renderTrendTables(results, targetFiles);
+    renderTrendChartData(results, targetFiles, 'unit');
+}
+
+// 機種別トレンドデータ読み込み
+async function loadTrendDataByMachine(targetFiles, selectedMachines, sortBy, totalFilterType, totalFilterValue) {
+    const machineData = {};
+
+    for (const file of targetFiles) {
+        const data = dataCache[file];
+        if (!data) continue;
+
+        for (const row of data) {
+            const machine = row['機種名'];
+            const num = row['台番号'];
+            const sa = parseInt(row['差枚']) || 0;
+            
+            if (selectedMachines.length > 0 && !selectedMachines.includes(machine)) continue;
+            
+            if (selectedTrendPositionFilter) {
+                const tags = typeof getPositionTags === 'function' ? getPositionTags(num) : [];
+                if (!tags.includes(selectedTrendPositionFilter)) continue;
+            }
+
+            if (!machineData[machine]) {
+                machineData[machine] = { 
+                    machine, 
+                    dates: {},
+                    unitCounts: {},
+                    winCounts: {}
+                };
+            }
+            
+            if (!machineData[machine].dates[file]) {
+                machineData[machine].dates[file] = 0;
+                machineData[machine].unitCounts[file] = 0;
+                machineData[machine].winCounts[file] = 0;
+            }
+            
+            machineData[machine].dates[file] += sa;
+            machineData[machine].unitCounts[file]++;
+            
+            if (sa > 0) {
+                machineData[machine].winCounts[file]++;
+            }
+        }
+    }
+
+    let results = Object.values(machineData);
+
+    for (const item of results) {
+        const values = Object.values(item.dates);
+        item.total = values.reduce((a, b) => a + b, 0);
+        
+        const totalUnits = Object.values(item.unitCounts).reduce((a, b) => a + b, 0);
+        item.avg = totalUnits > 0 ? Math.round(item.total / totalUnits) : 0;
+        
+        const totalWins = Object.values(item.winCounts).reduce((a, b) => a + b, 0);
+        item.winRate = totalUnits > 0 ? (totalWins / totalUnits * 100).toFixed(1) : '0.0';
+        
+        item.dailyAvg = {};
+        item.dailyWinRate = {};
+        
+        for (const file of targetFiles) {
+            const unitCount = item.unitCounts[file] || 0;
+            const dayTotal = item.dates[file] || 0;
+            const dayWins = item.winCounts[file] || 0;
+            
+            item.dailyAvg[file] = unitCount > 0 ? Math.round(dayTotal / unitCount) : null;
+            item.dailyWinRate[file] = unitCount > 0 ? (dayWins / unitCount * 100) : null;
+        }
+        
+        item.num = `${totalUnits}台`;
+    }
+
+    if (totalFilterType && totalFilterValue) {
+        const filterVal = parseInt(totalFilterValue);
+        if (!isNaN(filterVal)) {
+            if (totalFilterType === 'gte') {
+                results = results.filter(item => item.total >= filterVal);
+            } else if (totalFilterType === 'lte') {
+                results = results.filter(item => item.total <= filterVal);
+            }
+        }
+    }
+
+    const latestFile = targetFiles[targetFiles.length - 1];
+    results = sortTrendResults(results, sortBy, latestFile);
+
+    renderTrendSummary(results, targetFiles, selectedMachines, totalFilterType, totalFilterValue, true);
+    renderTrendTablesByMachine(results, targetFiles);
+    renderTrendChartData(results, targetFiles, 'machine');
+}
+
+// トレンド結果のソート
+function sortTrendResults(results, sortBy, latestFile) {
     switch (sortBy) {
         case 'total_desc':
             results.sort((a, b) => b.total - a.total);
@@ -764,17 +1043,22 @@ async function loadTrendData() {
             });
             break;
     }
+    return results;
+}
 
+// サマリー表示
+function renderTrendSummary(results, targetFiles, selectedMachines, totalFilterType, totalFilterValue, isMachineMode = false) {
+    const summaryEl = document.getElementById('trendSummary');
+    if (!summaryEl) return;
+    
     const totalSa = results.reduce((sum, r) => sum + r.total, 0);
     const saClass = totalSa > 0 ? 'plus' : totalSa < 0 ? 'minus' : '';
     
-    // 選択機種の表示
     let machineInfo = '';
     if (selectedMachines.length > 0) {
         machineInfo = ` | 機種: ${selectedMachines.length}機種選択中`;
     }
 
-    // 位置フィルター情報
     let positionInfo = '';
     if (selectedTrendPositionFilter && typeof POSITION_TAGS !== 'undefined') {
         const tagInfo = POSITION_TAGS[selectedTrendPositionFilter];
@@ -783,82 +1067,29 @@ async function loadTrendData() {
         }
     }
 
-    // フィルター情報の表示
     let filterInfo = '';
     if (totalFilterType && totalFilterValue) {
         const filterLabel = totalFilterType === 'gte' ? '以上' : '以下';
         filterInfo = ` | フィルター: 合計${parseInt(totalFilterValue).toLocaleString()}枚${filterLabel}`;
     }
     
+    // 値タイプ表示
+    let valueTypeInfo = '';
+    if (trendMachineValueType === 'avg') {
+        valueTypeInfo = ' | 表示: 平均差枚';
+    } else if (trendMachineValueType === 'winrate') {
+        valueTypeInfo = ' | 表示: 勝率';
+    }
+    
+    const modeLabel = isMachineMode ? '機種' : '台';
+    
     summaryEl.innerHTML = `
-        表示: ${results.length}台 | 期間: ${targetFiles.length}日間${machineInfo}${positionInfo}${filterInfo} |
+        表示: ${results.length}${modeLabel} | 期間: ${targetFiles.length}日間${machineInfo}${positionInfo}${filterInfo}${valueTypeInfo} |
         合計差枚: <span class="${saClass}">${totalSa >= 0 ? '+' : ''}${totalSa.toLocaleString()}</span>
     `;
-
-    renderTrendTables(results, targetFiles);
-
-    // グラフ用にデータを保存
-    window.trendDisplayData = { results, targetFiles };
-    
-    // グラフを描画
-    if (typeof renderTrendChart === 'function') {
-        const showTop = document.getElementById('chartShowTop')?.checked ?? true;
-        const showBottom = document.getElementById('chartShowBottom')?.checked ?? false;
-        const displayCount = parseInt(document.getElementById('chartDisplayCount')?.value || '5');
-        
-        renderTrendChart(results, targetFiles, {
-            showTop,
-            showBottom,
-            displayCount
-        });
-    }
 }
 
-// トレンドフィルターパネルに位置フィルターを追加
-function renderTrendPositionFilter() {
-    const container = document.getElementById('trendFilterContent');
-    if (!container) return;
-    
-    // getAllPositionTags が存在するか確認
-    if (typeof getAllPositionTags !== 'function') return;
-    
-    let positionSection = container.querySelector('.trend-position-filter-section');
-    
-    if (!positionSection) {
-        positionSection = document.createElement('div');
-        positionSection.className = 'filter-section trend-position-filter-section';
-        
-        const firstSection = container.querySelector('.filter-section');
-        if (firstSection) {
-            firstSection.before(positionSection);
-        } else {
-            container.prepend(positionSection);
-        }
-    }
-    
-    const positionTags = getAllPositionTags();
-    
-    let html = '<h5>📍 位置フィルター</h5>';
-    html += '<div class="position-filter">';
-    html += `<button class="position-filter-btn ${selectedTrendPositionFilter === '' ? 'active' : ''}" data-position="" style="background: ${selectedTrendPositionFilter === '' ? 'var(--primary-color)' : ''}">全て</button>`;
-    
-    positionTags.forEach(tag => {
-        const isActive = selectedTrendPositionFilter === tag.value;
-        html += `<button class="position-filter-btn ${isActive ? 'active' : ''}" data-position="${tag.value}" style="${isActive ? `background: ${tag.color}; border-color: ${tag.color};` : `border-color: ${tag.color}40;`}">${tag.icon} ${tag.label}</button>`;
-    });
-    
-    html += '</div>';
-    positionSection.innerHTML = html;
-    
-    positionSection.querySelectorAll('.position-filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            selectedTrendPositionFilter = btn.dataset.position;
-            renderTrendPositionFilter();
-            loadTrendData();
-        });
-    });
-}
-
+// トレンドテーブル描画（台別）- 勝率対応版
 function renderTrendTables(results, targetFiles) {
     const fixedThead = document.querySelector('#trend-fixed-table thead');
     const fixedTbody = document.querySelector('#trend-fixed-table tbody');
@@ -869,9 +1100,19 @@ function renderTrendTables(results, targetFiles) {
 
     fixedThead.innerHTML = '<tr><th>機種名</th><th>台番号</th><th>位置</th></tr>';
 
+    // 値タイプに応じたヘッダー
     let scrollHeaderCells = targetFiles.map(file => `<th>${formatDateShort(file)}</th>`).join('');
-    if (trendShowTotal) scrollHeaderCells += '<th>合計</th>';
-    if (trendShowAvg) scrollHeaderCells += '<th>平均</th>';
+    
+    if (trendShowTotal) {
+        if (trendMachineValueType === 'winrate') {
+            scrollHeaderCells += '<th>勝率</th>';
+        } else {
+            scrollHeaderCells += '<th>合計</th>';
+        }
+    }
+    if (trendShowAvg && trendMachineValueType !== 'winrate') {
+        scrollHeaderCells += '<th>平均</th>';
+    }
     scrollThead.innerHTML = `<tr>${scrollHeaderCells}</tr>`;
 
     const fixedRows = [];
@@ -886,20 +1127,57 @@ function renderTrendTables(results, targetFiles) {
 
         const dateCells = [];
         for (const file of targetFiles) {
-            const val = row.dates[file];
-            if (val !== undefined) {
-                const cls = val > 0 ? 'plus' : val < 0 ? 'minus' : '';
-                dateCells.push(`<td class="${cls}">${val >= 0 ? '+' : ''}${val.toLocaleString()}</td>`);
-            } else {
-                dateCells.push('<td>-</td>');
+            let val;
+            let displayVal;
+            let cls = '';
+            
+            switch (trendMachineValueType) {
+                case 'winrate':
+                    val = row.dailyWinRate ? row.dailyWinRate[file] : null;
+                    if (val !== null && val !== undefined) {
+                        cls = val >= 50 ? 'plus' : 'minus';
+                        displayVal = `${val.toFixed(0)}%`;
+                    } else {
+                        displayVal = '-';
+                    }
+                    break;
+                    
+                case 'avg':
+                    val = row.dailyAvg ? row.dailyAvg[file] : null;
+                    if (val !== null && val !== undefined) {
+                        cls = val > 0 ? 'plus' : val < 0 ? 'minus' : '';
+                        displayVal = `${val >= 0 ? '+' : ''}${val.toLocaleString()}`;
+                    } else {
+                        displayVal = '-';
+                    }
+                    break;
+                    
+                default: // total
+                    val = row.dates[file];
+                    if (val !== undefined) {
+                        cls = val > 0 ? 'plus' : val < 0 ? 'minus' : '';
+                        displayVal = `${val >= 0 ? '+' : ''}${val.toLocaleString()}`;
+                    } else {
+                        displayVal = '-';
+                    }
             }
+            
+            dateCells.push(`<td class="${cls}">${displayVal}</td>`);
         }
 
+        // 集計列
         if (trendShowTotal) {
-            const totalCls = row.total > 0 ? 'plus' : row.total < 0 ? 'minus' : '';
-            dateCells.push(`<td class="${totalCls}">${row.total >= 0 ? '+' : ''}${row.total.toLocaleString()}</td>`);
+            if (trendMachineValueType === 'winrate') {
+                const wr = parseFloat(row.winRate);
+                const cls = wr >= 50 ? 'plus' : 'minus';
+                dateCells.push(`<td class="${cls}">${row.winRate}%</td>`);
+            } else {
+                const totalCls = row.total > 0 ? 'plus' : row.total < 0 ? 'minus' : '';
+                dateCells.push(`<td class="${totalCls}">${row.total >= 0 ? '+' : ''}${row.total.toLocaleString()}</td>`);
+            }
         }
-        if (trendShowAvg) {
+        
+        if (trendShowAvg && trendMachineValueType !== 'winrate') {
             const avgCls = row.avg > 0 ? 'plus' : row.avg < 0 ? 'minus' : '';
             dateCells.push(`<td class="${avgCls}">${row.avg >= 0 ? '+' : ''}${row.avg.toLocaleString()}</td>`);
         }
@@ -913,6 +1191,129 @@ function renderTrendTables(results, targetFiles) {
     requestAnimationFrame(() => {
         syncRowHeights();
     });
+}
+
+// トレンドテーブル描画（機種別）
+function renderTrendTablesByMachine(results, targetFiles) {
+    const fixedThead = document.querySelector('#trend-fixed-table thead');
+    const fixedTbody = document.querySelector('#trend-fixed-table tbody');
+    const scrollThead = document.querySelector('#trend-scroll-table thead');
+    const scrollTbody = document.querySelector('#trend-scroll-table tbody');
+
+    if (!fixedThead || !fixedTbody || !scrollThead || !scrollTbody) return;
+
+    fixedThead.innerHTML = '<tr><th>機種名</th><th>延べ台数</th></tr>';
+
+    let scrollHeaderCells = targetFiles.map(file => `<th>${formatDateShort(file)}</th>`).join('');
+    
+    if (trendShowTotal) {
+        if (trendMachineValueType === 'winrate') {
+            scrollHeaderCells += '<th>総合勝率</th>';
+        } else if (trendMachineValueType === 'avg') {
+            scrollHeaderCells += '<th>全体平均</th>';
+        } else {
+            scrollHeaderCells += '<th>総合計</th>';
+        }
+    }
+    if (trendShowAvg && trendMachineValueType === 'total') {
+        scrollHeaderCells += '<th>台平均</th>';
+    }
+    
+    scrollThead.innerHTML = `<tr>${scrollHeaderCells}</tr>`;
+
+    const fixedRows = [];
+    const scrollRows = [];
+
+    for (const row of results) {
+        fixedRows.push(`<tr><td>${row.machine}</td><td>${row.num}</td></tr>`);
+
+        const dateCells = [];
+        for (const file of targetFiles) {
+            let val;
+            let displayVal;
+            let cls = '';
+            
+            switch (trendMachineValueType) {
+                case 'avg':
+                    val = row.dailyAvg[file];
+                    if (val !== null && val !== undefined) {
+                        cls = val > 0 ? 'plus' : val < 0 ? 'minus' : '';
+                        displayVal = `${val >= 0 ? '+' : ''}${val.toLocaleString()}`;
+                    } else {
+                        displayVal = '-';
+                    }
+                    break;
+                    
+                case 'winrate':
+                    val = row.dailyWinRate[file];
+                    if (val !== null && val !== undefined) {
+                        cls = val >= 50 ? 'plus' : val < 50 ? 'minus' : '';
+                        displayVal = `${val.toFixed(1)}%`;
+                    } else {
+                        displayVal = '-';
+                    }
+                    break;
+                    
+                default:
+                    val = row.dates[file];
+                    if (val !== null && val !== undefined) {
+                        cls = val > 0 ? 'plus' : val < 0 ? 'minus' : '';
+                        displayVal = `${val >= 0 ? '+' : ''}${val.toLocaleString()}`;
+                    } else {
+                        displayVal = '-';
+                    }
+            }
+            
+            dateCells.push(`<td class="${cls}">${displayVal}</td>`);
+        }
+
+        if (trendShowTotal) {
+            if (trendMachineValueType === 'winrate') {
+                const wr = parseFloat(row.winRate);
+                const cls = wr >= 50 ? 'plus' : 'minus';
+                dateCells.push(`<td class="${cls}">${row.winRate}%</td>`);
+            } else if (trendMachineValueType === 'avg') {
+                const cls = row.avg > 0 ? 'plus' : row.avg < 0 ? 'minus' : '';
+                dateCells.push(`<td class="${cls}">${row.avg >= 0 ? '+' : ''}${row.avg.toLocaleString()}</td>`);
+            } else {
+                const cls = row.total > 0 ? 'plus' : row.total < 0 ? 'minus' : '';
+                dateCells.push(`<td class="${cls}">${row.total >= 0 ? '+' : ''}${row.total.toLocaleString()}</td>`);
+            }
+        }
+        
+        if (trendShowAvg && trendMachineValueType === 'total') {
+            const avgCls = row.avg > 0 ? 'plus' : row.avg < 0 ? 'minus' : '';
+            dateCells.push(`<td class="${avgCls}">${row.avg >= 0 ? '+' : ''}${row.avg.toLocaleString()}</td>`);
+        }
+
+        scrollRows.push(`<tr>${dateCells.join('')}</tr>`);
+    }
+
+    fixedTbody.innerHTML = fixedRows.join('');
+    scrollTbody.innerHTML = scrollRows.join('');
+
+    requestAnimationFrame(() => {
+        syncRowHeights();
+    });
+}
+
+// グラフ用データを準備して描画
+function renderTrendChartData(results, targetFiles, mode) {
+    window.trendDisplayData = { results, targetFiles, mode };
+    
+    if (typeof renderTrendChart === 'function') {
+        const showTop = document.getElementById('chartShowTop')?.checked ?? true;
+        const showBottom = document.getElementById('chartShowBottom')?.checked ?? false;
+        const displayCount = parseInt(document.getElementById('chartDisplayCount')?.value || '5');
+        
+        renderTrendChart(results, targetFiles, {
+            showTop,
+            showBottom,
+            displayCount,
+            mode,
+            valueType: trendMachineValueType
+        });
+    }
 }
 
 function syncRowHeights() {
@@ -953,21 +1354,61 @@ function handleResize() {
     }, 100);
 }
 
-// トレンドテーブルのデータを取得
+function renderTrendPositionFilter() {
+    const container = document.getElementById('trendFilterContent');
+    if (!container) return;
+    
+    if (typeof getAllPositionTags !== 'function') return;
+    
+    let positionSection = container.querySelector('.trend-position-filter-section');
+    
+    if (!positionSection) {
+        positionSection = document.createElement('div');
+        positionSection.className = 'filter-section trend-position-filter-section';
+        
+        const firstSection = container.querySelector('.filter-section');
+        if (firstSection) {
+            firstSection.before(positionSection);
+        } else {
+            container.prepend(positionSection);
+        }
+    }
+    
+    const positionTags = getAllPositionTags();
+    
+    let html = '<h5>📍 位置フィルター</h5>';
+    html += '<div class="position-filter">';
+    html += `<button class="position-filter-btn ${selectedTrendPositionFilter === '' ? 'active' : ''}" data-position="" style="background: ${selectedTrendPositionFilter === '' ? 'var(--primary-color)' : ''}">全て</button>`;
+    
+    positionTags.forEach(tag => {
+        const isActive = selectedTrendPositionFilter === tag.value;
+        html += `<button class="position-filter-btn ${isActive ? 'active' : ''}" data-position="${tag.value}" style="${isActive ? `background: ${tag.color}; border-color: ${tag.color};` : `border-color: ${tag.color}40;`}">${tag.icon} ${tag.label}</button>`;
+    });
+    
+    html += '</div>';
+    positionSection.innerHTML = html;
+    
+    positionSection.querySelectorAll('.position-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectedTrendPositionFilter = btn.dataset.position;
+            renderTrendPositionFilter();
+            loadTrendData();
+        });
+    });
+}
+
 function getTrendTableData() {
     const fixedTable = document.getElementById('trend-fixed-table');
     const scrollTable = document.getElementById('trend-scroll-table');
     return getMergedTableData(fixedTable, scrollTable);
 }
 
-// トレンドテーブルのコピー
 function copyTrendTable() {
     const data = getTrendTableData();
     const btn = document.getElementById('copyTrendTableBtn');
     copyToClipboard(data, btn);
 }
 
-// トレンドテーブルのCSVダウンロード
 function downloadTrendCSV() {
     const data = getTrendTableData();
     
@@ -978,12 +1419,12 @@ function downloadTrendCSV() {
     
     const days = (selectedTrendDates && selectedTrendDates.length) ? selectedTrendDates.length : 7;
     const today = new Date().toISOString().split('T')[0].replace(/-/g, '_');
-    const filename = `trend_${days}days_${today}.csv`;
+    const modeLabel = trendViewMode === 'machine' ? 'machine' : 'unit';
+    const filename = `trend_${modeLabel}_${days}days_${today}.csv`;
     
     downloadAsCSV(data, filename);
 }
 
-// フィルターリセット
 function resetTrendFilters() {
     const totalFilterType = document.getElementById('trendTotalFilterType');
     const totalFilterValue = document.getElementById('trendTotalFilterValue');
@@ -1002,10 +1443,14 @@ function resetTrendFilters() {
     trendShowAvg = true;
     saveTrendColumnSettings();
     
+    // 値タイプをリセット
+    const valueTypeSelect = document.getElementById('trendMachineValueType');
+    if (valueTypeSelect) valueTypeSelect.value = 'total';
+    trendMachineValueType = 'total';
+    
     loadTrendData();
 }
 
-// デバウンス関数
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -1018,7 +1463,7 @@ function debounce(func, wait) {
     };
 }
 
-// トレンドタブのイベントリスナー設定
+// イベントリスナー設定
 function setupTrendEventListeners() {
     document.getElementById('trendSortBy')?.addEventListener('change', loadTrendData);
     document.getElementById('loadTrend')?.addEventListener('click', loadTrendData);
@@ -1051,43 +1496,36 @@ function setupTrendEventListeners() {
 
     window.addEventListener('resize', handleResize);
 
-    // 機種フィルターの初期化
     initTrendMachineFilter();
-
-    // 列表示設定の初期化
     initTrendColumnSettings();
-    
-    // 位置フィルターの描画
     renderTrendPositionFilter();
 
-    // 列表示チェックボックスのイベント
     document.getElementById('trendShowTotal')?.addEventListener('change', loadTrendData);
     document.getElementById('trendShowAvg')?.addEventListener('change', loadTrendData);
+    
+    // 表示モード切り替え
+    document.getElementById('trendViewMode')?.addEventListener('change', loadTrendData);
+    
+    // 値タイプ切り替え
+    document.getElementById('trendMachineValueType')?.addEventListener('change', loadTrendData);
 
-    // 合計差枚フィルターのイベント
     document.getElementById('trendTotalFilterType')?.addEventListener('change', loadTrendData);
     document.getElementById('trendTotalFilterValue')?.addEventListener('input', debounce(loadTrendData, 500));
 
-    // フィルターリセットボタン
     document.getElementById('resetTrendFilter')?.addEventListener('click', () => {
         resetTrendFilters();
         selectedTrendPositionFilter = '';
         renderTrendPositionFilter();
     });
 
-    // コピー・ダウンロードボタン
     document.getElementById('copyTrendTableBtn')?.addEventListener('click', copyTrendTable);
     document.getElementById('downloadTrendCsvBtn')?.addEventListener('click', downloadTrendCSV);
     
-    // 初期表示で期間ラベルを更新
     updateTrendPeriodLabel();
 }
 
-/**
- * 現在のトレンド表示データを取得
- */
 function getTrendDisplayData() {
-    return window.trendDisplayData || { results: [], targetFiles: [] };
+    return window.trendDisplayData || { results: [], targetFiles: [], mode: 'unit' };
 }
 
 function updateTrendMachineFilterOptions(targetFiles) {

@@ -611,6 +611,11 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
                     <button type="button" class="multi-select-btn select-all">全選択</button>
                     <button type="button" class="multi-select-btn deselect-all">全解除</button>
                 </div>
+                <div class="multi-select-threshold">
+                    <input type="number" class="multi-select-threshold-input" placeholder="台数" min="1" value="">
+                    <span class="multi-select-threshold-label">台以上</span>
+                    <button type="button" class="multi-select-btn select-by-count">選択</button>
+                </div>
             </div>
             <div class="multi-select-options"></div>
         </div>
@@ -624,12 +629,14 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
     const optionsContainer = container.querySelector('.multi-select-options');
     const selectAllBtn = container.querySelector('.select-all');
     const deselectAllBtn = container.querySelector('.deselect-all');
+    const thresholdInput = container.querySelector('.multi-select-threshold-input');
+    const selectByCountBtn = container.querySelector('.select-by-count');
 
     let selectedValues = new Set();
     let isOpen = false;
     let currentOptions = options;
 
-    // renderOptions 関数内のHTML生成部分を修正
+    // オプションを描画
     function renderOptions(filter = '') {
         const filterLower = filter.toLowerCase().trim();
         let html = '';
@@ -645,12 +652,11 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
             }
 
             const checked = selectedValues.has(value) ? 'checked' : '';
-            // value属性をエスケープして安全にする
             const escapedValue = value.replace(/"/g, '&quot;');
             const escapedLabel = label.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
             html += `
-                <div class="multi-select-option" data-value="${escapedValue}">
+                <div class="multi-select-option" data-value="${escapedValue}" data-count="${count}">
                     <input type="checkbox" ${checked}>
                     <span class="option-label">${escapedLabel}</span>
                     <span class="option-count">${count}台</span>
@@ -664,7 +670,7 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
 
         optionsContainer.innerHTML = html;
 
-        // イベントリスナーを修正（divクリックで動作するように）
+        // イベントリスナー
         optionsContainer.querySelectorAll('.multi-select-option').forEach(opt => {
             const checkbox = opt.querySelector('input[type="checkbox"]');
             const value = opt.dataset.value;
@@ -759,7 +765,6 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
     function deselectAll() {
         const filter = searchInput.value.toLowerCase().trim();
         if (filter) {
-            // 検索結果のみ解除
             currentOptions.forEach(opt => {
                 if (opt.label.toLowerCase().includes(filter)) {
                     selectedValues.delete(opt.value);
@@ -771,6 +776,34 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
         renderOptions(searchInput.value);
         updateDisplay();
         if (onChange) onChange(getSelectedValues());
+    }
+
+    // 指定台数以上の機種を選択
+    function selectByCount() {
+        const threshold = parseInt(thresholdInput.value) || 0;
+        if (threshold <= 0) {
+            showCopyToast('台数を入力してください', true);
+            return;
+        }
+
+        let selectedCount = 0;
+        currentOptions.forEach(opt => {
+            const count = opt.count || 0;
+            if (count >= threshold) {
+                selectedValues.add(opt.value);
+                selectedCount++;
+            }
+        });
+
+        renderOptions(searchInput.value);
+        updateDisplay();
+        if (onChange) onChange(getSelectedValues());
+
+        if (selectedCount > 0) {
+            showCopyToast(`${threshold}台以上の${selectedCount}機種を選択しました`);
+        } else {
+            showCopyToast(`${threshold}台以上の機種がありません`, true);
+        }
     }
 
     // イベントリスナー
@@ -803,6 +836,22 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
     deselectAllBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         deselectAll();
+    });
+
+    selectByCountBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectByCount();
+    });
+
+    thresholdInput.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+
+    thresholdInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            selectByCount();
+        }
     });
 
     // 外側クリックで閉じる
@@ -845,7 +894,6 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
         },
         updateOptions: (newOptions) => {
             currentOptions = newOptions;
-            // 存在しない機種は選択から除外
             const validValues = new Set(newOptions.map(o => o.value));
             selectedValues = new Set([...selectedValues].filter(v => validValues.has(v)));
             if (isOpen) {
@@ -855,6 +903,7 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
         },
         reset: () => {
             selectedValues.clear();
+            if (thresholdInput) thresholdInput.value = '';
             renderOptions(searchInput?.value || '');
             updateDisplay();
             if (onChange) onChange([]);
@@ -865,10 +914,21 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
             updateDisplay();
             if (onChange) onChange(getSelectedValues());
         },
+        selectByMinCount: (minCount) => {
+            currentOptions.forEach(opt => {
+                if ((opt.count || 0) >= minCount) {
+                    selectedValues.add(opt.value);
+                }
+            });
+            renderOptions(searchInput?.value || '');
+            updateDisplay();
+            if (onChange) onChange(getSelectedValues());
+        },
         close: () => closeDropdown(),
         open: () => openDropdown()
     };
 }
+
 
 // 機種ごとの台数を取得
 function getMachineCountsFromData(data) {
