@@ -7,6 +7,8 @@ let trendLastParams = null;
 let trendMachineFilterSelect = null;
 let trendShowTotal = true;
 let trendShowAvg = true;
+let trendShowPrevTotal = false; // 最新日以前合計の表示フラグ
+let trendShowChart = true; // グラフ表示フラグ
 let selectedTrendPositionFilter = '';
 
 // 表示モード: 'unit' = 台別, 'machine' = 機種別
@@ -766,20 +768,53 @@ function initTrendMachineFilter() {
 function initTrendColumnSettings() {
     const savedTotal = localStorage.getItem('trendShowTotal');
     const savedAvg = localStorage.getItem('trendShowAvg');
+    const savedPrevTotal = localStorage.getItem('trendShowPrevTotal');
+    const savedShowChart = localStorage.getItem('trendShowChart');
     
     trendShowTotal = savedTotal !== 'false';
     trendShowAvg = savedAvg !== 'false';
+    trendShowPrevTotal = savedPrevTotal === 'true';
+    trendShowChart = savedShowChart !== 'false';
     
     const totalCheckbox = document.getElementById('trendShowTotal');
     const avgCheckbox = document.getElementById('trendShowAvg');
+    const prevTotalCheckbox = document.getElementById('trendShowPrevTotal');
+    const showChartCheckbox = document.getElementById('trendShowChart');
     
     if (totalCheckbox) totalCheckbox.checked = trendShowTotal;
     if (avgCheckbox) avgCheckbox.checked = trendShowAvg;
+    if (prevTotalCheckbox) prevTotalCheckbox.checked = trendShowPrevTotal;
+    if (showChartCheckbox) showChartCheckbox.checked = trendShowChart;
+    
+    // グラフコンテナの表示/非表示を初期化
+    updateChartVisibility();
 }
 
 function saveTrendColumnSettings() {
     localStorage.setItem('trendShowTotal', trendShowTotal);
     localStorage.setItem('trendShowAvg', trendShowAvg);
+    localStorage.setItem('trendShowPrevTotal', trendShowPrevTotal);
+    localStorage.setItem('trendShowChart', trendShowChart);
+}
+
+// グラフの表示/非表示を切り替え
+function updateChartVisibility() {
+    const chartContainer = document.querySelector('.trend-chart-container');
+    if (chartContainer) {
+        chartContainer.style.display = trendShowChart ? 'block' : 'none';
+    }
+}
+
+// グラフトグルの状態を切り替え
+function toggleChartVisibility() {
+    trendShowChart = !trendShowChart;
+    saveTrendColumnSettings();
+    updateChartVisibility();
+    
+    const toggleHeader = document.querySelector('.chart-toggle-header');
+    if (toggleHeader) {
+        toggleHeader.classList.toggle('open', trendShowChart);
+    }
 }
 
 // loadTrendData 関数
@@ -792,7 +827,10 @@ async function loadTrendData() {
 
     trendShowTotal = document.getElementById('trendShowTotal')?.checked ?? true;
     trendShowAvg = document.getElementById('trendShowAvg')?.checked ?? true;
+    trendShowPrevTotal = document.getElementById('trendShowPrevTotal')?.checked ?? false;
+    trendShowChart = document.getElementById('trendShowChart')?.checked ?? true;
     saveTrendColumnSettings();
+    updateChartVisibility();
     
     trendViewMode = document.getElementById('trendViewMode')?.value || 'unit';
     trendMachineValueType = document.getElementById('trendMachineValueType')?.value || 'total';
@@ -829,6 +867,7 @@ async function loadTrendData() {
 // 台別トレンドデータ読み込み（勝率対応版）
 async function loadTrendDataByUnit(targetFiles, selectedMachines, sortBy, totalFilterType, totalFilterValue) {
     const machineData = {};
+    const latestFile = targetFiles[targetFiles.length - 1];
 
     for (const file of targetFiles) {
         const data = dataCache[file];
@@ -852,7 +891,6 @@ async function loadTrendDataByUnit(targetFiles, selectedMachines, sortBy, totalF
                     machine, 
                     num, 
                     dates: {},
-                    // 勝率計算用（台別は各日1データなので、その日プラスなら勝ち）
                     dailyWin: {}
                 };
             }
@@ -868,12 +906,15 @@ async function loadTrendDataByUnit(targetFiles, selectedMachines, sortBy, totalF
         item.total = values.reduce((a, b) => a + b, 0);
         item.avg = values.length > 0 ? Math.round(item.total / values.length) : 0;
         
-        // 勝率計算（稼働日数に対する勝ち日数の割合）
+        // 最新日の差枚
+        item.latestSa = item.dates[latestFile] || 0;
+        // 最新日以前の合計 = 総差枚 - 最新日差枚
+        item.prevTotal = item.total - item.latestSa;
+        
         const winDays = Object.values(item.dailyWin).reduce((a, b) => a + b, 0);
         const totalDays = Object.keys(item.dailyWin).length;
         item.winRate = totalDays > 0 ? (winDays / totalDays * 100).toFixed(1) : '0.0';
         
-        // 各日の勝率（台別の場合は勝ち=100%, 負け=0%）
         item.dailyWinRate = {};
         for (const file of targetFiles) {
             if (item.dailyWin[file] !== undefined) {
@@ -883,11 +924,9 @@ async function loadTrendDataByUnit(targetFiles, selectedMachines, sortBy, totalF
             }
         }
         
-        // 平均差枚用（台別は dates と同じ）
         item.dailyAvg = item.dates;
     }
 
-    // 合計差枚フィルターを適用
     if (totalFilterType && totalFilterValue) {
         const filterVal = parseInt(totalFilterValue);
         if (!isNaN(filterVal)) {
@@ -899,7 +938,6 @@ async function loadTrendDataByUnit(targetFiles, selectedMachines, sortBy, totalF
         }
     }
 
-    const latestFile = targetFiles[targetFiles.length - 1];
     results = sortTrendResults(results, sortBy, latestFile);
 
     renderTrendSummary(results, targetFiles, selectedMachines, totalFilterType, totalFilterValue, false);
@@ -910,6 +948,7 @@ async function loadTrendDataByUnit(targetFiles, selectedMachines, sortBy, totalF
 // 機種別トレンドデータ読み込み
 async function loadTrendDataByMachine(targetFiles, selectedMachines, sortBy, totalFilterType, totalFilterValue) {
     const machineData = {};
+    const latestFile = targetFiles[targetFiles.length - 1];
 
     for (const file of targetFiles) {
         const data = dataCache[file];
@@ -960,6 +999,11 @@ async function loadTrendDataByMachine(targetFiles, selectedMachines, sortBy, tot
         const totalUnits = Object.values(item.unitCounts).reduce((a, b) => a + b, 0);
         item.avg = totalUnits > 0 ? Math.round(item.total / totalUnits) : 0;
         
+        // 最新日の差枚
+        item.latestSa = item.dates[latestFile] || 0;
+        // 最新日以前の合計 = 総差枚 - 最新日差枚
+        item.prevTotal = item.total - item.latestSa;
+        
         const totalWins = Object.values(item.winCounts).reduce((a, b) => a + b, 0);
         item.winRate = totalUnits > 0 ? (totalWins / totalUnits * 100).toFixed(1) : '0.0';
         
@@ -989,7 +1033,6 @@ async function loadTrendDataByMachine(targetFiles, selectedMachines, sortBy, tot
         }
     }
 
-    const latestFile = targetFiles[targetFiles.length - 1];
     results = sortTrendResults(results, sortBy, latestFile);
 
     renderTrendSummary(results, targetFiles, selectedMachines, totalFilterType, totalFilterValue, true);
@@ -1073,7 +1116,6 @@ function renderTrendSummary(results, targetFiles, selectedMachines, totalFilterT
         filterInfo = ` | フィルター: 合計${parseInt(totalFilterValue).toLocaleString()}枚${filterLabel}`;
     }
     
-    // 値タイプ表示
     let valueTypeInfo = '';
     if (trendMachineValueType === 'avg') {
         valueTypeInfo = ' | 表示: 平均差枚';
@@ -1100,7 +1142,6 @@ function renderTrendTables(results, targetFiles) {
 
     fixedThead.innerHTML = '<tr><th>機種名</th><th>台番号</th><th>位置</th></tr>';
 
-    // 値タイプに応じたヘッダー
     let scrollHeaderCells = targetFiles.map(file => `<th>${formatDateShort(file)}</th>`).join('');
     
     if (trendShowTotal) {
@@ -1112,6 +1153,9 @@ function renderTrendTables(results, targetFiles) {
     }
     if (trendShowAvg && trendMachineValueType !== 'winrate') {
         scrollHeaderCells += '<th>平均</th>';
+    }
+    if (trendShowPrevTotal && trendMachineValueType !== 'winrate') {
+        scrollHeaderCells += '<th>最新日以前差枚</th>';
     }
     scrollThead.innerHTML = `<tr>${scrollHeaderCells}</tr>`;
 
@@ -1152,7 +1196,7 @@ function renderTrendTables(results, targetFiles) {
                     }
                     break;
                     
-                default: // total
+                default:
                     val = row.dates[file];
                     if (val !== undefined) {
                         cls = val > 0 ? 'plus' : val < 0 ? 'minus' : '';
@@ -1165,7 +1209,6 @@ function renderTrendTables(results, targetFiles) {
             dateCells.push(`<td class="${cls}">${displayVal}</td>`);
         }
 
-        // 集計列
         if (trendShowTotal) {
             if (trendMachineValueType === 'winrate') {
                 const wr = parseFloat(row.winRate);
@@ -1180,6 +1223,11 @@ function renderTrendTables(results, targetFiles) {
         if (trendShowAvg && trendMachineValueType !== 'winrate') {
             const avgCls = row.avg > 0 ? 'plus' : row.avg < 0 ? 'minus' : '';
             dateCells.push(`<td class="${avgCls}">${row.avg >= 0 ? '+' : ''}${row.avg.toLocaleString()}</td>`);
+        }
+        
+        if (trendShowPrevTotal && trendMachineValueType !== 'winrate') {
+            const prevTotalCls = row.prevTotal > 0 ? 'plus' : row.prevTotal < 0 ? 'minus' : '';
+            dateCells.push(`<td class="${prevTotalCls}">${row.prevTotal >= 0 ? '+' : ''}${row.prevTotal.toLocaleString()}</td>`);
         }
 
         scrollRows.push(`<tr>${dateCells.join('')}</tr>`);
@@ -1217,6 +1265,9 @@ function renderTrendTablesByMachine(results, targetFiles) {
     }
     if (trendShowAvg && trendMachineValueType === 'total') {
         scrollHeaderCells += '<th>台平均</th>';
+    }
+    if (trendShowPrevTotal && trendMachineValueType !== 'winrate') {
+        scrollHeaderCells += '<th>最新日以前</th>';
     }
     
     scrollThead.innerHTML = `<tr>${scrollHeaderCells}</tr>`;
@@ -1285,6 +1336,11 @@ function renderTrendTablesByMachine(results, targetFiles) {
             const avgCls = row.avg > 0 ? 'plus' : row.avg < 0 ? 'minus' : '';
             dateCells.push(`<td class="${avgCls}">${row.avg >= 0 ? '+' : ''}${row.avg.toLocaleString()}</td>`);
         }
+        
+        if (trendShowPrevTotal && trendMachineValueType !== 'winrate') {
+            const prevTotalCls = row.prevTotal > 0 ? 'plus' : row.prevTotal < 0 ? 'minus' : '';
+            dateCells.push(`<td class="${prevTotalCls}">${row.prevTotal >= 0 ? '+' : ''}${row.prevTotal.toLocaleString()}</td>`);
+        }
 
         scrollRows.push(`<tr>${dateCells.join('')}</tr>`);
     }
@@ -1301,7 +1357,7 @@ function renderTrendTablesByMachine(results, targetFiles) {
 function renderTrendChartData(results, targetFiles, mode) {
     window.trendDisplayData = { results, targetFiles, mode };
     
-    if (typeof renderTrendChart === 'function') {
+    if (trendShowChart && typeof renderTrendChart === 'function') {
         const showTop = document.getElementById('chartShowTop')?.checked ?? true;
         const showBottom = document.getElementById('chartShowBottom')?.checked ?? false;
         const displayCount = parseInt(document.getElementById('chartDisplayCount')?.value || '5');
@@ -1437,13 +1493,21 @@ function resetTrendFilters() {
     
     const totalCheckbox = document.getElementById('trendShowTotal');
     const avgCheckbox = document.getElementById('trendShowAvg');
+    const prevTotalCheckbox = document.getElementById('trendShowPrevTotal');
+    const showChartCheckbox = document.getElementById('trendShowChart');
+    
     if (totalCheckbox) totalCheckbox.checked = true;
     if (avgCheckbox) avgCheckbox.checked = true;
+    if (prevTotalCheckbox) prevTotalCheckbox.checked = false;
+    if (showChartCheckbox) showChartCheckbox.checked = true;
+    
     trendShowTotal = true;
     trendShowAvg = true;
+    trendShowPrevTotal = false;
+    trendShowChart = true;
     saveTrendColumnSettings();
+    updateChartVisibility();
     
-    // 値タイプをリセット
     const valueTypeSelect = document.getElementById('trendMachineValueType');
     if (valueTypeSelect) valueTypeSelect.value = 'total';
     trendMachineValueType = 'total';
@@ -1502,11 +1566,10 @@ function setupTrendEventListeners() {
 
     document.getElementById('trendShowTotal')?.addEventListener('change', loadTrendData);
     document.getElementById('trendShowAvg')?.addEventListener('change', loadTrendData);
+    document.getElementById('trendShowPrevTotal')?.addEventListener('change', loadTrendData);
+    document.getElementById('trendShowChart')?.addEventListener('change', loadTrendData);
     
-    // 表示モード切り替え
     document.getElementById('trendViewMode')?.addEventListener('change', loadTrendData);
-    
-    // 値タイプ切り替え
     document.getElementById('trendMachineValueType')?.addEventListener('change', loadTrendData);
 
     document.getElementById('trendTotalFilterType')?.addEventListener('change', loadTrendData);
@@ -1520,6 +1583,26 @@ function setupTrendEventListeners() {
 
     document.getElementById('copyTrendTableBtn')?.addEventListener('click', copyTrendTable);
     document.getElementById('downloadTrendCsvBtn')?.addEventListener('click', downloadTrendCSV);
+    
+    // グラフ設定変更イベント
+    document.getElementById('chartShowTop')?.addEventListener('change', () => {
+        if (trendShowChart) {
+            const { results, targetFiles, mode } = getTrendDisplayData();
+            renderTrendChartData(results, targetFiles, mode);
+        }
+    });
+    document.getElementById('chartShowBottom')?.addEventListener('change', () => {
+        if (trendShowChart) {
+            const { results, targetFiles, mode } = getTrendDisplayData();
+            renderTrendChartData(results, targetFiles, mode);
+        }
+    });
+    document.getElementById('chartDisplayCount')?.addEventListener('change', () => {
+        if (trendShowChart) {
+            const { results, targetFiles, mode } = getTrendDisplayData();
+            renderTrendChartData(results, targetFiles, mode);
+        }
+    });
     
     updateTrendPeriodLabel();
 }

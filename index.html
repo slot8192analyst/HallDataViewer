@@ -166,8 +166,8 @@
                     <option value="machine">機種別</option>
                 </select>
             </div>
-            <div class="control-group" id="valueTypeGroup">
-                <label>値:</label>
+            <div class="control-group">
+                <label>値タイプ:</label>
                 <select id="trendMachineValueType">
                     <option value="total">総差枚</option>
                     <option value="avg">平均差枚</option>
@@ -193,7 +193,7 @@
             </div>
             <button id="loadTrend" class="btn-apply">表示更新</button>
         </div>
-
+    
         <!-- フィルター・表示設定パネル -->
         <div class="filter-panel collapsible">
             <div class="filter-panel-header" id="trendFilterToggle">
@@ -229,6 +229,21 @@
                             <input type="checkbox" id="trendShowAvg" checked>
                             <span>平均</span>
                         </label>
+                        <label class="column-checkbox-item">
+                            <input type="checkbox" id="trendShowPrevTotal">
+                            <span>最新日以前</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- グラフ表示設定 -->
+                <div class="filter-section">
+                    <h5>📈 グラフ表示</h5>
+                    <div class="column-checkboxes">
+                        <label class="column-checkbox-item">
+                            <input type="checkbox" id="trendShowChart" checked>
+                            <span>グラフを表示</span>
+                        </label>
                     </div>
                 </div>
             
@@ -237,7 +252,7 @@
                 </div>
             </div>
         </div>
-
+    
         <!-- カレンダー日付選択モーダル -->
         <div id="trendCalendarModal" class="calendar-modal">
             <div class="calendar-modal-content calendar-modal-large">
@@ -257,29 +272,26 @@
                 </div>
             </div>
         </div>
-
+    
         <div id="trendSummary" class="summary"></div>
-
+    
+        <!-- グラフコンテナ（トグルで表示/非表示可能） -->
         <div class="trend-chart-container">
             <div class="chart-header">
                 <h4>📈 差枚推移グラフ</h4>
                 <div class="chart-controls">
                     <label>
                         <input type="checkbox" id="chartShowTop" checked>
-                        上位
+                        上位5台
                     </label>
                     <label>
                         <input type="checkbox" id="chartShowBottom">
-                        下位
+                        下位5台
                     </label>
                     <select id="chartDisplayCount">
-                        <option value="5">5件表示</option>
-                        <option value="10">10件表示</option>
-                        <option value="20">20件表示</option>
-                    </select>
-                    <select id="chartDisplayType">
-                        <option value="cumulative">累積表示</option>
-                        <option value="daily">日別表示</option>
+                        <option value="5">5台表示</option>
+                        <option value="10">10台表示</option>
+                        <option value="20">20台表示</option>
                     </select>
                 </div>
             </div>
@@ -287,6 +299,7 @@
                 <canvas id="trendChart"></canvas>
             </div>
         </div>
+    
         <!-- コピー・ダウンロードボタン -->
         <div class="table-actions">
             <button class="btn-copy" id="copyTrendTableBtn" title="テーブルをクリップボードにコピー">
@@ -296,7 +309,7 @@
                 💾 CSV
             </button>
         </div>
-
+    
         <div class="table-wrapper has-scrollbar">
             <div class="fixed-columns">
                 <table id="trend-fixed-table">

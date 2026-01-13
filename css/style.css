@@ -3620,3 +3620,173 @@ td .position-tag.compact {
         --font-size-3xl: 26px;
     }
 }
+/* ===================
+   トレンドフィルター - 条件結合方式・イベント選択
+   =================== */
+
+/* 条件の結合方式セクション */
+.filter-logic-section {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.filter-logic-section h4 {
+    margin: 0 0 10px 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.filter-logic-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.logic-btn {
+    padding: 8px 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    transition: all var(--transition-fast);
+    flex: 1;
+    text-align: center;
+}
+
+.logic-btn:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-color);
+    color: var(--text-primary);
+}
+
+.logic-btn.active {
+    background: var(--primary-color);
+    border-color: var(--primary-hover);
+    color: #fff;
+}
+
+.filter-logic-hint {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    line-height: 1.5;
+    padding: 8px;
+    background: var(--bg-dark);
+    border-radius: var(--radius-sm);
+}
+
+/* フィルター適用ボタンセクション */
+.filter-apply-section {
+    margin: 15px 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+.filter-apply-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: var(--primary-color);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: #fff;
+    font-size: var(--font-size-md);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    width: 100%;
+    justify-content: center;
+}
+
+.filter-apply-btn:hover {
+    background: var(--primary-hover);
+}
+
+/* アクティブフィルター表示 */
+.active-filters-section {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.active-filters-section h5 {
+    margin: 0 0 8px 0;
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.active-filters-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.filter-logic-badge {
+    padding: 3px 8px;
+    background: var(--accent-purple);
+    color: #fff;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: bold;
+}
+
+.active-filter-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    background: var(--primary-dark);
+    color: var(--accent-info);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+}
+
+.no-filter {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    font-style: italic;
+}
+
+/* 期間フィルターセクション */
+.date-range-type-row {
+    margin-bottom: 10px;
+}
+
+.date-range-type-row select {
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+}
+
+/* ===================
+   レスポンシブ対応
+   =================== */
+@media (max-width: 480px) {
+    .filter-logic-toggle {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .logic-btn {
+        width: 100%;
+    }
+
+    .filter-apply-btn {
+        padding: 12px 16px;
+    }
+
+    .active-filters-display {
+        gap: 4px;
+    }
+
+    .active-filter-tag {
+        padding: 3px 8px;
+        font-size: var(--font-size-xs);
+    }
+}
