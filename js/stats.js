@@ -783,11 +783,8 @@ function showAllStats(data, sortBy, mode, unitSuffixFilter = '', eventHtml = '',
     });
 
     // ソート
-    const machineSortFunc = getStatsSortFunction(sortBy);
-    machineResults.sort(machineSortFunc);
-    
-    const unitSortFunc = getStatsSortFunction(sortBy);
-    unitResults.sort(unitSortFunc);
+    machineResults = HallData.sort.apply(machineResults, sortBy);
+    unitResults = HallData.sort.apply(unitResults, sortBy);
 
     const totalSa = data.reduce((sum, r) => sum + (parseInt(r['差枚']) || 0), 0);
     const totalGames = data.reduce((sum, r) => sum + (parseInt(r['G数']) || 0), 0);
@@ -1633,52 +1630,4 @@ function downloadStatsCSV() {
     }
     
     downloadAsCSV(data, filename);
-}
-
-// stats.js用のソート関数
-function getStatsSortFunction(sortBy) {
-    switch (sortBy) {
-        case 'total_desc':
-            return (a, b) => b.totalSa - a.totalSa;
-        case 'total_asc':
-            return (a, b) => a.totalSa - b.totalSa;
-        case 'avg_desc':
-            return (a, b) => b.avgSa - a.avgSa;
-        case 'avg_asc':
-            return (a, b) => a.avgSa - b.avgSa;
-        case 'count_desc':
-            return (a, b) => b.count - a.count;
-        case 'winrate_desc':
-            return (a, b) => parseFloat(b.winRate) - parseFloat(a.winRate);
-        case 'winrate_asc':
-            return (a, b) => parseFloat(a.winRate) - parseFloat(b.winRate);
-        case 'machine_asc':
-            return (a, b) => {
-                const nameCompare = compareJapanese(a.machine || '', b.machine || '');
-                if (nameCompare !== 0) return nameCompare;
-                return extractUnitNumber(a.num || '') - extractUnitNumber(b.num || '');
-            };
-        case 'machine_desc':
-            return (a, b) => {
-                const nameCompare = compareJapanese(b.machine || '', a.machine || '');
-                if (nameCompare !== 0) return nameCompare;
-                return extractUnitNumber(a.num || '') - extractUnitNumber(b.num || '');
-            };
-        case 'unit_asc':
-            return (a, b) => {
-                const numA = extractUnitNumber(a.num || '');
-                const numB = extractUnitNumber(b.num || '');
-                if (numA !== numB) return numA - numB;
-                return compareJapanese(a.machine || '', b.machine || '');
-            };
-        case 'unit_desc':
-            return (a, b) => {
-                const numA = extractUnitNumber(a.num || '');
-                const numB = extractUnitNumber(b.num || '');
-                if (numA !== numB) return numB - numA;
-                return compareJapanese(a.machine || '', b.machine || '');
-            };
-        default:
-            return (a, b) => b.totalSa - a.totalSa;
-    }
 }
