@@ -581,11 +581,13 @@ td {
     white-space: nowrap;
 }
 
+/* ヘッダーを中央揃え */
 th {
     background: var(--table-header-bg);
     position: sticky;
     top: 0;
     z-index: 10;
+    text-align: center;
 }
 
 tr:nth-child(even) {
@@ -611,10 +613,12 @@ tr:nth-child(odd) {
     text-overflow: ellipsis;
 }
 
+/* 1列目ヘッダーも中央揃え */
 #data-table th:nth-child(1),
 .stats-table th:nth-child(1) {
     z-index: 15;
     background: var(--table-header-bg);
+    text-align: center;
 }
 
 #data-table tr:nth-child(even) td:nth-child(1),
@@ -625,6 +629,12 @@ tr:nth-child(odd) {
 #data-table tr:nth-child(odd) td:nth-child(1),
 .stats-table tr:nth-child(odd) td:nth-child(1) {
     background: var(--table-row-odd);
+}
+
+/* 位置列を中央揃え */
+#data-table td:has(.position-tags),
+.stats-table td:has(.position-tags) {
+    text-align: center;
 }
 
 /* ===================
@@ -2542,52 +2552,55 @@ select option {
     gap: 3px;
     margin-left: 5px;
     vertical-align: middle;
+    justify-content: center;
 }
 
 .position-tag {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 2px;
-    padding: 2px 6px;
+    padding: 3px 8px;
     border-radius: 4px;
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     border: 1px solid;
     white-space: nowrap;
-    line-height: 1.2;
+    line-height: 1.3;
 }
 
 .position-tag.compact {
-    padding: 2px 4px;
-    font-size: 10px;
+    padding: 3px 6px;
+    font-size: 11px;
 }
 
 .position-tag-more {
     display: inline-flex;
     align-items: center;
-    padding: 2px 4px;
-    font-size: var(--font-size-xs);
+    padding: 3px 6px;
+    font-size: var(--font-size-sm);
     color: var(--text-muted);
     background: var(--bg-dark);
     border-radius: 4px;
 }
 
-/* テーブル内の位置タグ */
+/* テーブル内の位置タグ - 中央揃え */
 td .position-tags {
     display: flex;
     flex-wrap: nowrap;
-    gap: 2px;
+    gap: 3px;
     margin-left: 0;
-    margin-top: 2px;
+    margin-top: 0;
+    justify-content: center;
 }
 
 td .position-tag {
-    padding: 1px 4px;
-    font-size: 9px;
+    padding: 2px 6px;
+    font-size: 11px;
 }
 
 td .position-tag.compact {
-    padding: 1px 3px;
-    font-size: 8px;
+    padding: 2px 5px;
+    font-size: 10px;
 }
 
 /* 位置タグフィルター */
@@ -2791,6 +2804,20 @@ td .position-tag.compact {
     opacity: 0.3;
     cursor: not-allowed;
     pointer-events: none;
+}
+
+/* ===================
+   ダークモード対応
+   =================== */
+@media (prefers-color-scheme: dark) {
+    .stats-event-badges {
+        background: var(--bg-secondary, #2d2d2d);
+    }
+
+    .daily-event-badge,
+    .stats-event-badge {
+        color: inherit;
+    }
 }
 
 /* ===================
@@ -3236,17 +3263,21 @@ td .position-tag.compact {
     }
 
     .position-tag {
-        padding: 1px 4px;
-        font-size: 8px;
+        padding: 2px 5px;
+        font-size: 10px;
     }
 
     .position-tag.compact {
-        padding: 1px 3px;
-        font-size: 7px;
+        padding: 2px 4px;
+        font-size: 9px;
     }
 
     td .position-tag {
-        font-size: 8px;
+        font-size: 10px;
+    }
+
+    td .position-tag.compact {
+        font-size: 9px;
     }
 
     .chart-wrapper {
@@ -3408,6 +3439,16 @@ td .position-tag.compact {
     .month-summary-divider {
         display: none;
     }
+
+    .position-tag {
+        padding: 3px 6px;
+        font-size: 11px;
+    }
+
+    .position-tag.compact {
+        padding: 2px 5px;
+        font-size: 10px;
+    }
 }
 
 /* ===================
@@ -3545,6 +3586,24 @@ td .position-tag.compact {
         width: auto;
         min-width: 120px;
     }
+
+    .position-tag {
+        padding: 3px 8px;
+        font-size: var(--font-size-sm);
+    }
+
+    .position-tag.compact {
+        padding: 3px 6px;
+        font-size: 11px;
+    }
+
+    td .position-tag {
+        font-size: 11px;
+    }
+
+    td .position-tag.compact {
+        font-size: 11px;
+    }
 }
 
 /* ===================
@@ -3559,374 +3618,5 @@ td .position-tag.compact {
         --font-size-xl: 20px;
         --font-size-2xl: 22px;
         --font-size-3xl: 26px;
-    }
-}
-
-/* ===================
-   ダークモード対応
-   =================== */
-@media (prefers-color-scheme: dark) {
-    .stats-event-badges {
-        background: var(--bg-secondary, #2d2d2d);
-    }
-
-    .daily-event-badge,
-    .stats-event-badge {
-        color: inherit;
-    }
-}
-
-/* ===================
-   トレンドフィルター拡張
-   =================== */
-
-/* 期間タイプ選択行 */
-.date-range-type-row {
-    margin-bottom: 10px;
-}
-
-.date-range-type-row select {
-    width: 100%;
-    padding: 8px 12px;
-    font-size: var(--font-size-md);
-}
-
-/* AND/OR切り替え */
-.filter-logic-section {
-    margin-bottom: 12px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.filter-logic-section h4 {
-    margin: 0 0 8px 0;
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-}
-
-.filter-logic-toggle {
-    display: flex;
-    gap: 8px;
-}
-
-.logic-btn {
-    flex: 1;
-    padding: 8px 12px;
-    background: var(--bg-input);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    color: var(--text-secondary);
-    font-size: var(--font-size-sm);
-    cursor: pointer;
-    transition: all var(--transition-fast);
-}
-
-.logic-btn:hover {
-    background: var(--primary-dark);
-    border-color: var(--primary-color);
-}
-
-.logic-btn.active {
-    background: var(--primary-color);
-    border-color: var(--primary-hover);
-    color: #fff;
-}
-
-.filter-logic-hint {
-    margin-top: 8px;
-    font-size: 10px;
-    color: var(--text-dark);
-    line-height: 1.5;
-}
-
-/* フィルター適用ボタン */
-.filter-apply-section {
-    margin: 12px 0;
-    padding: 12px 0;
-    border-top: 1px solid var(--border-color);
-    border-bottom: 1px solid var(--border-color);
-}
-
-.filter-apply-btn {
-    width: 100%;
-    padding: 10px 16px;
-    background: var(--accent-info);
-    border: none;
-    border-radius: var(--radius-md);
-    color: #fff;
-    font-size: var(--font-size-md);
-    font-weight: bold;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-}
-
-.filter-apply-btn:hover {
-    background: #3b82f6;
-    transform: translateY(-1px);
-}
-
-.filter-apply-btn:active {
-    transform: translateY(0);
-}
-
-/* アクティブフィルター表示 */
-.active-filters-section {
-    margin-bottom: 10px;
-}
-
-.active-filters-section h5 {
-    margin: 0 0 8px 0;
-    font-size: var(--font-size-xs);
-    color: var(--text-muted);
-}
-
-.active-filters-display {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    padding: 8px;
-    background: var(--bg-input);
-    border-radius: var(--radius-sm);
-    min-height: 32px;
-    align-items: center;
-}
-
-.active-filter-tag {
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 8px;
-    background: var(--primary-dark);
-    border: 1px solid var(--primary-color);
-    border-radius: var(--radius-sm);
-    color: var(--accent-info);
-    font-size: var(--font-size-xs);
-}
-
-.filter-logic-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 8px;
-    background: var(--accent-purple);
-    border-radius: var(--radius-sm);
-    color: #fff;
-    font-size: 10px;
-    font-weight: bold;
-}
-
-.no-filter {
-    color: var(--text-muted);
-    font-size: var(--font-size-xs);
-}
-
-/* 表示モード切り替え */
-#trendViewMode {
-    min-width: 90px;
-}
-
-#trendMachineValueType {
-    min-width: 100px;
-}
-
-/* 機種別モード時に値タイプを表示 */
-#machineValueTypeGroup {
-    transition: opacity var(--transition-fast);
-}
-
-#machineValueTypeGroup.visible {
-    display: flex !important;
-}
-
-#chartDisplayType {
-    min-width: 100px;
-    padding: 5px 8px;
-    font-size: var(--font-size-sm);
-}
-
-/* ===================
-   カレンダー月間サマリー
-   =================== */
-.calendar-month-summary {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 12px 20px;
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--border-color);
-}
-
-.month-summary-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    padding: 4px 12px;
-}
-
-.month-summary-item.main {
-    background: var(--bg-light);
-    border-radius: var(--radius-md);
-    padding: 8px 16px;
-}
-
-.month-summary-item .summary-label {
-    font-size: var(--font-size-xs);
-    color: var(--text-muted);
-    white-space: nowrap;
-}
-
-.month-summary-item .summary-value {
-    font-size: var(--font-size-md);
-    font-weight: bold;
-    white-space: nowrap;
-}
-
-.month-summary-item.main .summary-value {
-    font-size: var(--font-size-lg);
-}
-
-.month-summary-divider {
-    width: 1px;
-    height: 30px;
-    background: var(--border-color);
-}
-
-/* レスポンシブ対応 */
-@media (max-width: 768px) {
-    .calendar-month-summary {
-        gap: 8px;
-        padding: 10px 12px;
-    }
-    
-    .month-summary-item {
-        padding: 4px 8px;
-    }
-    
-    .month-summary-item.main {
-        width: 100%;
-        flex-direction: row;
-        justify-content: center;
-        gap: 10px;
-        padding: 8px 12px;
-    }
-    
-    .month-summary-item .summary-value {
-        font-size: var(--font-size-sm);
-    }
-    
-    .month-summary-item.main .summary-value {
-        font-size: var(--font-size-md);
-    }
-    
-    .month-summary-divider {
-        display: none;
-    }
-}
-
-@media (max-width: 480px) {
-    .calendar-month-summary {
-        gap: 4px;
-        padding: 8px;
-    }
-    
-    .month-summary-item {
-        flex: 1;
-        min-width: 70px;
-        padding: 4px;
-    }
-    
-    .month-summary-item.main {
-        flex: none;
-        width: 100%;
-        margin-bottom: 4px;
-    }
-    
-    .month-summary-item .summary-label {
-        font-size: 9px;
-    }
-    
-    .month-summary-item .summary-value {
-        font-size: var(--font-size-xs);
-    }
-    
-    .month-summary-item.main .summary-label {
-        font-size: var(--font-size-xs);
-    }
-    
-    .month-summary-item.main .summary-value {
-        font-size: var(--font-size-md);
-    }
-}
-
-/* ===================
-   台数指定選択機能
-   =================== */
-.multi-select-threshold {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border-color);
-}
-
-.multi-select-threshold-input {
-    width: 60px;
-    padding: 5px 8px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    background: var(--bg-dark);
-    color: var(--text-primary);
-    font-size: var(--font-size-sm);
-    text-align: center;
-}
-
-.multi-select-threshold-input:focus {
-    outline: none;
-    border-color: var(--primary-color);
-}
-
-.multi-select-threshold-input::placeholder {
-    color: var(--text-muted);
-    font-size: var(--font-size-xs);
-}
-
-.multi-select-threshold-label {
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-    white-space: nowrap;
-}
-
-.multi-select-threshold .multi-select-btn {
-    padding: 5px 10px;
-    background: var(--accent-info);
-    border-color: var(--accent-info);
-    color: #fff;
-}
-
-.multi-select-threshold .multi-select-btn:hover {
-    background: #3b82f6;
-    border-color: #3b82f6;
-}
-
-/* スマホ対応 */
-@media (max-width: 480px) {
-    .multi-select-threshold {
-        flex-wrap: wrap;
-    }
-    
-    .multi-select-threshold-input {
-        width: 50px;
-        padding: 4px 6px;
-    }
-    
-    .multi-select-threshold-label {
-        font-size: var(--font-size-xs);
-    }
-    
-    .multi-select-threshold .multi-select-btn {
-        padding: 4px 8px;
-        font-size: var(--font-size-xs);
     }
 }
