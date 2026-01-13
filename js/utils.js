@@ -221,7 +221,18 @@ HallData.sort = {
             return desc ? valB - valA : valA - valB;
         };
     },
-    
+
+    /**
+     * 最新日以前の差枚でソート
+     */
+    byPrevTotalSa: function(desc) {
+        return function(a, b) {
+            var valA = a.prevTotal !== undefined ? a.prevTotal : 0;
+            var valB = b.prevTotal !== undefined ? b.prevTotal : 0;
+            return desc ? valB - valA : valA - valB;
+        };
+    },
+
     /**
      * ソートキー文字列から適切なソート関数を取得
      */
@@ -266,7 +277,12 @@ HallData.sort = {
                 return self.byLatestSa(options.latestFile, true);
             case 'latest_asc':
                 return self.byLatestSa(options.latestFile, false);
-            
+
+            case 'prevtotal_desc':
+                return self.byPrevTotalSa(true);
+            case 'prevtotal_asc':
+                return self.byPrevTotalSa(false);
+
             case 'game_desc':
                 return function(a, b) {
                     var valA = parseInt(String(a['G数'] || 0).replace(/,/g, '')) || 0;
