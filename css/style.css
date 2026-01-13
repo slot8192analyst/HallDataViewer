@@ -3868,3 +3868,124 @@ td .position-tag.compact {
         padding: 5px 10px;
     }
 }
+
+/* ===================
+   複数選択位置フィルター
+   =================== */
+.position-filter-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+}
+
+.position-filter-logic {
+    display: flex;
+    gap: 2px;
+    margin-right: 8px;
+}
+
+.position-logic-btn {
+    padding: 4px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.position-logic-btn:first-child {
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.position-logic-btn:last-child {
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.position-logic-btn:hover {
+    background: var(--primary-dark);
+}
+
+.position-logic-btn.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+}
+
+.position-filter-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.position-filter-btn {
+    padding: 4px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.position-filter-btn:hover {
+    opacity: 0.8;
+}
+
+.position-filter-btn.active {
+    color: #fff;
+    font-weight: 500;
+}
+
+.position-filter-clear {
+    padding: 4px 10px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.position-filter-clear:hover {
+    background: var(--accent-minus);
+    border-color: var(--accent-minus);
+    color: #fff;
+}
+
+.position-filter-status {
+    width: 100%;
+    font-size: var(--font-size-xs);
+    color: var(--accent-info);
+    padding: 4px 8px;
+    background: var(--bg-dark);
+    border-radius: var(--radius-sm);
+    margin-top: 4px;
+}
+
+/* レスポンシブ */
+@media (max-width: 480px) {
+    .position-filter-container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .position-filter-logic {
+        margin-right: 0;
+        margin-bottom: 4px;
+    }
+    
+    .position-filter-tags {
+        width: 100%;
+    }
+    
+    .position-filter-btn {
+        flex: 1;
+        text-align: center;
+        min-width: 60px;
+    }
+}

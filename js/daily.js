@@ -204,25 +204,24 @@ function renderPositionFilter() {
 
 // フィルターパネル内に位置フィルターを追加
 function renderPositionFilterSection() {
-    const filterContent = document.getElementById('filterContent');
+    var filterContent = document.getElementById('filterContent');
     if (!filterContent) return;
     
-    // 既存の位置フィルターセクションを削除
-    const existingSection = filterContent.querySelector('.position-filter-section');
+    var existingSection = filterContent.querySelector('.position-filter-section');
     if (existingSection) {
         existingSection.remove();
     }
     
     // 新しいセクションを追加
-    const section = document.createElement('div');
+    var section = document.createElement('div');
     section.className = 'filter-section position-filter-section';
-    section.innerHTML = `
-        <h5>📍 位置フィルター</h5>
-        ${renderPositionFilter()}
-    `;
+    section.innerHTML = '<h5>📍 位置フィルター</h5>' + renderMultiPositionFilter('daily', function() {
+        renderPositionFilterSection();
+        filterAndRender();
+    });
     
     // 最初のフィルターセクションの前に挿入
-    const firstSection = filterContent.querySelector('.filter-section');
+    var firstSection = filterContent.querySelector('.filter-section');
     if (firstSection) {
         firstSection.before(section);
     } else {
@@ -230,12 +229,9 @@ function renderPositionFilterSection() {
     }
     
     // イベントリスナーを設定
-    section.querySelectorAll('.position-filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            selectedPositionFilter = btn.dataset.position;
-            renderPositionFilterSection(); // 再描画してアクティブ状態を更新
-            filterAndRender();
-        });
+    setupMultiPositionFilterEvents('daily', function() {
+        renderPositionFilterSection();
+        filterAndRender();
     });
 }
 
@@ -476,9 +472,7 @@ async function filterAndRender() {
     data = [...data];
 
     // 位置フィルター
-    if (selectedPositionFilter) {
-        data = filterByPositionTag(data, selectedPositionFilter, '台番号');
-    }
+    data = applyMultiPositionFilter(data, 'daily', '台番号');
 
     // 機種フィルター（複数選択対応）
     const selectedMachines = dailyMachineFilterSelect ? dailyMachineFilterSelect.getSelectedValues() : [];
@@ -661,12 +655,10 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
             const avgRateClass = getMechanicalRateClass(avgRate);
 
             // 位置フィルター情報を表示
-            let positionInfo = '';
-            if (selectedPositionFilter) {
-                const tagInfo = POSITION_TAGS[selectedPositionFilter];
-                if (tagInfo) {
-                    positionInfo = ` | 位置: <span style="color: ${tagInfo.color}">${tagInfo.icon} ${tagInfo.label}</span>`;
-                }
+            var positionInfo = '';
+            var positionState = getPositionFilterState('daily');
+            if (positionState.selected.length > 0) {
+                positionInfo = ' | 位置: ' + getPositionFilterDisplayText('daily');
             }
 
             summaryEl.innerHTML = `
@@ -804,7 +796,7 @@ function setupDailyEventListeners() {
         document.getElementById('rateFilterType').value = '';
         document.getElementById('rateFilterValue').value = '';
         document.getElementById('unitSuffixFilter').value = '';
-        selectedPositionFilter = ''; // 位置フィルターもリセット
+        resetPositionFilter('daily');
         if (dailyMachineFilterSelect) {
             dailyMachineFilterSelect.reset();
         }

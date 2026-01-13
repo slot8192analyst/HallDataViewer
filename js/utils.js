@@ -1944,3 +1944,192 @@ function getMachineOptionsForPeriod(dateFiles) {
     return sortMachineOptionsByCount(machineOptions);
 }
 
+// ===================
+// 複数選択位置フィルター
+// ===================
+
+/**
+ * 複数選択位置フィルターの状態
+ */
+var positionFilterState = {
+    daily: { selected: [], logic: 'or' },
+    trend: { selected: [], logic: 'or' },
+    stats: { selected: [], logic: 'or' }
+};
+
+/**
+ * 位置フィルターのHTMLを生成（複数選択対応）
+ * @param {string} tabName - タブ名 ('daily', 'trend', 'stats')
+ * @param {function} onChange - 変更時のコールバック
+ * @returns {string} HTML文字列
+ */
+function renderMultiPositionFilter(tabName, onChange) {
+    var state = positionFilterState[tabName];
+    var positionTags = getAllPositionTags();
+    
+    var html = '<div class="position-filter-container" data-tab="' + tabName + '">';
+    
+    // AND/OR切り替え
+    html += '<div class="position-filter-logic">';
+    html += '<button type="button" class="position-logic-btn' + (state.logic === 'or' ? ' active' : '') + '" data-logic="or">OR</button>';
+    html += '<button type="button" class="position-logic-btn' + (state.logic === 'and' ? ' active' : '') + '" data-logic="and">AND</button>';
+    html += '</div>';
+    
+    // 位置タグボタン
+    html += '<div class="position-filter-tags">';
+    
+    positionTags.forEach(function(tag) {
+        var isSelected = state.selected.indexOf(tag.value) !== -1;
+        var activeClass = isSelected ? ' active' : '';
+        var style = isSelected 
+            ? 'background: ' + tag.color + '; border-color: ' + tag.color + '; color: #fff;'
+            : 'border-color: ' + tag.color + '40;';
+        
+        html += '<button type="button" class="position-filter-btn' + activeClass + '" ';
+        html += 'data-position="' + tag.value + '" ';
+        html += 'style="' + style + '">';
+        html += (tag.icon ? tag.icon + ' ' : '') + tag.label;
+        html += '</button>';
+    });
+    
+    html += '</div>';
+    
+    // クリアボタン
+    if (state.selected.length > 0) {
+        html += '<button type="button" class="position-filter-clear">クリア</button>';
+    }
+    
+    // 選択状態の表示
+    if (state.selected.length > 0) {
+        var logicText = state.logic === 'and' ? ' かつ ' : ' または ';
+        var selectedLabels = state.selected.map(function(val) {
+            var tagInfo = POSITION_TAGS[val];
+            return tagInfo ? tagInfo.label : val;
+        });
+        html += '<div class="position-filter-status">';
+        html += '選択中: ' + selectedLabels.join(logicText);
+        html += '</div>';
+    }
+    
+    html += '</div>';
+    
+    return html;
+}
+
+/**
+ * 位置フィルターのイベントを設定
+ * @param {string} tabName - タブ名
+ * @param {function} onChange - 変更時のコールバック
+ */
+function setupMultiPositionFilterEvents(tabName, onChange) {
+    var container = document.querySelector('.position-filter-container[data-tab="' + tabName + '"]');
+    if (!container) return;
+    
+    var state = positionFilterState[tabName];
+    
+    // AND/OR切り替えボタン
+    container.querySelectorAll('.position-logic-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            state.logic = this.dataset.logic;
+            if (onChange) onChange();
+        });
+    });
+    
+    // 位置タグボタン
+    container.querySelectorAll('.position-filter-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var position = this.dataset.position;
+            var index = state.selected.indexOf(position);
+            
+            if (index === -1) {
+                state.selected.push(position);
+            } else {
+                state.selected.splice(index, 1);
+            }
+            
+            if (onChange) onChange();
+        });
+    });
+    
+    // クリアボタン
+    var clearBtn = container.querySelector('.position-filter-clear');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            state.selected = [];
+            if (onChange) onChange();
+        });
+    }
+}
+
+/**
+ * 位置フィルターを適用（複数選択対応）
+ * @param {Array} data - フィルター対象データ
+ * @param {string} tabName - タブ名
+ * @param {string} unitKey - 台番号のキー名
+ * @returns {Array} フィルター済みデータ
+ */
+function applyMultiPositionFilter(data, tabName, unitKey) {
+    unitKey = unitKey || '台番号';
+    var state = positionFilterState[tabName];
+    
+    if (!state || state.selected.length === 0) {
+        return data;
+    }
+    
+    return data.filter(function(row) {
+        var unitNum = row[unitKey] || row.num || '';
+        var tags = getPositionTags(unitNum);
+        
+        if (state.logic === 'and') {
+            // AND: すべての選択タグを持っている
+            return state.selected.every(function(selectedTag) {
+                return tags.indexOf(selectedTag) !== -1;
+            });
+        } else {
+            // OR: いずれかの選択タグを持っている
+            return state.selected.some(function(selectedTag) {
+                return tags.indexOf(selectedTag) !== -1;
+            });
+        }
+    });
+}
+
+/**
+ * 位置フィルターの状態を取得
+ * @param {string} tabName - タブ名
+ * @returns {Object} { selected: [], logic: 'or'|'and' }
+ */
+function getPositionFilterState(tabName) {
+    return positionFilterState[tabName] || { selected: [], logic: 'or' };
+}
+
+/**
+ * 位置フィルターの状態をリセット
+ * @param {string} tabName - タブ名
+ */
+function resetPositionFilter(tabName) {
+    if (positionFilterState[tabName]) {
+        positionFilterState[tabName].selected = [];
+        positionFilterState[tabName].logic = 'or';
+    }
+}
+
+/**
+ * 位置フィルターの選択状態を表示用テキストで取得
+ * @param {string} tabName - タブ名
+ * @returns {string} 表示用テキスト
+ */
+function getPositionFilterDisplayText(tabName) {
+    var state = positionFilterState[tabName];
+    if (!state || state.selected.length === 0) {
+        return '';
+    }
+    
+    var logicText = state.logic === 'and' ? ' AND ' : ' OR ';
+    var labels = state.selected.map(function(val) {
+        var tagInfo = POSITION_TAGS[val];
+        return tagInfo ? (tagInfo.icon || '') + tagInfo.label : val;
+    });
+    
+    return labels.join(logicText);
+}

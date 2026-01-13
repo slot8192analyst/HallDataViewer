@@ -902,10 +902,23 @@ async function loadTrendDataByUnit(targetFiles, selectedMachines, sortBy, totalF
             const sa = parseInt(row['差枚']) || 0;
             
             if (selectedMachines.length > 0 && !selectedMachines.includes(machine)) continue;
-            
-            if (selectedTrendPositionFilter) {
-                const tags = typeof getPositionTags === 'function' ? getPositionTags(num) : [];
-                if (!tags.includes(selectedTrendPositionFilter)) continue;
+
+            var positionState = getPositionFilterState('trend');
+            if (positionState.selected.length > 0) {
+                var tags = getPositionTags(num);
+                var matchesPosition = false;
+
+                if (positionState.logic === 'and') {
+                    matchesPosition = positionState.selected.every(function(selectedTag) {
+                        return tags.indexOf(selectedTag) !== -1;
+                    });
+                } else {
+                    matchesPosition = positionState.selected.some(function(selectedTag) {
+                        return tags.indexOf(selectedTag) !== -1;
+                    });
+                }
+
+                if (!matchesPosition) continue;
             }
 
             const key = `${machine}_${num}`;
@@ -983,10 +996,23 @@ async function loadTrendDataByMachine(targetFiles, selectedMachines, sortBy, tot
             const sa = parseInt(row['差枚']) || 0;
             
             if (selectedMachines.length > 0 && !selectedMachines.includes(machine)) continue;
-            
-            if (selectedTrendPositionFilter) {
-                const tags = typeof getPositionTags === 'function' ? getPositionTags(num) : [];
-                if (!tags.includes(selectedTrendPositionFilter)) continue;
+
+            var positionState = getPositionFilterState('trend');
+            if (positionState.selected.length > 0) {
+                var tags = getPositionTags(num);
+                var matchesPosition = false;
+
+                if (positionState.logic === 'and') {
+                    matchesPosition = positionState.selected.every(function(selectedTag) {
+                        return tags.indexOf(selectedTag) !== -1;
+                    });
+                } else {
+                    matchesPosition = positionState.selected.some(function(selectedTag) {
+                        return tags.indexOf(selectedTag) !== -1;
+                    });
+                }
+
+                if (!matchesPosition) continue;
             }
 
             if (!machineData[machine]) {
@@ -1125,12 +1151,10 @@ function renderTrendSummary(results, targetFiles, selectedMachines, totalFilterT
         machineInfo = ` | 機種: ${selectedMachines.length}機種選択中`;
     }
 
-    let positionInfo = '';
-    if (selectedTrendPositionFilter && typeof POSITION_TAGS !== 'undefined') {
-        const tagInfo = POSITION_TAGS[selectedTrendPositionFilter];
-        if (tagInfo) {
-            positionInfo = ` | 位置: <span style="color: ${tagInfo.color}">${tagInfo.icon} ${tagInfo.label}</span>`;
-        }
+    var positionInfo = '';
+    var positionDisplayText = getPositionFilterDisplayText('trend');
+    if (positionDisplayText) {
+        positionInfo = ' | 位置: ' + positionDisplayText;
     }
 
     let filterInfo = '';
@@ -1434,45 +1458,35 @@ function handleResize() {
 }
 
 function renderTrendPositionFilter() {
-    const container = document.getElementById('trendFilterContent');
+    var container = document.getElementById('trendFilterContent');
     if (!container) return;
     
-    if (typeof getAllPositionTags !== 'function') return;
-    
-    let positionSection = container.querySelector('.trend-position-filter-section');
-    
-    if (!positionSection) {
-        positionSection = document.createElement('div');
-        positionSection.className = 'filter-section trend-position-filter-section';
-        
-        const firstSection = container.querySelector('.filter-section');
-        if (firstSection) {
-            firstSection.before(positionSection);
-        } else {
-            container.prepend(positionSection);
-        }
+    // 既存の位置フィルターセクションを削除
+    var existingSection = container.querySelector('.trend-position-filter-section');
+    if (existingSection) {
+        existingSection.remove();
     }
     
-    const positionTags = getAllPositionTags();
-    
-    let html = '<h5>📍 位置フィルター</h5>';
-    html += '<div class="position-filter">';
-    html += `<button class="position-filter-btn ${selectedTrendPositionFilter === '' ? 'active' : ''}" data-position="" style="background: ${selectedTrendPositionFilter === '' ? 'var(--primary-color)' : ''}">全て</button>`;
-    
-    positionTags.forEach(tag => {
-        const isActive = selectedTrendPositionFilter === tag.value;
-        html += `<button class="position-filter-btn ${isActive ? 'active' : ''}" data-position="${tag.value}" style="${isActive ? `background: ${tag.color}; border-color: ${tag.color};` : `border-color: ${tag.color}40;`}">${tag.icon} ${tag.label}</button>`;
+    // 新しいセクションを作成
+    var section = document.createElement('div');
+    section.className = 'filter-section trend-position-filter-section';
+    section.innerHTML = '<h5>📍 位置フィルター</h5>' + renderMultiPositionFilter('trend', function() {
+        renderTrendPositionFilter();
+        loadTrendData();
     });
     
-    html += '</div>';
-    positionSection.innerHTML = html;
+    // 最初のフィルターセクションの前に挿入
+    var firstSection = container.querySelector('.filter-section');
+    if (firstSection) {
+        firstSection.before(section);
+    } else {
+        container.prepend(section);
+    }
     
-    positionSection.querySelectorAll('.position-filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            selectedTrendPositionFilter = btn.dataset.position;
-            renderTrendPositionFilter();
-            loadTrendData();
-        });
+    // イベントリスナーを設定
+    setupMultiPositionFilterEvents('trend', function() {
+        renderTrendPositionFilter();
+        loadTrendData();
     });
 }
 
@@ -1534,7 +1548,10 @@ function resetTrendFilters() {
     const valueTypeSelect = document.getElementById('trendMachineValueType');
     if (valueTypeSelect) valueTypeSelect.value = 'total';
     trendMachineValueType = 'total';
-    
+
+    resetPositionFilter('trend');
+    renderTrendPositionFilter();
+
     loadTrendData();
 }
 

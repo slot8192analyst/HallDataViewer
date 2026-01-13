@@ -364,41 +364,39 @@ function renderDetailedEventSummary(files) {
 }
 
 // 位置フィルターセクションを描画する関数
-function renderStatsPositionFilter(containerId = 'stats-daily-content') {
-    const container = document.getElementById(containerId);
+function renderStatsPositionFilter(containerId) {
+    containerId = containerId || 'stats-daily-content';
+    var container = document.getElementById(containerId);
     if (!container) return;
     
     // 既存の位置フィルターを削除
-    const existing = container.querySelector('.stats-position-filter');
-    if (existing) existing.remove();
+    var existing = container.querySelector('.stats-position-filter');
+    if (existing) {
+        existing.remove();
+    }
     
-    const positionTags = getAllPositionTags();
-    
-    let html = '<div class="stats-position-filter" style="margin-bottom: 10px;">';
-    html += '<div class="control-group"><label>位置:</label>';
-    html += '<div class="position-filter">';
-    html += `<button class="position-filter-btn ${selectedStatsPositionFilter === '' ? 'active' : ''}" data-position="" style="background: ${selectedStatsPositionFilter === '' ? 'var(--primary-color)' : ''}">全て</button>`;
-    
-    positionTags.forEach(tag => {
-        const isActive = selectedStatsPositionFilter === tag.value;
-        html += `<button class="position-filter-btn ${isActive ? 'active' : ''}" data-position="${tag.value}" style="${isActive ? `background: ${tag.color}; border-color: ${tag.color};` : `border-color: ${tag.color}40;`}">${tag.icon} ${tag.label}</button>`;
-    });
-    
-    html += '</div></div></div>';
+    // 新しいセクションを追加
+    var section = document.createElement('div');
+    section.className = 'stats-position-filter';
+    section.style.marginBottom = '10px';
+    section.innerHTML = '<div class="control-group"><label>位置:</label>' + 
+        renderMultiPositionFilter('stats', function() {
+            renderStatsPositionFilter(containerId);
+            showStats();
+        }) + '</div>';
     
     // controlsの後に挿入
-    const controls = container.querySelector('.controls');
+    var controls = container.querySelector('.controls');
     if (controls) {
-        controls.insertAdjacentHTML('afterend', html);
+        controls.insertAdjacentElement('afterend', section);
+    } else {
+        container.prepend(section);
     }
     
     // イベントリスナーを設定
-    container.querySelectorAll('.stats-position-filter .position-filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            selectedStatsPositionFilter = btn.dataset.position;
-            renderStatsPositionFilter(containerId);
-            showStats();
-        });
+    setupMultiPositionFilterEvents('stats', function() {
+        renderStatsPositionFilter(containerId);
+        showStats();
     });
 }
 
@@ -654,9 +652,7 @@ async function showDailyStats() {
     }
 
     // 位置フィルター
-    if (selectedStatsPositionFilter) {
-        data = filterByPositionTag(data, selectedStatsPositionFilter, '台番号');
-    }
+    data = applyMultiPositionFilter(data, 'stats', '台番号');
 
     // 複数機種フィルター
     if (selectedMachines.length > 0) {
@@ -756,12 +752,10 @@ function showAllStats(data, sortBy, mode, unitSuffixFilter = '', eventHtml = '',
     }
 
     // 位置フィルター情報
-    let positionFilterInfo = '';
-    if (selectedStatsPositionFilter) {
-        const tagInfo = POSITION_TAGS[selectedStatsPositionFilter];
-        if (tagInfo) {
-            positionFilterInfo = `<span class="active-filter" style="background: ${tagInfo.color}20; border-color: ${tagInfo.color};">${tagInfo.icon} ${tagInfo.label}</span>`;
-        }
+    var positionFilterInfo = '';
+    var positionDisplayText = getPositionFilterDisplayText('stats');
+    if (positionDisplayText) {
+        positionFilterInfo = '<span class="active-filter">' + positionDisplayText + '</span>';
     }
 
     let html = `
@@ -1065,11 +1059,22 @@ async function showPeriodStats() {
                     return;
                 }
                 // 位置フィルター
-                if (selectedStatsPositionFilter) {
-                    const tags = getPositionTags(row['台番号']);
-                    if (!tags.includes(selectedStatsPositionFilter)) {
-                        return;
+                var positionState = getPositionFilterState('stats');
+                if (positionState.selected.length > 0) {
+                    var tags = getPositionTags(row['台番号']);
+                    var matchesPosition = false;
+
+                    if (positionState.logic === 'and') {
+                        matchesPosition = positionState.selected.every(function(selectedTag) {
+                            return tags.indexOf(selectedTag) !== -1;
+                        });
+                    } else {
+                        matchesPosition = positionState.selected.some(function(selectedTag) {
+                            return tags.indexOf(selectedTag) !== -1;
+                        });
                     }
+
+                    if (!matchesPosition) return;
                 }
                 allData.push({ ...row, _file: file, _date: formatDate(file) });
             });
@@ -1107,12 +1112,24 @@ async function showPeriodStats() {
         filterLabels.push(`${selectedMachines.length}機種`);
     }
     // 位置フィルター情報を追加
-    if (selectedStatsPositionFilter) {
-        const tagInfo = POSITION_TAGS[selectedStatsPositionFilter];
-        if (tagInfo) {
-            filterLabels.push(`${tagInfo.icon} ${tagInfo.label}`);
+    var positionState = getPositionFilterState('stats');
+    if (positionState.selected.length > 0) {
+        var tags = getPositionTags(row['台番号']);
+        var matchesPosition = false;
+
+        if (positionState.logic === 'and') {
+            matchesPosition = positionState.selected.every(function(selectedTag) {
+                return tags.indexOf(selectedTag) !== -1;
+            });
+        } else {
+            matchesPosition = positionState.selected.some(function(selectedTag) {
+                return tags.indexOf(selectedTag) !== -1;
+            });
         }
+
+        if (!matchesPosition) return;
     }
+
     const filterLabel = filterLabels.length > 0 ? `（${filterLabels.join('・')}）` : '';
 
     const periodLabel = `${formatDate(targetFiles[0])} 〜 ${formatDate(targetFiles[targetFiles.length - 1])}（${targetFiles.length}日間）${filterLabel}`;
