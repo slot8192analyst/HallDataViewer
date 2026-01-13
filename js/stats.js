@@ -410,15 +410,19 @@ function renderStatsEventBadges(events) {
     
     if (relevantEvents.length === 0) return '';
 
+    // デフォルトカラー（紫系）
+    const defaultColor = '#a855f7';
+
     let html = '<div class="stats-event-badges">';
     
     relevantEvents.forEach(event => {
         if (isValidEvent(event)) {
-            const { icon, name, color } = getEventDisplayName(event);
+            const { icon, name } = getEventDisplayName(event);
             
             if (name) {
+                // デフォルトカラーを使用
                 html += `
-                    <span class="stats-event-badge" style="background: ${color}20; border-color: ${color};">
+                    <span class="stats-event-badge" style="background: ${defaultColor}20; border-color: ${defaultColor};">
                         ${icon} ${name}
                     </span>
                 `;
@@ -426,7 +430,7 @@ function renderStatsEventBadges(events) {
                 // noteがある場合は別途表示
                 if (event.note) {
                     html += `
-                        <span class="stats-event-note" style="color: ${color};">
+                        <span class="stats-event-note" style="color: ${defaultColor};">
                             📝 ${event.note}
                         </span>
                     `;

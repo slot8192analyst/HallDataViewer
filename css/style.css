@@ -3858,3 +3858,75 @@ td .position-tag.compact {
         font-size: var(--font-size-md);
     }
 }
+
+/* ===================
+   台数指定選択機能
+   =================== */
+.multi-select-threshold {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+}
+
+.multi-select-threshold-input {
+    width: 60px;
+    padding: 5px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    text-align: center;
+}
+
+.multi-select-threshold-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.multi-select-threshold-input::placeholder {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+}
+
+.multi-select-threshold-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.multi-select-threshold .multi-select-btn {
+    padding: 5px 10px;
+    background: var(--accent-info);
+    border-color: var(--accent-info);
+    color: #fff;
+}
+
+.multi-select-threshold .multi-select-btn:hover {
+    background: #3b82f6;
+    border-color: #3b82f6;
+}
+
+/* スマホ対応 */
+@media (max-width: 480px) {
+    .multi-select-threshold {
+        flex-wrap: wrap;
+    }
+    
+    .multi-select-threshold-input {
+        width: 50px;
+        padding: 4px 6px;
+    }
+    
+    .multi-select-threshold-label {
+        font-size: var(--font-size-xs);
+    }
+    
+    .multi-select-threshold .multi-select-btn {
+        padding: 4px 8px;
+        font-size: var(--font-size-xs);
+    }
+}
