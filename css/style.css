@@ -3741,3 +3741,120 @@ td .position-tag.compact {
     padding: 5px 8px;
     font-size: var(--font-size-sm);
 }
+
+/* ===================
+   カレンダー月間サマリー
+   =================== */
+.calendar-month-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.month-summary-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 12px;
+}
+
+.month-summary-item.main {
+    background: var(--bg-light);
+    border-radius: var(--radius-md);
+    padding: 8px 16px;
+}
+
+.month-summary-item .summary-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.month-summary-item .summary-value {
+    font-size: var(--font-size-md);
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.month-summary-item.main .summary-value {
+    font-size: var(--font-size-lg);
+}
+
+.month-summary-divider {
+    width: 1px;
+    height: 30px;
+    background: var(--border-color);
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .calendar-month-summary {
+        gap: 8px;
+        padding: 10px 12px;
+    }
+    
+    .month-summary-item {
+        padding: 4px 8px;
+    }
+    
+    .month-summary-item.main {
+        width: 100%;
+        flex-direction: row;
+        justify-content: center;
+        gap: 10px;
+        padding: 8px 12px;
+    }
+    
+    .month-summary-item .summary-value {
+        font-size: var(--font-size-sm);
+    }
+    
+    .month-summary-item.main .summary-value {
+        font-size: var(--font-size-md);
+    }
+    
+    .month-summary-divider {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .calendar-month-summary {
+        gap: 4px;
+        padding: 8px;
+    }
+    
+    .month-summary-item {
+        flex: 1;
+        min-width: 70px;
+        padding: 4px;
+    }
+    
+    .month-summary-item.main {
+        flex: none;
+        width: 100%;
+        margin-bottom: 4px;
+    }
+    
+    .month-summary-item .summary-label {
+        font-size: 9px;
+    }
+    
+    .month-summary-item .summary-value {
+        font-size: var(--font-size-xs);
+    }
+    
+    .month-summary-item.main .summary-label {
+        font-size: var(--font-size-xs);
+    }
+    
+    .month-summary-item.main .summary-value {
+        font-size: var(--font-size-md);
+    }
+}
