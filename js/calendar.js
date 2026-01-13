@@ -392,11 +392,6 @@ function dateMatchesCalendarFilter(dateKey) {
     return matchesEvent && matchesMedia && matchesPerformer;
 }
 
-// カレンダー用のイベントバッジ表示
-function renderCalendarEventBadges(events) {
-    return renderEventBadges(events);
-}
-
 // カレンダー描画
 async function renderCalendar() {
     const container = document.getElementById('calendarDays');

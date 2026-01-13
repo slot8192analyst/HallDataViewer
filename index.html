@@ -185,6 +185,8 @@
                     <option value="total_asc">合計差枚 少ない順</option>
                     <option value="avg_desc">平均差枚 多い順</option>
                     <option value="latest_desc">最新日 差枚多い順</option>
+                    <option value="prevtotal_desc">最新日以前差枚 多い順</option>
+                    <option value="prevtotal_asc">最新日以前差枚 少ない順</option>
                     <option value="machine_asc">機種名 あ→わ</option>
                     <option value="machine_desc">機種名 わ→あ</option>
                     <option value="unit_asc">台番号 ↑</option>
@@ -214,9 +216,18 @@
                             </select>
                             <input type="number" id="trendTotalFilterValue" placeholder="枚">
                         </div>
+                        <div class="filter-item">
+                            <label>最新日以前</label>
+                            <select id="trendPrevTotalFilterType">
+                                <option value="">--</option>
+                                <option value="gte">以上</option>
+                                <option value="lte">以下</option>
+                            </select>
+                            <input type="number" id="trendPrevTotalFilterValue" placeholder="枚">
+                        </div>
                     </div>
                 </div>
-            
+
                 <!-- 列表示設定 -->
                 <div class="filter-section">
                     <h5>📋 表示列</h5>

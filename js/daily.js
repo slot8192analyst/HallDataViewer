@@ -3,11 +3,30 @@
 // ===================
 
 // 表示する列の状態を管理
-let visibleColumns = [];
-let allColumns = [];
-let filterPanelOpen = false;
-let dailyMachineFilterSelect = null;
-let selectedPositionFilter = '';
+var visibleColumns = [];
+var allColumns = [];
+var filterPanelOpen = false;
+var dailyMachineFilterSelect = null;
+var selectedPositionFilter = '';
+
+// 状態の同期
+function syncDailyState() {
+    HallData.state.daily.visibleColumns = visibleColumns;
+    HallData.state.daily.allColumns = allColumns;
+    HallData.state.daily.filterPanelOpen = filterPanelOpen;
+    HallData.state.daily.positionFilter = selectedPositionFilter;
+}
+
+function loadDailyState() {
+    if (HallData.state.daily.visibleColumns.length > 0) {
+        visibleColumns = HallData.state.daily.visibleColumns;
+    }
+    if (HallData.state.daily.allColumns.length > 0) {
+        allColumns = HallData.state.daily.allColumns;
+    }
+    filterPanelOpen = HallData.state.daily.filterPanelOpen;
+    selectedPositionFilter = HallData.state.daily.positionFilter || '';
+}
 
 // 機械割を計算する関数
 function calculateMechanicalRate(games, saMai) {
@@ -185,25 +204,24 @@ function renderPositionFilter() {
 
 // フィルターパネル内に位置フィルターを追加
 function renderPositionFilterSection() {
-    const filterContent = document.getElementById('filterContent');
+    var filterContent = document.getElementById('filterContent');
     if (!filterContent) return;
     
-    // 既存の位置フィルターセクションを削除
-    const existingSection = filterContent.querySelector('.position-filter-section');
+    var existingSection = filterContent.querySelector('.position-filter-section');
     if (existingSection) {
         existingSection.remove();
     }
     
     // 新しいセクションを追加
-    const section = document.createElement('div');
+    var section = document.createElement('div');
     section.className = 'filter-section position-filter-section';
-    section.innerHTML = `
-        <h5>📍 位置フィルター</h5>
-        ${renderPositionFilter()}
-    `;
+    section.innerHTML = '<h5>📍 位置フィルター</h5>' + renderMultiPositionFilter('daily', function() {
+        renderPositionFilterSection();
+        filterAndRender();
+    });
     
     // 最初のフィルターセクションの前に挿入
-    const firstSection = filterContent.querySelector('.filter-section');
+    var firstSection = filterContent.querySelector('.filter-section');
     if (firstSection) {
         firstSection.before(section);
     } else {
@@ -211,12 +229,9 @@ function renderPositionFilterSection() {
     }
     
     // イベントリスナーを設定
-    section.querySelectorAll('.position-filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            selectedPositionFilter = btn.dataset.position;
-            renderPositionFilterSection(); // 再描画してアクティブ状態を更新
-            filterAndRender();
-        });
+    setupMultiPositionFilterEvents('daily', function() {
+        renderPositionFilterSection();
+        filterAndRender();
     });
 }
 
@@ -314,42 +329,6 @@ function updateFilterBadge() {
         badge.textContent = badgeText.join(' / ');
         toggle.querySelector('h4').appendChild(badge);
     }
-}
-
-// 日別用のイベントバッジ表示
-function renderDailyEventBadges(events) {
-    if (!events || events.length === 0) return '';
-
-    const relevantEvents = events.filter(event => hasEventOrPerformers(event));
-    
-    if (relevantEvents.length === 0) return '';
-
-    let html = '<div class="daily-event-badges">';
-    
-    relevantEvents.forEach(event => {
-        if (isValidEvent(event)) {
-            const { icon, name, color } = getEventDisplayName(event);
-            
-            if (name) {
-                html += `
-                    <span class="daily-event-badge" style="background: ${color}20; border-color: ${color};">
-                        ${icon} ${name}
-                    </span>
-                `;
-            }
-        }
-
-        if (event.performers && event.performers.length > 0) {
-            html += `
-                <span class="daily-event-badge performer-badge">
-                    🎤 ${event.performers.join(', ')}
-                </span>
-            `;
-        }
-    });
-    
-    html += '</div>';
-    return html;
 }
 
 // 日付セレクトボックスにイベント情報を含めて初期化
@@ -493,9 +472,7 @@ async function filterAndRender() {
     data = [...data];
 
     // 位置フィルター
-    if (selectedPositionFilter) {
-        data = filterByPositionTag(data, selectedPositionFilter, '台番号');
-    }
+    data = applyMultiPositionFilter(data, 'daily', '台番号');
 
     // 機種フィルター（複数選択対応）
     const selectedMachines = dailyMachineFilterSelect ? dailyMachineFilterSelect.getSelectedValues() : [];
@@ -678,12 +655,10 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
             const avgRateClass = getMechanicalRateClass(avgRate);
 
             // 位置フィルター情報を表示
-            let positionInfo = '';
-            if (selectedPositionFilter) {
-                const tagInfo = POSITION_TAGS[selectedPositionFilter];
-                if (tagInfo) {
-                    positionInfo = ` | 位置: <span style="color: ${tagInfo.color}">${tagInfo.icon} ${tagInfo.label}</span>`;
-                }
+            var positionInfo = '';
+            var positionState = getPositionFilterState('daily');
+            if (positionState.selected.length > 0) {
+                positionInfo = ' | 位置: ' + getPositionFilterDisplayText('daily');
             }
 
             summaryEl.innerHTML = `
@@ -821,7 +796,7 @@ function setupDailyEventListeners() {
         document.getElementById('rateFilterType').value = '';
         document.getElementById('rateFilterValue').value = '';
         document.getElementById('unitSuffixFilter').value = '';
-        selectedPositionFilter = ''; // 位置フィルターもリセット
+        resetPositionFilter('daily');
         if (dailyMachineFilterSelect) {
             dailyMachineFilterSelect.reset();
         }
