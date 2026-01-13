@@ -1,5 +1,5 @@
 // ===================
-// 差枚トレンドタブ（大幅機能拡充版）
+// 差枚トレンドタブ
 // ===================
 
 let trendDataCache = null;
@@ -7,8 +7,8 @@ let trendLastParams = null;
 let trendMachineFilterSelect = null;
 let trendShowTotal = true;
 let trendShowAvg = true;
-let trendShowPrevTotal = false; // 最新日以前合計の表示フラグ
-let trendShowChart = true; // グラフ表示フラグ
+let trendShowPrevTotal = false;
+let trendShowChart = true;
 let selectedTrendPositionFilter = '';
 
 // 表示モード: 'unit' = 台別, 'machine' = 機種別
@@ -679,13 +679,16 @@ async function populateTrendDateList() {
         const item = document.createElement('div');
         item.className = 'date-checkbox-item';
         
+        // 【修正】選択済みの日付かどうかをチェック
+        const isSelected = selectedTrendDates && selectedTrendDates.includes(file);
+        
         let eventHtml = '';
         if (eventText) {
             eventHtml = `<span class="date-event-info">${eventText}</span>`;
         }
 
         item.innerHTML = `
-            <input type="checkbox" id="trend-date-${file}" value="${file}">
+            <input type="checkbox" id="trend-date-${file}" value="${file}" ${isSelected ? 'checked' : ''}>
             <label for="trend-date-${file}">${formatDate(file)}</label>
             <span class="day-of-week ${dayClass}">(${dayName})</span>
             ${dateInfo}

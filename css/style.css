@@ -3790,3 +3790,81 @@ td .position-tag.compact {
         font-size: var(--font-size-xs);
     }
 }
+
+/* ===================
+   複数選択機種フィルター - 台数選択レイアウト調整
+   =================== */
+
+/* 台数選択セクション */
+.multi-select-threshold-input {
+    width: 80px !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+    padding: 6px 8px !important;
+    text-align: center;
+    font-size: var(--font-size-sm) !important;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+}
+
+.multi-select-threshold-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.multi-select-threshold-input::placeholder {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.multi-select-threshold-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.multi-select-threshold .multi-select-btn {
+    flex: 0 0 auto;
+    padding: 6px 12px;
+    min-width: auto;
+}
+
+/* ボタン行のレイアウト調整 */
+.multi-select-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.multi-select-buttons .multi-select-btn {
+    flex: 1;
+    padding: 6px 10px;
+}
+
+/* コントロール全体のレイアウト */
+.multi-select-controls {
+    padding: 10px;
+    background: var(--bg-light);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 480px) {
+    .multi-select-threshold {
+        flex-wrap: nowrap;
+    }
+    
+    .multi-select-threshold-input {
+        width: 80px !important;
+        min-width: 80px !important;
+        max-width: 80px !important;
+        padding: 6px 8px !important;
+    }
+    
+    .multi-select-threshold .multi-select-btn {
+        padding: 5px 10px;
+    }
+}
