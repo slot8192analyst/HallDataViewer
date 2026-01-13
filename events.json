@@ -1,6 +1,84 @@
 {
   "events": [
     {
+      "date": "2025_01_08",
+      "type": "new_machine",
+      "media": "",
+      "name": ["新台入替"]
+    },
+    {
+      "date": "2025_02_04",
+      "type": "new_machine",
+      "media": "",
+      "name": ["新台入替"]
+    },
+    {
+      "date": "2025_03_04",
+      "type": "new_machine",
+      "media": "",
+      "name": ["新台入替"]
+    },
+    {
+      "date": "2025_04_17",
+      "type": "new_machine",
+      "media": "",
+      "name": ["新台入替"]
+    },
+    {
+      "date": "2025_04_22",
+      "type": "new_machine",
+      "media": "",
+      "name": ["新台入替"]
+    },
+    {
+      "date": "2025_05_08",
+      "type": "new_machine",
+      "media": "",
+      "name": ["新台入替"]
+    },
+    {
+      "date": "2025_06_03",
+      "type": "new_machine",
+      "media": "",
+      "name": ["新台入替"]
+    },
+    {
+      "date": "2025_08_05",
+      "type": "new_machine",
+      "media": "",
+      "name": ["新台入替"]
+    },
+    {
+      "date": "2025_09_09",
+      "type": "new_machine",
+      "media": "",
+      "name": ["新台入替"]
+    },
+    {
+      "date": "2025_09_24",
+      "type": "new_machine",
+      "media": "",
+      "name": ["新台入替"]
+    },
+    {
+      "date": "2025_10_07",
+      "type": "new_machine",
+      "media": "",
+      "name": ["新台入替"]
+    },
+    {
+      "date": "2025_11_05",
+      "type": "new_machine",
+      "media": "",
+      "name": ["新台入替"]
+    },
+    {
+      "date": "2025_12_09",
+      "type": "new_machine",
+      "media": "",
+      "name": ["新台入替"]
+    },
+    {
       "date": "2025_12_21",
       "type": "dmm",
       "media": "DMMぱちタウン",
