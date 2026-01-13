@@ -402,55 +402,6 @@ function renderStatsPositionFilter(containerId = 'stats-daily-content') {
     });
 }
 
-// 統計用のイベントバッジ表示（noteの表示を含む）
-function renderStatsEventBadges(events) {
-    if (!events || events.length === 0) return '';
-
-    const relevantEvents = events.filter(event => hasEventOrPerformers(event));
-    
-    if (relevantEvents.length === 0) return '';
-
-    // デフォルトカラー（紫系）
-    const defaultColor = '#a855f7';
-
-    let html = '<div class="stats-event-badges">';
-    
-    relevantEvents.forEach(event => {
-        if (isValidEvent(event)) {
-            const { icon, name } = getEventDisplayName(event);
-            
-            if (name) {
-                // デフォルトカラーを使用
-                html += `
-                    <span class="stats-event-badge" style="background: ${defaultColor}20; border-color: ${defaultColor};">
-                        ${icon} ${name}
-                    </span>
-                `;
-                
-                // noteがある場合は別途表示
-                if (event.note) {
-                    html += `
-                        <span class="stats-event-note" style="color: ${defaultColor};">
-                            📝 ${event.note}
-                        </span>
-                    `;
-                }
-            }
-        }
-
-        if (event.performers && event.performers.length > 0) {
-            html += `
-                <span class="stats-event-badge performer-badge">
-                    🎤 ${event.performers.join(', ')}
-                </span>
-            `;
-        }
-    });
-    
-    html += '</div>';
-    return html;
-}
-
 // 検索可能フィルターを初期化
 async function initStatsFilters() {
     await loadEventData();

@@ -2,31 +2,51 @@
 // 差枚トレンドタブ
 // ===================
 
-let trendDataCache = null;
-let trendLastParams = null;
-let trendMachineFilterSelect = null;
-let trendShowTotal = true;
-let trendShowAvg = true;
-let trendShowPrevTotal = false;
-let trendShowChart = true;
-let selectedTrendPositionFilter = '';
+var trendDataCache = null;
+var trendMachineFilterSelect = null;
+var trendShowTotal = true;
+var trendShowAvg = true;
+var trendShowPrevTotal = false;
+var trendShowChart = true;
+var selectedTrendPositionFilter = '';
+var trendViewMode = 'unit';
+var trendMachineValueType = 'total';
+var trendFilterLogic = 'or';
 
-// 表示モード: 'unit' = 台別, 'machine' = 機種別
-let trendViewMode = 'unit';
-// 値タイプ: 'total' = 総差枚, 'avg' = 平均差枚, 'winrate' = 勝率
-let trendMachineValueType = 'total';
-
-// フィルター条件の結合方式: 'and' または 'or'
-let trendFilterLogic = 'or';
-
-// アクティブなフィルター状態を管理
-let activeTrendFilters = {
+var activeTrendFilters = {
     dayOfWeek: [],
     suffix: [],
     special: [],
     events: [],
     dateRange: { start: null, end: null }
 };
+
+// 状態の同期
+function syncTrendState() {
+    HallData.state.trend.showTotal = trendShowTotal;
+    HallData.state.trend.showAvg = trendShowAvg;
+    HallData.state.trend.showPrevTotal = trendShowPrevTotal;
+    HallData.state.trend.showChart = trendShowChart;
+    HallData.state.trend.viewMode = trendViewMode;
+    HallData.state.trend.valueType = trendMachineValueType;
+    HallData.state.trend.positionFilter = selectedTrendPositionFilter;
+    HallData.state.trend.filterLogic = trendFilterLogic;
+    HallData.state.trend.activeFilters = activeTrendFilters;
+}
+
+function loadTrendState() {
+    trendShowTotal = HallData.state.trend.showTotal;
+    trendShowAvg = HallData.state.trend.showAvg;
+    trendShowPrevTotal = HallData.state.trend.showPrevTotal;
+    trendShowChart = HallData.state.trend.showChart;
+    trendViewMode = HallData.state.trend.viewMode;
+    trendMachineValueType = HallData.state.trend.valueType;
+    selectedTrendPositionFilter = HallData.state.trend.positionFilter || '';
+    trendFilterLogic = HallData.state.trend.filterLogic || 'or';
+    if (HallData.state.trend.activeFilters) {
+        activeTrendFilters = HallData.state.trend.activeFilters;
+    }
+}
 
 // 日付のイベント・演者情報を取得してテキスト生成
 function getTrendDateEventText(file) {

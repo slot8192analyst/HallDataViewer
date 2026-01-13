@@ -3,11 +3,30 @@
 // ===================
 
 // 表示する列の状態を管理
-let visibleColumns = [];
-let allColumns = [];
-let filterPanelOpen = false;
-let dailyMachineFilterSelect = null;
-let selectedPositionFilter = '';
+var visibleColumns = [];
+var allColumns = [];
+var filterPanelOpen = false;
+var dailyMachineFilterSelect = null;
+var selectedPositionFilter = '';
+
+// 状態の同期
+function syncDailyState() {
+    HallData.state.daily.visibleColumns = visibleColumns;
+    HallData.state.daily.allColumns = allColumns;
+    HallData.state.daily.filterPanelOpen = filterPanelOpen;
+    HallData.state.daily.positionFilter = selectedPositionFilter;
+}
+
+function loadDailyState() {
+    if (HallData.state.daily.visibleColumns.length > 0) {
+        visibleColumns = HallData.state.daily.visibleColumns;
+    }
+    if (HallData.state.daily.allColumns.length > 0) {
+        allColumns = HallData.state.daily.allColumns;
+    }
+    filterPanelOpen = HallData.state.daily.filterPanelOpen;
+    selectedPositionFilter = HallData.state.daily.positionFilter || '';
+}
 
 // 機械割を計算する関数
 function calculateMechanicalRate(games, saMai) {
@@ -314,42 +333,6 @@ function updateFilterBadge() {
         badge.textContent = badgeText.join(' / ');
         toggle.querySelector('h4').appendChild(badge);
     }
-}
-
-// 日別用のイベントバッジ表示
-function renderDailyEventBadges(events) {
-    if (!events || events.length === 0) return '';
-
-    const relevantEvents = events.filter(event => hasEventOrPerformers(event));
-    
-    if (relevantEvents.length === 0) return '';
-
-    let html = '<div class="daily-event-badges">';
-    
-    relevantEvents.forEach(event => {
-        if (isValidEvent(event)) {
-            const { icon, name, color } = getEventDisplayName(event);
-            
-            if (name) {
-                html += `
-                    <span class="daily-event-badge" style="background: ${color}20; border-color: ${color};">
-                        ${icon} ${name}
-                    </span>
-                `;
-            }
-        }
-
-        if (event.performers && event.performers.length > 0) {
-            html += `
-                <span class="daily-event-badge performer-badge">
-                    🎤 ${event.performers.join(', ')}
-                </span>
-            `;
-        }
-    });
-    
-    html += '</div>';
-    return html;
 }
 
 // 日付セレクトボックスにイベント情報を含めて初期化

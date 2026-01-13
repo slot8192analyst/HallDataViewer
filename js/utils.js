@@ -1518,39 +1518,125 @@ function getEventDisplayName(event) {
     return { icon: icon, name: eventName, typeInfo: typeInfo, color: color, event: event };
 }
 
-function renderEventBadges(events) {
+// ===================
+// イベントバッジ描画（統一版）
+// ===================
+
+/**
+ * イベントバッジを描画
+ * @param {Array} events - イベント配列
+ * @param {Object} options - オプション
+ * @param {string} options.style - 'default' | 'calendar' | 'daily' | 'stats'
+ * @param {boolean} options.showNote - noteを表示するか
+ * @param {boolean} options.showPerformers - 演者を表示するか
+ * @param {string} options.wrapperClass - ラッパーのクラス名
+ * @returns {string} HTML文字列
+ */
+function renderEventBadges(events, options) {
+    options = options || {};
+    var style = options.style || 'default';
+    var showNote = options.showNote !== false;
+    var showPerformers = options.showPerformers !== false;
+    var wrapperClass = options.wrapperClass || '';
+
     if (!events || events.length === 0) return '';
 
-    var displayableEvents = events.filter(function(event) { return hasEventOrPerformers(event); });
+    var displayableEvents = events.filter(function(event) {
+        return hasEventOrPerformers(event);
+    });
 
     if (displayableEvents.length === 0) return '';
 
     var html = '';
+    
+    // スタイルに応じたラッパークラス
+    var containerClass = '';
+    switch (style) {
+        case 'calendar':
+            containerClass = 'event-badges';
+            break;
+        case 'daily':
+            containerClass = 'daily-event-badges';
+            break;
+        case 'stats':
+            containerClass = 'stats-event-badges';
+            break;
+        default:
+            containerClass = 'event-badges';
+    }
+    
+    if (wrapperClass) {
+        containerClass += ' ' + wrapperClass;
+    }
+
+    html += '<div class="' + containerClass + '">';
     
     displayableEvents.forEach(function(event) {
         if (isValidEvent(event)) {
             var displayInfo = getEventDisplayName(event);
             
             if (displayInfo.name) {
+                var badgeClass = style === 'stats' ? 'stats-event-badge' : 
+                                 style === 'daily' ? 'daily-event-badge' : 
+                                 'event-badge';
+                
                 var title = displayInfo.name;
                 if (event.media) title += ' (' + event.media + ')';
-                if (event.note) title += ' - ' + event.note;
+                if (event.note && showNote) title += ' - ' + event.note;
                 
-                html += 
-                    '<div class="event-badge" style="background: ' + displayInfo.color + '20; border-color: ' + displayInfo.color + ';" title="' + title + '">' +
-                        '<span class="event-icon">' + displayInfo.icon + '</span>' +
-                        '<span class="event-name">' + displayInfo.name + '</span>' +
-                    '</div>';
+                // カレンダースタイルの場合は短縮表示
+                if (style === 'calendar') {
+                    html += '<div class="event-badge" style="background: ' + displayInfo.color + '20; border-color: ' + displayInfo.color + ';" title="' + title + '">';
+                    html += '<span class="event-icon">' + displayInfo.icon + '</span>';
+                    html += '<span class="event-name">' + displayInfo.name + '</span>';
+                    html += '</div>';
+                } else {
+                    html += '<span class="' + badgeClass + '" style="background: ' + displayInfo.color + '20; border-color: ' + displayInfo.color + ';" title="' + title + '">';
+                    html += displayInfo.icon + ' ' + displayInfo.name;
+                    html += '</span>';
+                }
+                
+                // stats スタイルで note がある場合
+                if (style === 'stats' && event.note && showNote) {
+                    html += '<span class="stats-event-note" style="color: ' + displayInfo.color + ';">';
+                    html += '📝 ' + event.note;
+                    html += '</span>';
+                }
             }
         }
 
-        if (event.performers && event.performers.length > 0) {
-            html += '<div class="event-performers">🎤 ' + event.performers.join(', ') + '</div>';
+        // 演者表示
+        if (showPerformers && event.performers && event.performers.length > 0) {
+            if (style === 'calendar') {
+                html += '<div class="event-performers">🎤 ' + event.performers.join(', ') + '</div>';
+            } else {
+                var performerClass = style === 'stats' ? 'stats-event-badge performer-badge' :
+                                     style === 'daily' ? 'daily-event-badge performer-badge' :
+                                     'event-badge performer-badge';
+                html += '<span class="' + performerClass + '">';
+                html += '🎤 ' + event.performers.join(', ');
+                html += '</span>';
+            }
         }
     });
-
+    
+    html += '</div>';
     return html;
 }
+
+// 後方互換性のためのラッパー関数
+function renderCalendarEventBadges(events) {
+    return renderEventBadges(events, { style: 'calendar' });
+}
+
+function renderDailyEventBadges(events) {
+    return renderEventBadges(events, { style: 'daily', showNote: true });
+}
+
+function renderStatsEventBadges(events) {
+    return renderEventBadges(events, { style: 'stats', showNote: true });
+}
+
 
 // ===================
 // 日付セレクター用イベント表示（共通）
@@ -1857,3 +1943,4 @@ function getMachineOptionsForPeriod(dateFiles) {
     
     return sortMachineOptionsByCount(machineOptions);
 }
+
