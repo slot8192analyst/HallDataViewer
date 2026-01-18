@@ -1,0 +1,34 @@
+下記ディレクトリ構成でパチンコ店の情報をまとめる静的サイトを作成しています。
+
+C:.
+│  .gitignore                                                                     
+│  events.json
+│  files.json
+│  index.html
+│  prompt.txt
+│  README.md
+│  
+├─.vscode
+│      settings.json
+│      
+├─converter
+│      convert_csv_to_json.py
+│      requirements.txt
+│
+├─css
+│      style.css
+│
+├─data
+│      2026_01.json
+│      position.csv
+│
+└─js
+        app.js
+        calendar.js
+        chart.js
+        config.js
+        daily.js
+        data.js
+        stats.js
+        trend.js
+        utils.js
