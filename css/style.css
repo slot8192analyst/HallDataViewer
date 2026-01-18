@@ -3989,3 +3989,65 @@ td .position-tag.compact {
         min-width: 60px;
     }
 }
+
+/* ===================
+   週間おすすめバッジ
+   =================== */
+
+.weekly-rec-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 2px;
+}
+
+.weekly-rec-badge {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 4px;
+    background: var(--rec-color, #3b82f6);
+    border-radius: 3px;
+    color: #fff;
+    font-size: 8px;
+    line-height: 1.2;
+    overflow: hidden;
+}
+
+.weekly-rec-badge .rec-icon {
+    font-size: 9px;
+    flex-shrink: 0;
+}
+
+.weekly-rec-badge .rec-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ===================
+   レスポンシブ
+   =================== */
+@media (max-width: 480px) {
+    .weekly-rec-badge {
+        font-size: 7px;
+        padding: 1px 3px;
+    }
+    
+    .weekly-rec-badge .rec-icon {
+        font-size: 8px;
+    }
+}
+
+@media (min-width: 769px) {
+    .weekly-rec-badge {
+        font-size: 9px;
+        padding: 2px 5px;
+    }
+    
+    .weekly-rec-badge .rec-icon {
+        font-size: 10px;
+    }
+}
+
+
