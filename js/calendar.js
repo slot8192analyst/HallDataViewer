@@ -20,13 +20,11 @@ function navigateToDailyData(dateKey) {
     const sortedFiles = sortFilesByDate(CSV_FILES, true);
     const fileIndex = sortedFiles.indexOf(filename);
     
-    // データが存在する場合のみ遷移
     if (fileIndex === -1) {
         showCopyToast('この日のデータはありません', true);
         return;
     }
     
-    // 日別データタブに切り替え
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
     
@@ -37,14 +35,11 @@ function navigateToDailyData(dateKey) {
         dailyTabBtn.classList.add('active');
         dailyTabContent.classList.add('active');
         
-        // 日付インデックスを更新
         currentDateIndex = fileIndex;
         
-        // 日付セレクターを更新してデータを表示
         initDateSelectWithEvents();
         filterAndRender();
         
-        // ページ上部にスクロール
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
@@ -392,7 +387,82 @@ function dateMatchesCalendarFilter(dateKey) {
     return matchesEvent && matchesMedia && matchesPerformer;
 }
 
+
+// ===================
+// 週間おすすめ機種の処理
+// ===================
+
+/**
+ * 日付文字列をDateオブジェクトに変換
+ * @param {string} dateStr - YYYY_MM_DD形式
+ * @returns {Date}
+ */
+function parseDateKey(dateStr) {
+    const parts = dateStr.split('_').map(Number);
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+/**
+ * 指定した日のおすすめ情報を取得
+ * @param {string} dateKey - YYYY_MM_DD形式
+ * @returns {Array} おすすめ情報の配列
+ */
+function getRecommendationsForDate(dateKey) {
+    if (!eventData || !eventData.weeklyRecommendations) {
+        return [];
+    }
+    
+    const targetDate = parseDateKey(dateKey);
+    const result = [];
+    
+    eventData.weeklyRecommendations.forEach(rec => {
+        const recStart = parseDateKey(rec.startDate);
+        const recEnd = parseDateKey(rec.endDate);
+        
+        if (targetDate >= recStart && targetDate <= recEnd) {
+            result.push({
+                machines: rec.machines,
+                color: rec.color || '#3b82f6',
+                note: rec.note || ''
+            });
+        }
+    });
+    
+    return result;
+}
+
+/**
+ * 週間おすすめバッジのHTMLを生成
+ * @param {Array} recommendations - おすすめ情報の配列
+ * @returns {string} HTML文字列
+ */
+function renderWeeklyRecommendationBadges(recommendations) {
+    if (!recommendations || recommendations.length === 0) {
+        return '';
+    }
+    
+    let html = '';
+    
+    recommendations.forEach(rec => {
+        const machinesText = rec.machines.join(' / ');
+        const titleText = rec.note ? `${rec.note}: ${machinesText}` : machinesText;
+        
+        html += `
+            <div class="weekly-rec-badge" style="--rec-color: ${rec.color};" title="${titleText}">
+                <span class="rec-icon">📌</span>
+                <span class="rec-text">${machinesText}</span>
+            </div>
+        `;
+    });
+    
+    return html;
+}
+
+
+// ===================
 // カレンダー描画
+// ===================
+
 async function renderCalendar() {
     const container = document.getElementById('calendarDays');
     if (!container) return;
@@ -416,10 +486,9 @@ async function renderCalendar() {
 
     const dateStats = {};
     
-    // 月間サマリー用の変数
     let monthTotalSa = 0;
-    let firstHalfSa = 0;  // 上旬（1日〜15日）
-    let secondHalfSa = 0; // 下旬（16日〜月末）
+    let firstHalfSa = 0;
+    let secondHalfSa = 0;
     let monthTotalGames = 0;
     let monthTotalCount = 0;
     let monthPlusCount = 0;
@@ -442,14 +511,12 @@ async function renderCalendar() {
                     totalSa: totalSa
                 };
                 
-                // 月間サマリーに加算
                 monthTotalSa += totalSa;
                 monthTotalGames += totalGames;
                 monthTotalCount += data.length;
                 monthPlusCount += plusCount;
                 daysWithData++;
                 
-                // 上旬・下旬の判定
                 if (parsed.day <= 15) {
                     firstHalfSa += totalSa;
                 } else {
@@ -459,7 +526,6 @@ async function renderCalendar() {
         }
     }
     
-    // 月間サマリーを表示
     renderMonthSummary(monthTotalSa, firstHalfSa, secondHalfSa, monthTotalGames, monthTotalCount, monthPlusCount, daysWithData);
 
     let html = '';
@@ -475,6 +541,7 @@ async function renderCalendar() {
         const events = getEventsForDate(dateKey);
         const displayableEvents = events.filter(e => hasEventOrPerformers(e));
         const matchesFilter = dateMatchesCalendarFilter(dateKey);
+        const recommendations = getRecommendationsForDate(dateKey);
 
         let dayClass = 'calendar-day';
         if (dayOfWeek === 0) dayClass += ' sunday';
@@ -483,17 +550,23 @@ async function renderCalendar() {
         if (displayableEvents.length > 0) dayClass += ' has-event';
         if (!matchesFilter) dayClass += ' filtered-out';
 
-        // データがある場合はクリック可能にする
         const clickHandler = stats ? `onclick="navigateToDailyData('${dateKey}')"` : '';
         const titleAttr = stats ? `title="クリックで日別データを表示"` : '';
 
         html += `<div class="${dayClass}" ${clickHandler} ${titleAttr}>`;
         html += `<div class="day-number">${day}</div>`;
 
+        // イベントバッジ
         if (displayableEvents.length > 0) {
             html += `<div class="event-badges">${renderCalendarEventBadges(events)}</div>`;
         }
+        
+        // 週間おすすめバッジ
+        if (recommendations.length > 0) {
+            html += `<div class="weekly-rec-badges">${renderWeeklyRecommendationBadges(recommendations)}</div>`;
+        }
 
+        // 統計データ
         if (stats) {
             const avgSaClass = stats.avgSa > 0 ? 'plus' : stats.avgSa < 0 ? 'minus' : '';
             const totalSaClass = stats.totalSa > 0 ? 'plus' : stats.totalSa < 0 ? 'minus' : '';
@@ -546,30 +619,24 @@ async function renderCalendar() {
  * 月間サマリーを表示
  */
 function renderMonthSummary(totalSa, firstHalfSa, secondHalfSa, totalGames, totalCount, plusCount, daysWithData) {
-    // 既存のサマリーを削除
     const existingSummary = document.getElementById('calendarMonthSummary');
     if (existingSummary) {
         existingSummary.remove();
     }
     
-    // カレンダーヘッダーの後に挿入
     const calendarHeader = document.querySelector('.calendar-header');
     if (!calendarHeader) return;
     
-    // クラス計算
     const totalSaClass = totalSa > 0 ? 'plus' : totalSa < 0 ? 'minus' : '';
     const firstHalfClass = firstHalfSa > 0 ? 'plus' : firstHalfSa < 0 ? 'minus' : '';
     const secondHalfClass = secondHalfSa > 0 ? 'plus' : secondHalfSa < 0 ? 'minus' : '';
     
-    // 機械割計算
     const mechRate = totalGames > 0 ? calculateMechanicalRate(totalGames, totalSa) : null;
     const mechRateText = formatMechanicalRate(mechRate);
     const mechRateClass = getMechanicalRateClass(mechRate);
     
-    // 勝率計算
     const winRate = totalCount > 0 ? ((plusCount / totalCount) * 100).toFixed(1) : '0.0';
     
-    // サマリーHTML
     const summaryHtml = `
         <div id="calendarMonthSummary" class="calendar-month-summary">
             <div class="month-summary-item main">
@@ -601,7 +668,6 @@ function renderMonthSummary(totalSa, firstHalfSa, secondHalfSa, totalGames, tota
         </div>
     `;
     
-    // ヘッダーの後に挿入
     calendarHeader.insertAdjacentHTML('afterend', summaryHtml);
 }
 
