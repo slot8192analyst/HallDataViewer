@@ -1,2 +1,3 @@
 .vscode/
 converter/env/
+*.csv
