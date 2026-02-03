@@ -152,6 +152,20 @@
       "media": "DMMぱちタウン",
       "name": ["天運総撃"],
       "note": "秘宝伝系,ゴッドイーター,ヴァルヴレイヴ2"
+    },
+    {
+      "date": "2026_02_22",
+      "type": "dmm",
+      "media": "DMMぱちタウン",
+      "name": ["天運総撃"],
+      "note": ""
+    },
+    {
+      "date": "2026_02_28",
+      "type": "dmm",
+      "media": "DMMぱちタウン",
+      "name": ["パチタウンエンジェルズ"],
+      "note": ""
     }
   ],
       "recurringEvents": [
@@ -283,6 +297,18 @@
       "startDate": "2026_01_19",
       "endDate": "2026_01_25",
       "machines": ["沖ドキ系"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_01_26",
+      "endDate": "2026_02_01",
+      "machines": ["ハナハナ"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_02_03",
+      "endDate": "2026_02_08",
+      "machines": ["転生の章2"],
       "color": "#3b82f6"
     }
   ],
