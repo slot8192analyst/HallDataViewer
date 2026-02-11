@@ -115,6 +115,32 @@
                         <button class="btn-reset" id="resetFilter">リセット</button>
                     </div>
                 </div>
+
+                <!-- 高設定タグ条件セクション -->
+                <div class="filter-section">
+                    <h5>🏷️ 高設定タグ条件</h5>
+                    <p class="filter-hint">グループ内の条件はAND（すべて満たす）、グループ同士はOR（いずれか満たす）で判定します</p>
+                    <div class="high-setting-tag-config">
+                        <div class="tag-groups-list" id="dailyTagGroupsList"></div>
+                        <div class="tag-groups-actions">
+                            <button class="btn-small" id="dailyAddTagGroup">＋ 条件グループを追加</button>
+                        </div>
+                        <div class="tag-preset-row">
+                            <span class="tag-preset-label">プリセット:</span>
+                            <div class="tag-preset-buttons">
+                                <button class="preset-btn" data-preset="suspect" data-context="daily">高設定疑惑</button>
+                            </div>
+                        </div>
+                        <div class="tag-display-row">
+                            <label class="column-checkbox-item">
+                                <input type="checkbox" id="dailyShowHighSettingOnly">
+                                <span>高設定タグ付きのみ表示</span>
+                            </label>
+                            <span class="tag-count-display" id="dailyTagCountDisplay"></span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="filter-section">
                     <h5>📋 表示列</h5>
                     <div class="column-selector-controls">
@@ -247,25 +273,20 @@
                     </div>
                 </div>
 
-                <!-- 高設定タグ条件セクション -->
                 <div class="filter-section">
                     <h5>🏷️ 高設定タグ条件</h5>
                     <p class="filter-hint">グループ内の条件はAND（すべて満たす）、グループ同士はOR（いずれか満たす）で判定します</p>
-                    
                     <div class="high-setting-tag-config">
                         <div class="tag-groups-list" id="tagGroupsList"></div>
-
                         <div class="tag-groups-actions">
                             <button class="btn-small" id="addTagGroup">＋ 条件グループを追加</button>
                         </div>
-
                         <div class="tag-preset-row">
                             <span class="tag-preset-label">プリセット:</span>
                             <div class="tag-preset-buttons">
                                 <button class="preset-btn" data-preset="suspect">高設定疑惑</button>
                             </div>
                         </div>
-
                         <div class="tag-display-row">
                             <label class="column-checkbox-item">
                                 <input type="checkbox" id="showHighSettingOnly">
@@ -282,10 +303,8 @@
             </div>
         </div>
 
-        <!-- サマリー -->
         <div class="compare-summary-cards" id="compareSummary"></div>
 
-        <!-- 高設定分析パネル -->
         <div class="compare-analysis-container" id="compareAnalysisContainer">
             <div class="analysis-header">
                 <h4>🏷️ 高設定タグ分析</h4>
@@ -303,13 +322,11 @@
             <div class="analysis-tables" id="analysisTables"></div>
         </div>
 
-        <!-- テーブルアクション -->
         <div class="table-actions">
             <button class="btn-copy" id="copyCompareTableBtn" title="テーブルをクリップボードにコピー">📋 コピー</button>
             <button class="btn-download" id="downloadCompareCsvBtn" title="CSVファイルをダウンロード">💾 CSV</button>
         </div>
 
-        <!-- 比較テーブル -->
         <div class="table-wrapper">
             <table id="compare-table">
                 <thead></thead>
@@ -530,11 +547,11 @@
         </div>
     </div>
     
-    <!-- スクリプト読み込み -->
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/data.js"></script>
     <script src="js/chart.js"></script>
+    <script src="js/preset.js"></script>
     <script src="js/hstag.js"></script>
     <script src="js/daily.js"></script>
     <script src="js/trend.js"></script>

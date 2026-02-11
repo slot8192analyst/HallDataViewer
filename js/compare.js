@@ -453,11 +453,6 @@ function renderAnalysisSummary(rows) {
         '  <div class="analysis-card-value">' + tagBRate.toFixed(1) + '%</div>' +
         '  <div class="analysis-card-sub">' + tagBCount + ' / ' + totalUnits + '台</div>' +
         '</div>' +
-        '<div class="analysis-card card-repeat">' +
-        '  <div class="analysis-card-label">連続高設定率</div>' +
-        '  <div class="analysis-card-value">' + repeatRate.toFixed(1) + '%</div>' +
-        '  <div class="analysis-card-sub">前回タグ' + prevTagRows.length + '台中 ' + repeatCount + '台</div>' +
-        '</div>' +
         '<div class="analysis-card card-recovery">' +
         '  <div class="analysis-card-label">前回マイナス→今回タグ</div>' +
         '  <div class="analysis-card-value">' + recoveryRate.toFixed(1) + '%</div>' +

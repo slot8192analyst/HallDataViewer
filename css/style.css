@@ -444,7 +444,7 @@ select:focus {
 }
 
 .collapsible > [class*="-content"].open {
-    max-height: 1000px;
+    max-height: 3000px;
     padding: 15px;
     transition: max-height 0.5s ease-in, padding var(--transition-normal);
 }
@@ -4378,5 +4378,225 @@ td .position-tag.compact {
 
     .analysis-table td:first-child {
         min-width: 60px;
+    }
+}
+
+/* ===================
+   機種フィルタープリセット
+   =================== */
+.multi-select-preset-section {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+}
+
+.preset-row {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.preset-row .preset-select {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: var(--font-size-sm);
+    background: var(--bg-base);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    min-width: 0;
+}
+
+.preset-row .preset-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.preset-row .preset-apply-btn {
+    padding: 6px 10px;
+    font-size: var(--font-size-sm);
+    background: var(--primary-color);
+    border-color: var(--primary-hover);
+    color: #fff;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.preset-row .preset-apply-btn:hover {
+    background: var(--primary-hover);
+}
+
+.preset-row .preset-save-btn,
+.preset-row .preset-manage-btn {
+    padding: 6px 8px;
+    font-size: var(--font-size-sm);
+    flex-shrink: 0;
+    min-width: 32px;
+    text-align: center;
+}
+
+/* 管理パネル */
+.preset-manage-panel {
+    margin-top: 8px;
+    padding: 10px;
+    background: var(--bg-base);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.preset-manage-title {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.preset-manage-empty {
+    text-align: center;
+    padding: 15px 10px;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.preset-manage-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.preset-manage-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    background: var(--bg-input);
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+}
+
+.preset-manage-item:hover {
+    background: var(--bg-elevated);
+}
+
+.preset-manage-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.preset-manage-name {
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.preset-manage-meta {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.preset-manage-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+.preset-action-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: all var(--transition-fast);
+}
+
+.preset-action-btn:hover {
+    background: var(--bg-surface);
+    border-color: var(--border-light);
+}
+
+.preset-action-btn.preset-delete-btn:hover {
+    background: var(--color-danger);
+    border-color: var(--color-danger);
+    color: #fff;
+}
+
+.preset-action-btn.preset-update-btn:hover {
+    background: var(--color-info);
+    border-color: var(--color-info);
+    color: #fff;
+}
+
+.preset-action-btn.preset-rename-btn:hover {
+    background: var(--color-warning);
+    border-color: var(--color-warning);
+    color: #fff;
+}
+
+/* プリセット管理パネルスクロールバー */
+.preset-manage-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.preset-manage-panel::-webkit-scrollbar-track {
+    background: var(--bg-base);
+}
+
+.preset-manage-panel::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 3px;
+}
+
+/* ===================
+   レスポンシブ: スマホ
+   =================== */
+@media (max-width: 480px) {
+    .preset-row {
+        flex-wrap: wrap;
+    }
+
+    .preset-row .preset-select {
+        flex: 1 1 100%;
+        margin-bottom: 4px;
+    }
+
+    .preset-row .preset-apply-btn {
+        flex: 1;
+    }
+
+    .preset-row .preset-save-btn,
+    .preset-row .preset-manage-btn {
+        min-width: 36px;
+    }
+
+    .preset-manage-panel {
+        max-height: 160px;
+    }
+
+    .preset-manage-item {
+        padding: 6px 8px;
+    }
+
+    .preset-action-btn {
+        width: 26px;
+        height: 26px;
+        font-size: var(--font-size-xs);
     }
 }

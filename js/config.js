@@ -19,6 +19,34 @@ const SITE_CONFIG = {
     // フッター（空欄で非表示）
     footerText: "",
     copyright: "",
+
+    // ===================
+    // 機種フィルタープリセット（固定）
+    // ===================
+    // matchMode:
+    //   "partial" = 部分一致（キーワードを含む機種すべて）
+    //   "exact"   = 完全一致（リストの機種名と完全に一致するもののみ）
+    machinePresets: [
+        {
+            id: "juggler",
+            name: "ジャグラー系",
+            matchMode: "partial",
+            keywords: ["ジャグラー"],
+        },
+        {
+            id: "at_main",
+            name: "AT/ART主力機",
+            matchMode: "partial",
+            keywords: ["からくりサーカス", "ヴァルヴレイヴ", "甲鉄城のカバネリ", "モンキーターン"],
+        },
+        // {
+        //     id: "a_type",
+        //     name: "Aタイプ",
+        //     matchMode: "exact",
+        //     keywords: [],
+        //     machines: ["ハナハナホウオウ~天翔~", "グレートキングハナハナ"],
+        // },
+    ],
 };
 
 // ===================
@@ -26,14 +54,14 @@ const SITE_CONFIG = {
 // ===================
 document.addEventListener('DOMContentLoaded', function() {
     document.title = SITE_CONFIG.siteTitle;
-    
+
     const h1 = document.querySelector('h1');
     if (h1) h1.textContent = SITE_CONFIG.headerTitle;
-    
+
     if (SITE_CONFIG.theme === "light") {
         document.documentElement.setAttribute('data-theme', 'light');
     }
-    
+
     if (SITE_CONFIG.customColors.primary) {
         document.documentElement.style.setProperty('--primary-color', SITE_CONFIG.customColors.primary);
     }

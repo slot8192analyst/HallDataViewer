@@ -917,7 +917,7 @@ function showCopyToast(message, isError) {
 }
 
 // ===================
-// 複数選択可能な機種フィルター
+// 複数選択可能な機種フィルター（プリセット対応版）
 // ===================
 
 function initMultiSelectMachineFilter(containerId, options, placeholder, onChange) {
@@ -943,6 +943,15 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
                     '<span class="multi-select-threshold-label">台以上</span>' +
                     '<button type="button" class="multi-select-btn select-by-count">選択</button>' +
                 '</div>' +
+                '<div class="multi-select-preset-section">' +
+                    '<div class="preset-row">' +
+                        '<select class="preset-select"><option value="">プリセット選択...</option></select>' +
+                        '<button type="button" class="multi-select-btn preset-apply-btn" title="適用">適用</button>' +
+                        '<button type="button" class="multi-select-btn preset-save-btn" title="現在の選択を保存">💾</button>' +
+                        '<button type="button" class="multi-select-btn preset-manage-btn" title="管理">⚙</button>' +
+                    '</div>' +
+                    '<div class="preset-manage-panel" style="display:none;"></div>' +
+                '</div>' +
             '</div>' +
             '<div class="multi-select-options"></div>' +
         '</div>';
@@ -958,9 +967,210 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
     var thresholdInput = container.querySelector('.multi-select-threshold-input');
     var selectByCountBtn = container.querySelector('.select-by-count');
 
+    // プリセットUI要素
+    var presetSelect = container.querySelector('.preset-select');
+    var presetApplyBtn = container.querySelector('.preset-apply-btn');
+    var presetSaveBtn = container.querySelector('.preset-save-btn');
+    var presetManageBtn = container.querySelector('.preset-manage-btn');
+    var presetManagePanel = container.querySelector('.preset-manage-panel');
+
     var selectedValues = new Set();
     var isOpen = false;
     var currentOptions = options;
+    var managePanelOpen = false;
+
+    // ========== プリセット機能 ==========
+
+    function getAvailableMachineNames() {
+        return currentOptions.map(function(opt) { return opt.value; });
+    }
+
+    function escapeHtmlPreset(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function populatePresetSelect() {
+        if (!presetSelect) return;
+        if (typeof MachinePreset === 'undefined') return;
+
+        var allPresets = MachinePreset.getAll();
+        var available = getAvailableMachineNames();
+
+        var html = '<option value="">プリセット選択...</option>';
+
+        var builtins = allPresets.filter(function(p) { return p.type === 'builtin'; });
+        if (builtins.length > 0) {
+            html += '<optgroup label="📌 固定プリセット">';
+            builtins.forEach(function(p) {
+                var matchCount = MachinePreset.resolve(p, available).length;
+                html += '<option value="' + p.id + '">' + escapeHtmlPreset(p.name) + ' (' + matchCount + '機種)</option>';
+            });
+            html += '</optgroup>';
+        }
+
+        var users = allPresets.filter(function(p) { return p.type === 'user'; });
+        if (users.length > 0) {
+            html += '<optgroup label="⭐ マイプリセット">';
+            users.forEach(function(p) {
+                var matchCount = MachinePreset.resolve(p, available).length;
+                html += '<option value="' + p.id + '">' + escapeHtmlPreset(p.name) + ' (' + matchCount + '機種)</option>';
+            });
+            html += '</optgroup>';
+        }
+
+        presetSelect.innerHTML = html;
+    }
+
+    function applyPreset() {
+        if (!presetSelect || !presetSelect.value) {
+            showCopyToast('プリセットを選択してください', true);
+            return;
+        }
+        if (typeof MachinePreset === 'undefined') return;
+
+        var allPresets = MachinePreset.getAll();
+        var preset = allPresets.find(function(p) { return p.id === presetSelect.value; });
+
+        if (!preset) {
+            showCopyToast('プリセットが見つかりません', true);
+            return;
+        }
+
+        var available = getAvailableMachineNames();
+        var matched = MachinePreset.resolve(preset, available);
+
+        if (matched.length === 0) {
+            showCopyToast('該当する機種がありません', true);
+            return;
+        }
+
+        selectedValues.clear();
+        matched.forEach(function(m) { selectedValues.add(m); });
+
+        renderOptions(searchInput ? searchInput.value : '');
+        updateDisplay();
+        if (onChange) onChange(getSelectedValues());
+
+        showCopyToast('「' + preset.name + '」を適用: ' + matched.length + '機種');
+    }
+
+    function saveCurrentAsPreset() {
+        if (selectedValues.size === 0) {
+            showCopyToast('機種を選択してから保存してください', true);
+            return;
+        }
+        if (typeof MachinePreset === 'undefined') return;
+
+        var name = prompt('プリセット名を入力してください:');
+        if (!name || name.trim() === '') return;
+
+        name = name.trim();
+        var machines = Array.from(selectedValues);
+
+        var created = MachinePreset.add(name, machines);
+        if (created) {
+            populatePresetSelect();
+            presetSelect.value = created.id;
+            showCopyToast('「' + name + '」を保存しました (' + machines.length + '機種)');
+        }
+    }
+
+    function toggleManagePanel() {
+        managePanelOpen = !managePanelOpen;
+        presetManagePanel.style.display = managePanelOpen ? 'block' : 'none';
+
+        if (managePanelOpen) {
+            renderManagePanel();
+        }
+    }
+
+    function renderManagePanel() {
+        if (!presetManagePanel) return;
+        if (typeof MachinePreset === 'undefined') {
+            presetManagePanel.innerHTML = '<div class="preset-manage-empty">プリセット機能が利用できません</div>';
+            return;
+        }
+
+        var allPresets = MachinePreset.getAll();
+        var users = allPresets.filter(function(p) { return p.type === 'user'; });
+        var available = getAvailableMachineNames();
+
+        if (users.length === 0) {
+            presetManagePanel.innerHTML =
+                '<div class="preset-manage-empty">保存済みのプリセットはありません</div>';
+            return;
+        }
+
+        var html = '<div class="preset-manage-title">⭐ マイプリセット管理</div>';
+        html += '<div class="preset-manage-list">';
+
+        users.forEach(function(p) {
+            var matchCount = MachinePreset.resolve(p, available).length;
+            var totalCount = (p.machines || []).length;
+
+            html += '<div class="preset-manage-item" data-id="' + p.id + '">';
+            html += '  <div class="preset-manage-info">';
+            html += '    <span class="preset-manage-name">' + escapeHtmlPreset(p.name) + '</span>';
+            html += '    <span class="preset-manage-meta">' + matchCount + '/' + totalCount + '機種が該当</span>';
+            html += '  </div>';
+            html += '  <div class="preset-manage-actions">';
+            html += '    <button class="preset-action-btn preset-update-btn" data-id="' + p.id + '" title="現在の選択で上書き">🔄</button>';
+            html += '    <button class="preset-action-btn preset-rename-btn" data-id="' + p.id + '" title="名前変更">✏️</button>';
+            html += '    <button class="preset-action-btn preset-delete-btn" data-id="' + p.id + '" title="削除">🗑️</button>';
+            html += '  </div>';
+            html += '</div>';
+        });
+
+        html += '</div>';
+        presetManagePanel.innerHTML = html;
+
+        presetManagePanel.querySelectorAll('.preset-update-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var id = this.dataset.id;
+                if (selectedValues.size === 0) {
+                    showCopyToast('機種を選択してから上書きしてください', true);
+                    return;
+                }
+                if (confirm('現在の選択内容で上書きしますか？')) {
+                    MachinePreset.updateMachines(id, Array.from(selectedValues));
+                    populatePresetSelect();
+                    renderManagePanel();
+                    showCopyToast('プリセットを更新しました');
+                }
+            });
+        });
+
+        presetManagePanel.querySelectorAll('.preset-rename-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var id = this.dataset.id;
+                var newName = prompt('新しいプリセット名:');
+                if (newName && newName.trim()) {
+                    MachinePreset.rename(id, newName.trim());
+                    populatePresetSelect();
+                    renderManagePanel();
+                    showCopyToast('名前を変更しました');
+                }
+            });
+        });
+
+        presetManagePanel.querySelectorAll('.preset-delete-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var id = this.dataset.id;
+                if (confirm('このプリセットを削除しますか？')) {
+                    MachinePreset.remove(id);
+                    populatePresetSelect();
+                    renderManagePanel();
+                    showCopyToast('プリセットを削除しました');
+                }
+            });
+        });
+    }
+
+    // ========== 機種リスト描画 ==========
 
     function renderOptions(filter) {
         filter = filter || '';
@@ -1058,6 +1268,7 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
         display.classList.add('open');
         searchInput.value = '';
         renderOptions();
+        populatePresetSelect();
         setTimeout(function() { searchInput.focus(); }, 10);
     }
 
@@ -1065,6 +1276,8 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
         isOpen = false;
         dropdown.classList.remove('open');
         display.classList.remove('open');
+        managePanelOpen = false;
+        if (presetManagePanel) presetManagePanel.style.display = 'none';
     }
 
     function selectAll() {
@@ -1133,6 +1346,8 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
         }
     }
 
+    // ========== イベントリスナー ==========
+
     display.addEventListener('click', function(e) {
         e.stopPropagation();
         if (isOpen) {
@@ -1180,6 +1395,29 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
         }
     });
 
+    // プリセットイベント
+    if (presetSelect) {
+        presetSelect.addEventListener('click', function(e) { e.stopPropagation(); });
+    }
+    if (presetApplyBtn) {
+        presetApplyBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            applyPreset();
+        });
+    }
+    if (presetSaveBtn) {
+        presetSaveBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            saveCurrentAsPreset();
+        });
+    }
+    if (presetManageBtn) {
+        presetManageBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleManagePanel();
+        });
+    }
+
     document.addEventListener('click', function(e) {
         if (!container.contains(e.target) && isOpen) {
             closeDropdown();
@@ -1204,6 +1442,7 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
         }
     });
 
+    // 初期描画
     renderOptions();
     updateDisplay();
 
@@ -1220,12 +1459,14 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
             selectedValues = new Set(Array.from(selectedValues).filter(function(v) { return validValues.has(v); }));
             if (isOpen) {
                 renderOptions(searchInput.value);
+                populatePresetSelect();
             }
             updateDisplay();
         },
         reset: function() {
             selectedValues.clear();
             if (thresholdInput) thresholdInput.value = '';
+            if (presetSelect) presetSelect.value = '';
             renderOptions(searchInput ? searchInput.value : '');
             updateDisplay();
             if (onChange) onChange([]);
@@ -1245,6 +1486,12 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
             renderOptions(searchInput ? searchInput.value : '');
             updateDisplay();
             if (onChange) onChange(getSelectedValues());
+        },
+        applyPreset: function(presetId) {
+            if (presetSelect) {
+                presetSelect.value = presetId;
+                applyPreset();
+            }
         },
         close: closeDropdown,
         open: openDropdown
@@ -1553,7 +1800,6 @@ function renderEventBadges(events, options) {
 
     var html = '';
     
-    // スタイルに応じたラッパークラス
     var containerClass = '';
     switch (style) {
         case 'calendar':
@@ -1588,7 +1834,6 @@ function renderEventBadges(events, options) {
                 if (event.media) title += ' (' + event.media + ')';
                 if (event.note && showNote) title += ' - ' + event.note;
                 
-                // カレンダースタイルの場合は短縮表示
                 if (style === 'calendar') {
                     html += '<div class="event-badge" style="background: ' + displayInfo.color + '20; border-color: ' + displayInfo.color + ';" title="' + title + '">';
                     html += '<span class="event-icon">' + displayInfo.icon + '</span>';
@@ -1600,7 +1845,6 @@ function renderEventBadges(events, options) {
                     html += '</span>';
                 }
                 
-                // stats スタイルで note がある場合
                 if (style === 'stats' && event.note && showNote) {
                     html += '<span class="stats-event-note" style="color: ' + displayInfo.color + ';">';
                     html += '📝 ' + event.note;
@@ -1609,7 +1853,6 @@ function renderEventBadges(events, options) {
             }
         }
 
-        // 演者表示
         if (showPerformers && event.performers && event.performers.length > 0) {
             if (style === 'calendar') {
                 html += '<div class="event-performers">🎤 ' + event.performers.join(', ') + '</div>';
@@ -1628,7 +1871,6 @@ function renderEventBadges(events, options) {
     return html;
 }
 
-// 後方互換性のためのラッパー関数
 function renderCalendarEventBadges(events) {
     return renderEventBadges(events, { style: 'calendar' });
 }
@@ -1952,34 +2194,23 @@ function getMachineOptionsForPeriod(dateFiles) {
 // 複数選択位置フィルター
 // ===================
 
-/**
- * 複数選択位置フィルターの状態
- */
 var positionFilterState = {
     daily: { selected: [], logic: 'or' },
     trend: { selected: [], logic: 'or' },
     stats: { selected: [], logic: 'or' }
 };
 
-/**
- * 位置フィルターのHTMLを生成（複数選択対応）
- * @param {string} tabName - タブ名 ('daily', 'trend', 'stats')
- * @param {function} onChange - 変更時のコールバック
- * @returns {string} HTML文字列
- */
 function renderMultiPositionFilter(tabName, onChange) {
     var state = positionFilterState[tabName];
     var positionTags = getAllPositionTags();
     
     var html = '<div class="position-filter-container" data-tab="' + tabName + '">';
     
-    // AND/OR切り替え
     html += '<div class="position-filter-logic">';
     html += '<button type="button" class="position-logic-btn' + (state.logic === 'or' ? ' active' : '') + '" data-logic="or">OR</button>';
     html += '<button type="button" class="position-logic-btn' + (state.logic === 'and' ? ' active' : '') + '" data-logic="and">AND</button>';
     html += '</div>';
     
-    // 位置タグボタン
     html += '<div class="position-filter-tags">';
     
     positionTags.forEach(function(tag) {
@@ -1998,12 +2229,10 @@ function renderMultiPositionFilter(tabName, onChange) {
     
     html += '</div>';
     
-    // クリアボタン
     if (state.selected.length > 0) {
         html += '<button type="button" class="position-filter-clear">クリア</button>';
     }
     
-    // 選択状態の表示
     if (state.selected.length > 0) {
         var logicText = state.logic === 'and' ? ' かつ ' : ' または ';
         var selectedLabels = state.selected.map(function(val) {
@@ -2020,18 +2249,12 @@ function renderMultiPositionFilter(tabName, onChange) {
     return html;
 }
 
-/**
- * 位置フィルターのイベントを設定
- * @param {string} tabName - タブ名
- * @param {function} onChange - 変更時のコールバック
- */
 function setupMultiPositionFilterEvents(tabName, onChange) {
     var container = document.querySelector('.position-filter-container[data-tab="' + tabName + '"]');
     if (!container) return;
     
     var state = positionFilterState[tabName];
     
-    // AND/OR切り替えボタン
     container.querySelectorAll('.position-logic-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             state.logic = this.dataset.logic;
@@ -2039,7 +2262,6 @@ function setupMultiPositionFilterEvents(tabName, onChange) {
         });
     });
     
-    // 位置タグボタン
     container.querySelectorAll('.position-filter-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var position = this.dataset.position;
@@ -2055,7 +2277,6 @@ function setupMultiPositionFilterEvents(tabName, onChange) {
         });
     });
     
-    // クリアボタン
     var clearBtn = container.querySelector('.position-filter-clear');
     if (clearBtn) {
         clearBtn.addEventListener('click', function() {
@@ -2065,13 +2286,6 @@ function setupMultiPositionFilterEvents(tabName, onChange) {
     }
 }
 
-/**
- * 位置フィルターを適用（複数選択対応）
- * @param {Array} data - フィルター対象データ
- * @param {string} tabName - タブ名
- * @param {string} unitKey - 台番号のキー名
- * @returns {Array} フィルター済みデータ
- */
 function applyMultiPositionFilter(data, tabName, unitKey) {
     unitKey = unitKey || '台番号';
     var state = positionFilterState[tabName];
@@ -2085,12 +2299,10 @@ function applyMultiPositionFilter(data, tabName, unitKey) {
         var tags = getPositionTags(unitNum);
         
         if (state.logic === 'and') {
-            // AND: すべての選択タグを持っている
             return state.selected.every(function(selectedTag) {
                 return tags.indexOf(selectedTag) !== -1;
             });
         } else {
-            // OR: いずれかの選択タグを持っている
             return state.selected.some(function(selectedTag) {
                 return tags.indexOf(selectedTag) !== -1;
             });
@@ -2098,19 +2310,10 @@ function applyMultiPositionFilter(data, tabName, unitKey) {
     });
 }
 
-/**
- * 位置フィルターの状態を取得
- * @param {string} tabName - タブ名
- * @returns {Object} { selected: [], logic: 'or'|'and' }
- */
 function getPositionFilterState(tabName) {
     return positionFilterState[tabName] || { selected: [], logic: 'or' };
 }
 
-/**
- * 位置フィルターの状態をリセット
- * @param {string} tabName - タブ名
- */
 function resetPositionFilter(tabName) {
     if (positionFilterState[tabName]) {
         positionFilterState[tabName].selected = [];
@@ -2118,11 +2321,6 @@ function resetPositionFilter(tabName) {
     }
 }
 
-/**
- * 位置フィルターの選択状態を表示用テキストで取得
- * @param {string} tabName - タブ名
- * @returns {string} 表示用テキスト
- */
 function getPositionFilterDisplayText(tabName) {
     var state = positionFilterState[tabName];
     if (!state || state.selected.length === 0) {
