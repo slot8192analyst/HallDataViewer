@@ -1,25 +1,34 @@
 下記ディレクトリ構成でパチンコ店の情報をまとめる静的サイトを作成しています。
 
 C:.
-│  .gitignore                                                                     
+│  .gitignore
 │  events.json
 │  files.json
 │  index.html
 │  prompt.txt
 │  README.md
-│  
+│
 ├─.vscode
 │      settings.json
-│      
-├─converter
-│      convert_csv_to_json.py
-│      requirements.txt
 │
 ├─css
 │      style.css
 │
 ├─data
+│      2025_01.json
+│      2025_02.json
+│      2025_03.json
+│      2025_04.json
+│      2025_05.json
+│      2025_06.json
+│      2025_07.json
+│      2025_08.json
+│      2025_09.json
+│      2025_10.json
+│      2025_11.json
+│      2025_12.json
 │      2026_01.json
+│      2026_02.json
 │      position.csv
 │
 └─js

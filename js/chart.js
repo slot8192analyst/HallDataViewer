@@ -17,9 +17,10 @@ function renderTrendChart(results, targetFiles, options = {}) {
         showBottom = false,
         displayCount = 5,
         mode = 'unit',
-        valueType = 'total'
+        config = null
     } = options;
 
+    const colConfig = config || getCurrentColumnConfig();
     const ctx = document.getElementById('trendChart');
     if (!ctx) return;
 
@@ -28,88 +29,48 @@ function renderTrendChart(results, targetFiles, options = {}) {
         trendChartInstance = null;
     }
 
-    if (results.length === 0 || targetFiles.length === 0) {
-        return;
-    }
+    if (results.length === 0 || targetFiles.length === 0) return;
 
     const chartDisplayType = document.getElementById('chartDisplayType')?.value || 'cumulative';
-    
-    // 勝率モードの場合は常に日別表示
-    const effectiveDisplayType = valueType === 'winrate' ? 'daily' : chartDisplayType;
+    // 確率系・レート系は累積が意味をなさないので日別固定
+    const effectiveDisplayType = (!colConfig.canSum) ? 'daily' : chartDisplayType;
 
-    let displayData = [];
-    
-    // ソート基準を決定
-    let sortKey;
-    switch (valueType) {
-        case 'avg':
-            sortKey = 'avg';
-            break;
-        case 'winrate':
-            sortKey = 'winRate';
-            break;
-        default:
-            sortKey = 'total';
-    }
-    
+    // ソートして上位/下位を取得
+    const sortKey = 'total';
     const sortedResults = [...results].sort((a, b) => {
-        const aVal = parseFloat(a[sortKey]) || 0;
-        const bVal = parseFloat(b[sortKey]) || 0;
+        const aVal = (a[sortKey] !== null && a[sortKey] !== undefined) ? a[sortKey] : -Infinity;
+        const bVal = (b[sortKey] !== null && b[sortKey] !== undefined) ? b[sortKey] : -Infinity;
+        // 確率系は逆ソート（小さい方が良い）
+        if (colConfig.isInverse) return aVal - bVal;
         return bVal - aVal;
     });
-    
-    if (showTop) {
-        displayData = displayData.concat(sortedResults.slice(0, displayCount));
-    }
-    
+
+    let displayData = [];
+    if (showTop) displayData = displayData.concat(sortedResults.slice(0, displayCount));
     if (showBottom) {
-        const bottomData = sortedResults.slice(-displayCount).reverse();
-        bottomData.forEach(item => {
+        sortedResults.slice(-displayCount).reverse().forEach(item => {
             const key = mode === 'machine' ? item.machine : `${item.machine}_${item.num}`;
             const exists = displayData.find(d => {
                 const dKey = mode === 'machine' ? d.machine : `${d.machine}_${d.num}`;
                 return dKey === key;
             });
-            if (!exists) {
-                displayData.push(item);
-            }
+            if (!exists) displayData.push(item);
         });
     }
-
-    if (displayData.length === 0) {
-        displayData = sortedResults.slice(0, displayCount);
-    }
+    if (displayData.length === 0) displayData = sortedResults.slice(0, displayCount);
 
     const labels = targetFiles.map(file => formatDateShort(file));
 
     const datasets = displayData.map((item, index) => {
         const color = CHART_COLORS[index % CHART_COLORS.length];
-        
-        let rawData;
-        switch (valueType) {
-            case 'avg':
-                rawData = targetFiles.map(file => {
-                    const value = item.dailyAvg ? item.dailyAvg[file] : null;
-                    return value !== undefined ? value : null;
-                });
-                break;
-                
-            case 'winrate':
-                rawData = targetFiles.map(file => {
-                    const value = item.dailyWinRate ? item.dailyWinRate[file] : null;
-                    return value !== undefined ? value : null;
-                });
-                break;
-                
-            default:
-                rawData = targetFiles.map(file => {
-                    const value = item.dates[file];
-                    return value !== undefined ? value : null;
-                });
-        }
+
+        const rawData = targetFiles.map(file => {
+            const val = item.dates[file];
+            return (val !== undefined && val !== null) ? val : null;
+        });
 
         let chartData;
-        if (effectiveDisplayType === 'daily') {
+        if (effectiveDisplayType === 'daily' || !colConfig.canSum) {
             chartData = rawData;
         } else {
             let cumulative = 0;
@@ -125,7 +86,7 @@ function renderTrendChart(results, targetFiles, options = {}) {
         const label = mode === 'machine' ? item.machine : `${item.machine} ${item.num}`;
 
         return {
-            label: label,
+            label,
             data: chartData,
             borderColor: color,
             backgroundColor: color + '20',
@@ -142,67 +103,37 @@ function renderTrendChart(results, targetFiles, options = {}) {
     });
 
     // Y軸設定
-    let yAxisTitle;
     let yAxisConfig = {
-        grid: {
-            color: '#333',
-            drawBorder: false
-        },
-        ticks: {
-            color: '#aaa',
-            font: { size: 11 },
-            callback: function(value) {
-                return value.toLocaleString();
-            }
-        },
-        title: {
-            display: true,
-            color: '#888',
-            font: { size: 12 }
-        }
+        grid: { color: '#333', drawBorder: false },
+        ticks: { color: '#aaa', font: { size: 11 } },
+        title: { display: true, color: '#888', font: { size: 12 } }
     };
 
-    switch (valueType) {
-        case 'winrate':
-            yAxisTitle = '勝率 (%)';
-            yAxisConfig.min = 0;
-            yAxisConfig.max = 100;
-            yAxisConfig.ticks.callback = function(value) {
-                return value + '%';
-            };
-            break;
-        case 'avg':
-            yAxisTitle = effectiveDisplayType === 'daily' ? '日別平均差枚' : '累積平均差枚';
-            break;
-        default:
-            yAxisTitle = effectiveDisplayType === 'daily' ? '日別差枚' : '累積差枚';
+    if (colConfig.isInverse) {
+        // 確率系はY軸を反転（小さい方が上）
+        yAxisConfig.reverse = true;
+        yAxisConfig.title.text = colConfig.chartLabel + '（小さいほど良い）';
+        yAxisConfig.ticks.callback = function(value) { return '1/' + value.toFixed(0); };
+    } else if (colConfig.isRate) {
+        yAxisConfig.title.text = colConfig.chartLabel;
+        yAxisConfig.ticks.callback = function(value) { return value.toFixed(1) + '%'; };
+    } else {
+        const prefix = effectiveDisplayType === 'daily' ? '日別' : '累積';
+        yAxisConfig.title.text = prefix + colConfig.chartLabel;
+        yAxisConfig.ticks.callback = function(value) { return value.toLocaleString(); };
     }
-    
-    yAxisConfig.title.text = yAxisTitle;
 
     trendChartInstance = new Chart(ctx, {
         type: 'line',
-        data: {
-            labels: labels,
-            datasets: datasets
-        },
+        data: { labels, datasets },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false
-            },
+            interaction: { mode: 'index', intersect: false },
             plugins: {
                 legend: {
                     position: 'bottom',
-                    labels: {
-                        color: '#eee',
-                        font: { size: 11 },
-                        boxWidth: 12,
-                        padding: 10,
-                        usePointStyle: true
-                    }
+                    labels: { color: '#eee', font: { size: 11 }, boxWidth: 12, padding: 10, usePointStyle: true }
                 },
                 tooltip: {
                     backgroundColor: 'rgba(30, 30, 50, 0.95)',
@@ -216,27 +147,15 @@ function renderTrendChart(results, targetFiles, options = {}) {
                         label: function(context) {
                             const value = context.parsed.y;
                             if (value === null) return `${context.dataset.label}: -`;
-                            
-                            if (valueType === 'winrate') {
-                                return `${context.dataset.label}: ${value.toFixed(1)}%`;
-                            } else {
-                                const sign = value >= 0 ? '+' : '';
-                                return `${context.dataset.label}: ${sign}${value.toLocaleString()}枚`;
-                            }
+                            return `${context.dataset.label}: ${colConfig.format(value)}`;
                         }
                     }
                 }
             },
             scales: {
                 x: {
-                    grid: {
-                        color: '#333',
-                        drawBorder: false
-                    },
-                    ticks: {
-                        color: '#aaa',
-                        font: { size: 11 }
-                    }
+                    grid: { color: '#333', drawBorder: false },
+                    ticks: { color: '#aaa', font: { size: 11 } }
                 },
                 y: yAxisConfig
             }
@@ -246,29 +165,17 @@ function renderTrendChart(results, targetFiles, options = {}) {
 
 function updateTrendChart() {
     if (typeof getTrendDisplayData === 'function') {
-        const { results, targetFiles, mode } = getTrendDisplayData();
-        
+        const { results, targetFiles, mode, config } = getTrendDisplayData();
         const showTop = document.getElementById('chartShowTop')?.checked ?? true;
         const showBottom = document.getElementById('chartShowBottom')?.checked ?? false;
         const displayCount = parseInt(document.getElementById('chartDisplayCount')?.value || '5');
         
-        const valueType = document.getElementById('trendMachineValueType')?.value || 'total';
-        
-        renderTrendChart(results, targetFiles, {
-            showTop,
-            showBottom,
-            displayCount,
-            mode: mode || 'unit',
-            valueType
-        });
+        renderTrendChart(results, targetFiles, { showTop, showBottom, displayCount, mode, config });
     }
 }
 
 function setupChartEventListeners() {
-    document.getElementById('chartShowTop')?.addEventListener('change', updateTrendChart);
-    document.getElementById('chartShowBottom')?.addEventListener('change', updateTrendChart);
-    document.getElementById('chartDisplayCount')?.addEventListener('change', updateTrendChart);
-    document.getElementById('chartDisplayType')?.addEventListener('change', updateTrendChart);
+    // chart.js独自のリスナーは trend.js 側で統合管理
 }
 
 document.addEventListener('DOMContentLoaded', () => {

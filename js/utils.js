@@ -46,11 +46,6 @@ const HallData = window.HallData || {
                 dateRange: { start: null, end: null }
             }
         },
-        stats: {
-            mode: 'daily',
-            subTab: 'machine',
-            positionFilter: ''
-        },
         calendar: {
             year: new Date().getFullYear(),
             month: new Date().getMonth() + 1
@@ -64,13 +59,6 @@ const HallData = window.HallData || {
         },
         trend: {
             machineFilter: null
-        },
-        stats: {
-            eventFilter: null,
-            mediaFilter: null,
-            performerFilter: null,
-            machineFilter: null,
-            dailyMachineFilter: null
         },
         calendar: {
             eventFilter: null,

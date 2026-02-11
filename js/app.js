@@ -2,7 +2,6 @@
 // メイン初期化・タブ切り替え
 // ===================
 
-// フィルターパネルのトグル（汎用関数）
 function setupFilterPanelToggle(toggleId, contentId) {
     const toggle = document.getElementById(toggleId);
     const content = document.getElementById(contentId);
@@ -25,6 +24,8 @@ function setupFilterPanelToggle(toggleId, contentId) {
     });
 }
 
+var compareTabInitialized = false;
+
 function setupTabEventListeners() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -37,8 +38,11 @@ function setupTabEventListeners() {
                 renderCalendar();
             } else if (btn.dataset.tab === 'trend') {
                 loadTrendData();
-            } else if (btn.dataset.tab === 'stats') {
-                showStats();
+            } else if (btn.dataset.tab === 'compare') {
+                if (!compareTabInitialized) {
+                    initCompareTab();
+                    compareTabInitialized = true;
+                }
             }
         });
     });
@@ -66,7 +70,6 @@ async function init() {
         calendarMonth = now.getMonth() + 1;
     }
 
-    // イベントデータを先に読み込む
     await loadEventData();
 
     populateDateSelectors();
@@ -75,30 +78,24 @@ async function init() {
     setupTabEventListeners();
     setupDailyEventListeners();
     setupTrendEventListeners();
+    setupCompareEventListeners();
     document.getElementById('trendViewMode')?.addEventListener('change', function() {
-    var machineValueTypeGroup = document.getElementById('machineValueTypeGroup');
-    if (machineValueTypeGroup) {
-        if (this.value === 'machine') {
-            machineValueTypeGroup.style.display = 'flex';
-        } else {
-            machineValueTypeGroup.style.display = 'none';
+        var machineValueTypeGroup = document.getElementById('machineValueTypeGroup');
+        if (machineValueTypeGroup) {
+            machineValueTypeGroup.style.display = this.value === 'machine' ? 'flex' : 'none';
         }
-    }
-});
-    setupStatsEventListeners();
+    });
     setupCalendarEventListeners();
 
     setupFilterPanelToggle('trendFilterToggle', 'trendFilterContent');
+    setupFilterPanelToggle('compareFilterToggle', 'compareFilterContent');
 
     updateLoadingProgress(100, 100, '表示準備中...');
     
-    // 日付セレクトボックスをイベント付きで初期化
     await initDateSelectWithEvents();
-    
     await filterAndRender();
     
     hideLoadingScreen();
-    
     console.log('初期表示完了');
     
     setTimeout(() => {
@@ -109,19 +106,10 @@ async function init() {
 document.addEventListener('DOMContentLoaded', init);
 
 function populateMachineFilters() {
-    // 各タブ専用の初期化関数を呼び出す
-    // （各関数内で適切な日付のデータから機種リストを取得）
-    
     if (typeof initDailyMachineFilter === 'function') {
         initDailyMachineFilter();
     }
     if (typeof initTrendMachineFilter === 'function') {
         initTrendMachineFilter();
-    }
-    if (typeof updateStatsMachineFilter === 'function') {
-        updateStatsMachineFilter();
-    }
-    if (typeof updateStatsDailyMachineFilter === 'function') {
-        updateStatsDailyMachineFilter();
     }
 }

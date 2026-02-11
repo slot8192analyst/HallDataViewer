@@ -12,8 +12,6 @@ var allMachines = new Set();
 // 各タブで使用するグローバル状態（後方互換性）
 var currentDateIndex = 0;
 var selectedTrendDates = [];
-var statsMode = 'daily';
-var statsSubTab = 'machine';
 var calendarYear = new Date().getFullYear();
 var calendarMonth = new Date().getMonth() + 1;
 
