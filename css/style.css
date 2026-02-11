@@ -4600,3 +4600,23 @@ td .position-tag.compact {
         font-size: var(--font-size-xs);
     }
 }
+
+/* ===================
+   数値フィルターグループ（日別データ）
+   =================== */
+.daily-filter-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.filter-groups-empty {
+    text-align: center;
+    padding: 15px 10px;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    background: var(--bg-base);
+    border-radius: var(--radius-sm);
+    border: 1px dashed var(--border-color);
+}
