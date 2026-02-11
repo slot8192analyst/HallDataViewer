@@ -64,50 +64,12 @@
             </div>
             <div class="filter-panel-content" id="filterContent">
                 <div class="filter-section">
-                    <h5>数値フィルター</h5>
-                    <div class="filter-row">
-                        <div class="filter-item">
-                            <label>差枚</label>
-                            <select id="saFilterType">
-                                <option value="">--</option>
-                                <option value="gte">以上</option>
-                                <option value="lte">以下</option>
-                            </select>
-                            <input type="number" id="saFilterValue" placeholder="枚">
-                        </div>
-                        <div class="filter-item">
-                            <label>G数</label>
-                            <select id="gameFilterType">
-                                <option value="">--</option>
-                                <option value="gte">以上</option>
-                                <option value="lte">以下</option>
-                            </select>
-                            <input type="number" id="gameFilterValue" placeholder="G">
-                        </div>
-                        <div class="filter-item">
-                            <label>機械割</label>
-                            <select id="rateFilterType">
-                                <option value="">--</option>
-                                <option value="gte">以上</option>
-                                <option value="lte">以下</option>
-                            </select>
-                            <input type="number" id="rateFilterValue" placeholder="%" step="0.1">
-                        </div>
-                        <div class="filter-item">
-                            <label>台番号末尾</label>
-                            <select id="unitSuffixFilter">
-                                <option value="">全て</option>
-                                <option value="0">0</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                                <option value="9">9</option>
-                            </select>
+                    <h5>🔢 数値フィルター</h5>
+                    <p class="filter-hint">グループ内の条件はAND（すべて満たす）、グループ同士はOR（いずれか満たす）で判定します</p>
+                    <div class="daily-filter-groups">
+                        <div class="tag-groups-list" id="dailyFilterGroupsList"></div>
+                        <div class="tag-groups-actions">
+                            <button class="btn-small" id="dailyAddFilterGroup">＋ 条件グループを追加</button>
                         </div>
                     </div>
                     <div class="filter-buttons">
@@ -166,6 +128,7 @@
             </table>
         </div>
     </div>
+
 
     <!-- 日別比較タブ -->
     <div id="compare" class="tab-content">
