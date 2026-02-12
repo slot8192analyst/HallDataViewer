@@ -174,16 +174,16 @@ function buildCompareRows() {
 
     var rows = buildUnitCompareRows(filteredA, filteredB, column);
 
-    // 高設定タグ判定
-    if (hasActiveTagConditions()) {
+    // 複数タグ判定
+    if (TagEngine.hasAnyActiveConditions()) {
         rows.forEach(function(row) {
-            row.tagA = row.rowA ? evaluateHighSettingTag(row.rowA) : false;
-            row.tagB = row.rowB ? evaluateHighSettingTag(row.rowB) : false;
+            row.tagsA = row.rowA ? TagEngine.evaluateAll(row.rowA) : [];
+            row.tagsB = row.rowB ? TagEngine.evaluateAll(row.rowB) : [];
         });
     } else {
         rows.forEach(function(row) {
-            row.tagA = false;
-            row.tagB = false;
+            row.tagsA = [];
+            row.tagsB = [];
         });
     }
 
@@ -209,13 +209,13 @@ function buildCompareRows() {
         rows = rows.filter(function(r) { return r.valA !== null && r.valB !== null; });
     }
 
-    var showHighOnly = document.getElementById('showHighSettingOnly');
-    if (showHighOnly && showHighOnly.checked) {
-        rows = rows.filter(function(r) { return r.tagA || r.tagB; });
+    var showTaggedOnly = document.getElementById('showTaggedOnly');
+    if (showTaggedOnly && showTaggedOnly.checked) {
+        rows = rows.filter(function(r) { return r.tagsA.length > 0 || r.tagsB.length > 0; });
     }
     var showBothDays = document.getElementById('showTagBothDays');
     if (showBothDays && showBothDays.checked) {
-        rows = rows.filter(function(r) { return r.tagA && r.tagB; });
+        rows = rows.filter(function(r) { return r.tagsA.length > 0 && r.tagsB.length > 0; });
     }
 
     var sortBy = document.getElementById('compareSortBy').value;
@@ -354,7 +354,7 @@ function renderCompareTable(rows) {
     var selectB = document.getElementById('compareDateB');
     var labelA = selectA && selectA.value ? '前回 ' + formatDate(selectA.value) : '前回';
     var labelB = selectB && selectB.value ? '今回 ' + formatDate(selectB.value) : '今回';
-    var showTags = hasActiveTagConditions();
+    var showTags = TagEngine.hasAnyActiveConditions();
 
     table.className = 'mode-unit';
     var thead = table.querySelector('thead');
@@ -389,8 +389,8 @@ function renderCompareTable(rows) {
             cells.push('<td class="compare-cell-diff compare-no-data">-</td>');
         }
         if (showTags) {
-            cells.push('<td class="text-center">' + renderHighSettingTagHtml(row.tagA) + '</td>');
-            cells.push('<td class="text-center">' + renderHighSettingTagHtml(row.tagB) + '</td>');
+            cells.push('<td class="text-center">' + renderHighSettingTagHtml(row.tagsA) + '</td>');
+            cells.push('<td class="text-center">' + renderHighSettingTagHtml(row.tagsB) + '</td>');
         }
         return '<tr>' + cells.join('') + '</tr>';
     }).join('');
@@ -428,18 +428,18 @@ function renderAnalysisSummary(rows) {
     if (!container) return;
 
     var totalUnits = rows.length;
-    var tagBCount = rows.filter(function(r) { return r.tagB; }).length;
-    var tagACount = rows.filter(function(r) { return r.tagA; }).length;
+    var tagBCount = rows.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
+    var tagACount = rows.filter(function(r) { return r.tagsA && r.tagsA.length > 0; }).length;
     var tagBRate = totalUnits > 0 ? (tagBCount / totalUnits * 100) : 0;
 
-    var prevTagRows = rows.filter(function(r) { return r.tagA; });
-    var repeatCount = prevTagRows.filter(function(r) { return r.tagB; }).length;
+    var prevTagRows = rows.filter(function(r) { return r.tagsA && r.tagsA.length > 0; });
+    var repeatCount = prevTagRows.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
     var repeatRate = prevTagRows.length > 0 ? (repeatCount / prevTagRows.length * 100) : 0;
 
     var prevMinusRows = rows.filter(function(r) {
         return r.rowA && (parseInt(String(r.rowA['差枚']).replace(/,/g, '')) || 0) < 0;
     });
-    var recoveryCount = prevMinusRows.filter(function(r) { return r.tagB; }).length;
+    var recoveryCount = prevMinusRows.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
     var recoveryRate = prevMinusRows.length > 0 ? (recoveryCount / prevMinusRows.length * 100) : 0;
 
     container.innerHTML =
@@ -482,12 +482,12 @@ function buildPositionAnalysisTable(rows) {
     var tableRows = positionTags.map(function(tag) {
         var matching = rows.filter(function(r) {
             if (!r.unit) return false;
-            var tags = (typeof getPositionTagsForUnit === 'function') ? getPositionTagsForUnit(r.unit) : [];
-            return tags.some(function(t) { return t.value === tag.value; });
+            var tags = (typeof getPositionTags === 'function') ? getPositionTags(r.unit) : [];
+            return tags.indexOf(tag.value) !== -1;
         });
         var total = matching.length;
-        var tagACount = matching.filter(function(r) { return r.tagA; }).length;
-        var tagBCount = matching.filter(function(r) { return r.tagB; }).length;
+        var tagACount = matching.filter(function(r) { return r.tagsA && r.tagsA.length > 0; }).length;
+        var tagBCount = matching.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
         return {
             label: tag.icon + ' ' + tag.label, total: total,
             tagACount: tagACount, prevRate: total > 0 ? (tagACount / total * 100) : 0,
@@ -516,8 +516,8 @@ function buildSuffixAnalysisTable(rows) {
             return num.length > 0 && num.slice(-1) === s;
         });
         var total = matching.length;
-        var tagACount = matching.filter(function(r) { return r.tagA; }).length;
-        var tagBCount = matching.filter(function(r) { return r.tagB; }).length;
+        var tagACount = matching.filter(function(r) { return r.tagsA && r.tagsA.length > 0; }).length;
+        var tagBCount = matching.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
         return {
             label: '末尾 ' + s, total: total,
             tagACount: tagACount, prevRate: total > 0 ? (tagACount / total * 100) : 0,
@@ -538,9 +538,9 @@ function buildSuffixAnalysisTable(rows) {
 
 function buildPrevStateAnalysisTable(rows) {
     var categories = [
-        { label: '前回 高設定タグ', filter: function(r) { return r.tagA; } },
+        { label: '前回 高設定タグ', filter: function(r) { return r.tagsA && r.tagsA.length > 0; } },
         { label: '前回 タグなし＆プラス', filter: function(r) {
-            if (r.tagA || !r.rowA) return false;
+            if ((r.tagsA && r.tagsA.length > 0) || !r.rowA) return false;
             return (parseInt(String(r.rowA['差枚']).replace(/,/g, '')) || 0) > 0;
         }},
         { label: '前回 マイナス', filter: function(r) {
@@ -557,7 +557,7 @@ function buildPrevStateAnalysisTable(rows) {
     var tableRows = categories.map(function(cat) {
         var matching = rows.filter(cat.filter);
         var total = matching.length;
-        var tagBCount = matching.filter(function(r) { return r.tagB; }).length;
+        var tagBCount = matching.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
         return { label: cat.label, total: total, tagBCount: tagBCount, rate: total > 0 ? (tagBCount / total * 100) : 0 };
     });
 
@@ -589,7 +589,7 @@ function buildPrevGameRangeAnalysisTable(rows) {
             return g >= range.min && g <= range.max;
         });
         var total = matching.length;
-        var tagBCount = matching.filter(function(r) { return r.tagB; }).length;
+        var tagBCount = matching.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
         return { label: range.label, total: total, tagBCount: tagBCount, rate: total > 0 ? (tagBCount / total * 100) : 0 };
     });
 
@@ -622,7 +622,7 @@ function buildPrevSaRangeAnalysisTable(rows) {
             return sa >= range.min && sa <= range.max;
         });
         var total = matching.length;
-        var tagBCount = matching.filter(function(r) { return r.tagB; }).length;
+        var tagBCount = matching.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
         return { label: range.label, total: total, tagBCount: tagBCount, rate: total > 0 ? (tagBCount / total * 100) : 0 };
     });
 
@@ -662,8 +662,8 @@ function renderMachineAnalysis(rows) {
     machineNames.forEach(function(name) {
         var mRows = machineMap[name];
         var total = mRows.length;
-        var tagACount = mRows.filter(function(r) { return r.tagA; }).length;
-        var tagBCount = mRows.filter(function(r) { return r.tagB; }).length;
+        var tagACount = mRows.filter(function(r) { return r.tagsA && r.tagsA.length > 0; }).length;
+        var tagBCount = mRows.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
         var tagARate = total > 0 ? (tagACount / total * 100) : 0;
         var tagBRate = total > 0 ? (tagBCount / total * 100) : 0;
 
@@ -671,7 +671,7 @@ function renderMachineAnalysis(rows) {
             if (!r.rowA) return false;
             return (parseInt(String(r.rowA['差枚']).replace(/,/g, '')) || 0) < 0;
         });
-        var recoveryCount = prevMinusRows.filter(function(r) { return r.tagB; }).length;
+        var recoveryCount = prevMinusRows.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
         var recoveryRate = prevMinusRows.length > 0 ? (recoveryCount / prevMinusRows.length * 100) : 0;
 
         html += '<tr>';
@@ -736,18 +736,24 @@ function escapeHtml(str) {
 
 // ========== タグ表示ヘルパー ==========
 
-function renderHighSettingTagHtml(isHigh) {
-    if (isHigh) return '<span class="high-setting-tag tag-high">🏷️ 高設定</span>';
-    return '<span class="text-muted">-</span>';
+function renderHighSettingTagHtml(matchedTags) {
+    if (!matchedTags || matchedTags.length === 0) {
+        return '<span class="text-muted">-</span>';
+    }
+    return matchedTags.map(function(tagId) {
+        var def = TagEngine.get(tagId);
+        if (!def) return '';
+        return '<span class="custom-tag-badge" style="background: ' + def.color + '20; border-color: ' + def.color + '; color: ' + def.color + ';">' + def.icon + ' ' + escapeHtml(def.name) + '</span>';
+    }).join(' ');
 }
 
 function updateTagCountDisplay(rows, showTags) {
     var display = document.getElementById('tagCountDisplay');
     if (!display) return;
-    if (!showTags || !hasActiveTagConditions()) { display.textContent = ''; return; }
-    var tagACount = rows.filter(function(r) { return r.tagA; }).length;
-    var tagBCount = rows.filter(function(r) { return r.tagB; }).length;
-    var bothCount = rows.filter(function(r) { return r.tagA && r.tagB; }).length;
+    if (!showTags || !TagEngine.hasAnyActiveConditions()) { display.textContent = ''; return; }
+    var tagACount = rows.filter(function(r) { return r.tagsA && r.tagsA.length > 0; }).length;
+    var tagBCount = rows.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
+    var bothCount = rows.filter(function(r) { return r.tagsA && r.tagsA.length > 0 && r.tagsB && r.tagsB.length > 0; }).length;
     display.textContent = '前回: ' + tagACount + '台 / 今回: ' + tagBCount + '台 / 両日: ' + bothCount + '台';
 }
 

@@ -34,6 +34,7 @@ C:.
 └─js
         app.js
         calendar.js
+        compare.js
         chart.js
         config.js
         daily.js

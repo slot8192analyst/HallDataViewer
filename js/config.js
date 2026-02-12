@@ -24,8 +24,9 @@ const SITE_CONFIG = {
     // 機種フィルタープリセット（固定）
     // ===================
     // matchMode:
-    //   "partial" = 部分一致（キーワードを含む機種すべて）
-    //   "exact"   = 完全一致（リストの機種名と完全に一致するもののみ）
+    //   "partial"  = 部分一致（キーワードを含む機種すべて）
+    //   "exact"    = 完全一致（リストの機種名と完全に一致するもののみ）
+    //   "exclude"  = 除外方式（excludeKeywordsに部分一致する機種を除外して全機種を対象）
     machinePresets: [
         {
             id: "juggler",
@@ -36,8 +37,19 @@ const SITE_CONFIG = {
         {
             id: "at_main",
             name: "AT/ART主力機",
-            matchMode: "partial",
-            keywords: ["からくりサーカス", "ヴァルヴレイヴ", "甲鉄城のカバネリ", "モンキーターン"],
+            matchMode: "exclude",
+            keywords: [],
+            excludeKeywords: [
+                "ジャグラー",
+                "ハナハナ",
+                "ニューパルサー",
+                "ディスクアップ",
+                "バーサス",
+                "ハナビ",
+                "沖ドキ",
+                "エヴァ",
+            ],
+            minCount:3,
         },
         // {
         //     id: "a_type",

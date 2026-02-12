@@ -1003,7 +1003,7 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
         if (builtins.length > 0) {
             html += '<optgroup label="📌 固定プリセット">';
             builtins.forEach(function(p) {
-                var matchCount = MachinePreset.resolve(p, available).length;
+                var matchCount = MachinePreset.resolve(p, available, currentOptions).length;
                 html += '<option value="' + p.id + '">' + escapeHtmlPreset(p.name) + ' (' + matchCount + '機種)</option>';
             });
             html += '</optgroup>';
@@ -1013,7 +1013,7 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
         if (users.length > 0) {
             html += '<optgroup label="⭐ マイプリセット">';
             users.forEach(function(p) {
-                var matchCount = MachinePreset.resolve(p, available).length;
+                var matchCount = MachinePreset.resolve(p, available, currentOptions).length;
                 html += '<option value="' + p.id + '">' + escapeHtmlPreset(p.name) + ' (' + matchCount + '機種)</option>';
             });
             html += '</optgroup>';
@@ -1038,7 +1038,7 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
         }
 
         var available = getAvailableMachineNames();
-        var matched = MachinePreset.resolve(preset, available);
+        var matched = MachinePreset.resolve(preset, available, currentOptions);
 
         if (matched.length === 0) {
             showCopyToast('該当する機種がありません', true);
@@ -1091,24 +1091,24 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
             presetManagePanel.innerHTML = '<div class="preset-manage-empty">プリセット機能が利用できません</div>';
             return;
         }
-
+    
         var allPresets = MachinePreset.getAll();
         var users = allPresets.filter(function(p) { return p.type === 'user'; });
         var available = getAvailableMachineNames();
-
+    
         if (users.length === 0) {
             presetManagePanel.innerHTML =
                 '<div class="preset-manage-empty">保存済みのプリセットはありません</div>';
             return;
         }
-
+    
         var html = '<div class="preset-manage-title">⭐ マイプリセット管理</div>';
         html += '<div class="preset-manage-list">';
-
+    
         users.forEach(function(p) {
-            var matchCount = MachinePreset.resolve(p, available).length;
+            var matchCount = MachinePreset.resolve(p, available, currentOptions).length;
             var totalCount = (p.machines || []).length;
-
+        
             html += '<div class="preset-manage-item" data-id="' + p.id + '">';
             html += '  <div class="preset-manage-info">';
             html += '    <span class="preset-manage-name">' + escapeHtmlPreset(p.name) + '</span>';
@@ -1121,10 +1121,11 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
             html += '  </div>';
             html += '</div>';
         });
-
+    
         html += '</div>';
         presetManagePanel.innerHTML = html;
-
+    
+        // 以下のイベントリスナー部分は変更なし
         presetManagePanel.querySelectorAll('.preset-update-btn').forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -1141,7 +1142,7 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
                 }
             });
         });
-
+    
         presetManagePanel.querySelectorAll('.preset-rename-btn').forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -1155,7 +1156,7 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
                 }
             });
         });
-
+    
         presetManagePanel.querySelectorAll('.preset-delete-btn').forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();

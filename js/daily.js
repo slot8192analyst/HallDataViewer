@@ -90,7 +90,6 @@ function updateDailyFilterCondition(groupIndex, condIndex, field, value) {
     if (!dailyFilterGroups[groupIndex] || !dailyFilterGroups[groupIndex].conditions[condIndex]) return;
     dailyFilterGroups[groupIndex].conditions[condIndex][field] = value;
 
-    // カラム変更時にオペレータ補正
     if (field === 'column' && value === '台番号末尾') {
         dailyFilterGroups[groupIndex].conditions[condIndex].operator = 'eq';
     }
@@ -111,7 +110,6 @@ function renderDailyFilterGroups() {
     var html = '';
 
     dailyFilterGroups.forEach(function(group, gi) {
-        // グループ間のOR区切り
         if (gi > 0) {
             html += '<div class="tag-group-or-divider">';
             html += '<span class="tag-group-or-label">OR</span>';
@@ -120,13 +118,11 @@ function renderDailyFilterGroups() {
 
         html += '<div class="tag-group" data-group="' + gi + '">';
 
-        // グループヘッダー
         html += '<div class="tag-group-header">';
         html += '<span class="tag-group-title"><span class="group-number">' + (gi + 1) + '</span> グループ ' + (gi + 1) + '</span>';
         html += '<button class="tag-group-remove" data-group="' + gi + '" title="グループを削除">×</button>';
         html += '</div>';
 
-        // 条件行
         html += '<div class="tag-group-body">';
 
         group.conditions.forEach(function(cond, ci) {
@@ -136,7 +132,6 @@ function renderDailyFilterGroups() {
 
             html += '<div class="tag-condition-row" data-group="' + gi + '" data-cond="' + ci + '">';
 
-            // カラム選択
             html += '<select class="condition-column" data-group="' + gi + '" data-cond="' + ci + '" data-field="column">';
             DAILY_FILTER_COLUMNS.forEach(function(col) {
                 var selected = cond.column === col.value ? ' selected' : '';
@@ -144,7 +139,6 @@ function renderDailyFilterGroups() {
             });
             html += '</select>';
 
-            // オペレータ選択
             var isSuffix = cond.column === '台番号末尾';
             html += '<select class="condition-operator" data-group="' + gi + '" data-cond="' + ci + '" data-field="operator">';
             DAILY_FILTER_OPERATORS.forEach(function(op) {
@@ -154,7 +148,6 @@ function renderDailyFilterGroups() {
             });
             html += '</select>';
 
-            // 値入力
             if (isSuffix) {
                 html += '<select class="condition-value" data-group="' + gi + '" data-cond="' + ci + '" data-field="value">';
                 html += '<option value="">選択...</option>';
@@ -169,19 +162,16 @@ function renderDailyFilterGroups() {
                 html += '<input type="number" class="condition-value" data-group="' + gi + '" data-cond="' + ci + '" data-field="value" value="' + (cond.value || '') + '" placeholder="値"' + step + '>';
             }
 
-            // 単位表示
             var colInfo2 = DAILY_FILTER_COLUMNS.find(function(c) { return c.value === cond.column; });
             if (colInfo2 && colInfo2.unit && !isSuffix) {
                 html += '<span class="tag-condition-unit">' + colInfo2.unit + '</span>';
             }
 
-            // 削除ボタン
             html += '<button class="tag-condition-remove" data-group="' + gi + '" data-cond="' + ci + '" title="条件を削除">×</button>';
 
             html += '</div>';
         });
 
-        // 条件追加ボタン
         html += '<button class="tag-group-add-condition" data-group="' + gi + '">＋ AND条件を追加</button>';
 
         html += '</div>';
@@ -190,7 +180,6 @@ function renderDailyFilterGroups() {
 
     container.innerHTML = html;
 
-    // イベント設定
     container.querySelectorAll('.tag-group-remove').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -212,7 +201,6 @@ function renderDailyFilterGroups() {
         });
     });
 
-    // カラム・オペレータ・値の変更
     container.querySelectorAll('.condition-column, .condition-operator').forEach(function(sel) {
         sel.addEventListener('change', function() {
             updateDailyFilterCondition(
@@ -288,7 +276,6 @@ function evaluateDailyFilterCondition(row, cond) {
 }
 
 function applyDailyFilterGroups(data) {
-    // 有効な条件があるグループのみ抽出
     var activeGroups = dailyFilterGroups.filter(function(group) {
         return group.conditions.some(function(c) {
             return c.value !== '' && c.value !== null && c.value !== undefined;
@@ -298,9 +285,7 @@ function applyDailyFilterGroups(data) {
     if (activeGroups.length === 0) return data;
 
     return data.filter(function(row) {
-        // グループ同士はOR: いずれかのグループを満たせばOK
         return activeGroups.some(function(group) {
-            // グループ内はAND: すべての有効条件を満たす
             return group.conditions.every(function(cond) {
                 return evaluateDailyFilterCondition(row, cond);
             });
@@ -485,14 +470,17 @@ function initColumnSelector() {
         else allColumns.push('位置');
     }
 
-    if (allColumns.indexOf('高設定タグ') === -1) {
-        allColumns.push('高設定タグ');
+    var oldIdx = allColumns.indexOf('高設定タグ');
+    if (oldIdx !== -1) allColumns.splice(oldIdx, 1);
+    if (allColumns.indexOf('タグ') === -1) {
+        allColumns.push('タグ');
     }
 
     var savedColumns = localStorage.getItem('visibleColumns');
     if (savedColumns) {
         try {
             var parsed = JSON.parse(savedColumns);
+            parsed = parsed.map(function(col) { return col === '高設定タグ' ? 'タグ' : col; });
             visibleColumns = parsed.filter(function(col) { return allColumns.indexOf(col) !== -1; });
             if (visibleColumns.length === 0) visibleColumns = [].concat(allColumns);
         } catch (e) {
@@ -653,6 +641,23 @@ function renderDailyEventBadges(events) {
 }
 
 // ===================
+// タグカウント表示
+// ===================
+
+function updateDailyTagCountDisplay(data) {
+    var el = document.getElementById('dailyTagCountDisplay');
+    if (!el) return;
+    if (!TagEngine.hasAnyActiveConditions()) {
+        el.textContent = '';
+        return;
+    }
+    var taggedCount = data.filter(function(r) {
+        return r['_matchedTags'] && r['_matchedTags'].length > 0;
+    }).length;
+    el.textContent = 'タグ付き: ' + taggedCount + '/' + data.length + '台';
+}
+
+// ===================
 // メインフィルター＆描画
 // ===================
 
@@ -671,7 +676,6 @@ async function filterAndRender() {
 
     if (allColumns.length === 0 && headers.length > 0) initColumnSelector();
 
-    // 高設定タグUIの初期化（初回のみ）
     if (!dailyTagUIInitialized) {
         initDailyTagUI();
         dailyTagUIInitialized = true;
@@ -684,16 +688,13 @@ async function filterAndRender() {
 
     data = [].concat(data);
 
-    // 高設定タグ判定
-    if (hasActiveTagConditions()) {
-        data = data.map(function(row) {
-            return Object.assign({}, row, { '_highSettingTag': evaluateHighSettingTag(row) });
-        });
-    } else {
-        data = data.map(function(row) {
-            return Object.assign({}, row, { '_highSettingTag': false });
-        });
-    }
+    // 複数タグ判定
+    var tagDefs = TagEngine.getAll();
+    data = data.map(function(row) {
+        var newRow = Object.assign({}, row);
+        newRow['_matchedTags'] = TagEngine.evaluateAll(row);
+        return newRow;
+    });
 
     // 位置フィルター
     data = applyMultiPositionFilter(data, 'daily', '台番号');
@@ -715,10 +716,10 @@ async function filterAndRender() {
     // 数値フィルター（グループAND/OR方式）
     data = applyDailyFilterGroups(data);
 
-    // 高設定タグのみ表示
-    var dailyShowHighOnly = document.getElementById('dailyShowHighSettingOnly');
-    if (dailyShowHighOnly && dailyShowHighOnly.checked) {
-        data = data.filter(function(row) { return row['_highSettingTag']; });
+    // タグ付きのみ表示
+    var showTaggedOnly = document.getElementById('dailyShowTaggedOnly');
+    if (showTaggedOnly && showTaggedOnly.checked) {
+        data = data.filter(function(row) { return row['_matchedTags'] && row['_matchedTags'].length > 0; });
     }
 
     // ソート
@@ -742,14 +743,6 @@ async function filterAndRender() {
     updateDailyTagCountDisplay(data);
 }
 
-function updateDailyTagCountDisplay(data) {
-    var display = document.getElementById('dailyTagCountDisplay');
-    if (!display) return;
-    if (!hasActiveTagConditions()) { display.textContent = ''; return; }
-    var tagCount = data.filter(function(r) { return r['_highSettingTag']; }).length;
-    display.textContent = 'タグ付き: ' + tagCount + '台 / ' + data.length + '台';
-}
-
 // ===================
 // テーブル描画
 // ===================
@@ -764,20 +757,28 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
 
     thead.innerHTML = '<tr>' + displayColumns.map(function(h) { return '<th>' + h + '</th>'; }).join('') + '</tr>';
 
+    var tagDefs = TagEngine.getAll();
+
     tbody.innerHTML = data.map(function(row) {
         return '<tr>' + displayColumns.map(function(h) {
             var val = row[h];
 
-            if (h === '高設定タグ') {
-                if (row['_highSettingTag']) {
-                    return '<td class="text-center"><span class="high-setting-tag tag-high">🏷️ 高設定</span></td>';
+            if (h === 'タグ') {
+                var matchedTags = row['_matchedTags'] || [];
+                if (matchedTags.length === 0) {
+                    return '<td class="text-center"><span class="text-muted">-</span></td>';
                 }
-                return '<td class="text-center"><span class="text-muted">-</span></td>';
+                var tagsHtml = matchedTags.map(function(tagId) {
+                    var def = TagEngine.get(tagId);
+                    if (!def) return '';
+                    return '<span class="custom-tag-badge" style="background: ' + def.color + '20; border-color: ' + def.color + '; color: ' + def.color + ';">' + def.icon + ' ' + escapeHtmlTag(def.name) + '</span>';
+                }).join(' ');
+                return '<td class="text-center">' + tagsHtml + '</td>';
             }
 
             if (h === '位置') {
-                var tagsHtml = renderPositionTags(row['台番号'], { compact: true });
-                return '<td>' + (tagsHtml || '-') + '</td>';
+                var tagsHtml2 = renderPositionTags(row['台番号'], { compact: true });
+                return '<td>' + (tagsHtml2 || '-') + '</td>';
             }
 
             if (h === '機械割') {
@@ -821,9 +822,9 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
             if (positionState.selected.length > 0) positionInfo = ' | 位置: ' + getPositionFilterDisplayText('daily');
 
             var tagInfo = '';
-            if (hasActiveTagConditions()) {
-                var tagCount = data.filter(function(r) { return r['_highSettingTag']; }).length;
-                tagInfo = ' | タグ付き: ' + tagCount + '台';
+            if (TagEngine.hasAnyActiveConditions()) {
+                var taggedCount = data.filter(function(r) { return r['_matchedTags'] && r['_matchedTags'].length > 0; }).length;
+                tagInfo = ' | タグ付き: ' + taggedCount + '台';
             }
 
             var filterInfo = '';
@@ -841,6 +842,11 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
     }
 }
 
+function escapeHtmlTag(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 // ===================
 // コピー・ダウンロード
 // ===================
@@ -850,21 +856,28 @@ function getDisplayedTableData() {
     if (!table) return { headers: [], rows: [] };
     var thead = table.querySelector('thead');
     var tbody = table.querySelector('tbody');
-    var headers = [];
-    thead.querySelectorAll('th').forEach(function(cell) { headers.push(cell.textContent.trim()); });
+    var hdrs = [];
+    thead.querySelectorAll('th').forEach(function(cell) { hdrs.push(cell.textContent.trim()); });
     var rows = [];
     tbody.querySelectorAll('tr').forEach(function(row) {
         var rowData = [];
         row.querySelectorAll('td').forEach(function(cell, index) {
             var value = cell.textContent.trim();
-            var headerName = headers[index];
+            var headerName = hdrs[index];
             if (headerName === '位置') {
                 value = value.replace(/[🔲🔳⬜⭕🔷🔶]/g, '').trim();
                 rowData.push(value);
                 return;
             }
-            if (headerName === '高設定タグ') {
-                rowData.push(value === '🏷️ 高設定' ? '○' : '-');
+            if (headerName === 'タグ') {
+                var badges = cell.querySelectorAll('.custom-tag-badge');
+                if (badges.length > 0) {
+                    var tagNames = [];
+                    badges.forEach(function(b) { tagNames.push(b.textContent.trim()); });
+                    rowData.push(tagNames.join(', '));
+                } else {
+                    rowData.push('-');
+                }
                 return;
             }
             if (value.indexOf('/') !== -1) { rowData.push(value); return; }
@@ -884,7 +897,7 @@ function getDisplayedTableData() {
         });
         rows.push(rowData);
     });
-    return { headers: headers, rows: rows };
+    return { headers: hdrs, rows: rows };
 }
 
 async function copyTableToClipboard() {
@@ -933,7 +946,6 @@ function setupDailyEventListeners() {
     document.getElementById('search') && document.getElementById('search').addEventListener('input', filterAndRender);
     document.getElementById('sortBy') && document.getElementById('sortBy').addEventListener('change', filterAndRender);
 
-    // 数値フィルターグループのボタン
     var addGroupBtn = document.getElementById('dailyAddFilterGroup');
     if (addGroupBtn) {
         addGroupBtn.addEventListener('click', function() {
@@ -952,8 +964,8 @@ function setupDailyEventListeners() {
             resetDailyFilterGroups();
             resetPositionFilter('daily');
             if (dailyMachineFilterSelect) dailyMachineFilterSelect.reset();
-            var dailyShowHighOnly = document.getElementById('dailyShowHighSettingOnly');
-            if (dailyShowHighOnly) dailyShowHighOnly.checked = false;
+            var showTaggedOnly = document.getElementById('dailyShowTaggedOnly');
+            if (showTaggedOnly) showTaggedOnly.checked = false;
             filterAndRender();
         });
     }
@@ -964,7 +976,6 @@ function setupDailyEventListeners() {
     document.getElementById('copyTableBtn') && document.getElementById('copyTableBtn').addEventListener('click', copyTableToClipboard);
     document.getElementById('downloadCsvBtn') && document.getElementById('downloadCsvBtn').addEventListener('click', downloadTableAsCSV);
 
-    // 数値フィルターの初期化
     loadDailyFilterGroups();
     renderDailyFilterGroups();
 

@@ -78,28 +78,17 @@
                     </div>
                 </div>
 
-                <!-- 高設定タグ条件セクション -->
+                <!-- タグ条件セクション -->
                 <div class="filter-section">
-                    <h5>🏷️ 高設定タグ条件</h5>
-                    <p class="filter-hint">グループ内の条件はAND（すべて満たす）、グループ同士はOR（いずれか満たす）で判定します</p>
-                    <div class="high-setting-tag-config">
-                        <div class="tag-groups-list" id="dailyTagGroupsList"></div>
-                        <div class="tag-groups-actions">
-                            <button class="btn-small" id="dailyAddTagGroup">＋ 条件グループを追加</button>
-                        </div>
-                        <div class="tag-preset-row">
-                            <span class="tag-preset-label">プリセット:</span>
-                            <div class="tag-preset-buttons">
-                                <button class="preset-btn" data-preset="suspect" data-context="daily">高設定疑惑</button>
-                            </div>
-                        </div>
-                        <div class="tag-display-row">
-                            <label class="column-checkbox-item">
-                                <input type="checkbox" id="dailyShowHighSettingOnly">
-                                <span>高設定タグ付きのみ表示</span>
-                            </label>
-                            <span class="tag-count-display" id="dailyTagCountDisplay"></span>
-                        </div>
+                    <h5>🏷️ タグ条件</h5>
+                    <p class="filter-hint">タグごとに名前・色・条件を自由に設定できます。グループ内はAND、グループ同士はORで判定します</p>
+                    <div id="dailyTagGroupsList"></div>
+                    <div class="tag-display-row">
+                        <label class="column-checkbox-item">
+                            <input type="checkbox" id="dailyShowTaggedOnly">
+                            <span>タグ付きのみ表示</span>
+                        </label>
+                        <span class="tag-count-display" id="dailyTagCountDisplay"></span>
                     </div>
                 </div>
 
@@ -128,7 +117,6 @@
             </table>
         </div>
     </div>
-
 
     <!-- 日別比較タブ -->
     <div id="compare" class="tab-content">
@@ -237,30 +225,19 @@
                 </div>
 
                 <div class="filter-section">
-                    <h5>🏷️ 高設定タグ条件</h5>
-                    <p class="filter-hint">グループ内の条件はAND（すべて満たす）、グループ同士はOR（いずれか満たす）で判定します</p>
-                    <div class="high-setting-tag-config">
-                        <div class="tag-groups-list" id="tagGroupsList"></div>
-                        <div class="tag-groups-actions">
-                            <button class="btn-small" id="addTagGroup">＋ 条件グループを追加</button>
-                        </div>
-                        <div class="tag-preset-row">
-                            <span class="tag-preset-label">プリセット:</span>
-                            <div class="tag-preset-buttons">
-                                <button class="preset-btn" data-preset="suspect">高設定疑惑</button>
-                            </div>
-                        </div>
-                        <div class="tag-display-row">
-                            <label class="column-checkbox-item">
-                                <input type="checkbox" id="showHighSettingOnly">
-                                <span>高設定タグ付きのみ表示</span>
-                            </label>
-                            <label class="column-checkbox-item">
-                                <input type="checkbox" id="showTagBothDays">
-                                <span>両日タグ付きのみ</span>
-                            </label>
-                            <span class="tag-count-display" id="tagCountDisplay"></span>
-                        </div>
+                    <h5>🏷️ タグ条件</h5>
+                    <p class="filter-hint">タグごとに名前・色・条件を自由に設定できます。グループ内はAND、グループ同士はORで判定します</p>
+                    <div id="tagGroupsList"></div>
+                    <div class="tag-display-row">
+                        <label class="column-checkbox-item">
+                            <input type="checkbox" id="showTaggedOnly">
+                            <span>タグ付きのみ表示</span>
+                        </label>
+                        <label class="column-checkbox-item">
+                            <input type="checkbox" id="showTagBothDays">
+                            <span>両日タグ付きのみ</span>
+                        </label>
+                        <span class="tag-count-display" id="tagCountDisplay"></span>
                     </div>
                 </div>
             </div>
@@ -270,7 +247,7 @@
 
         <div class="compare-analysis-container" id="compareAnalysisContainer">
             <div class="analysis-header">
-                <h4>🏷️ 高設定タグ分析</h4>
+                <h4>🏷️ タグ分析</h4>
                 <div class="analysis-controls">
                     <div class="control-group">
                         <label>表示:</label>

@@ -310,6 +310,12 @@
       "endDate": "2026_02_08",
       "machines": ["転生の章2"],
       "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_02_09",
+      "endDate": "2026_02_15",
+      "machines": ["東京喰種"],
+      "color": "#3b82f6"
     }
   ],
   "mediaTypes": [
