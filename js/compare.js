@@ -4,6 +4,7 @@
 
 var compareMachineFilterSelect = null;
 var compareDataCache = { a: null, b: null };
+var selectedAnalysisTagId = '';
 
 // ========== 初期化 ==========
 
@@ -282,6 +283,22 @@ function sortCompareRows(rows, sortBy) {
     return rows.sort(sortFn);
 }
 
+// ========== タグヘルパー ==========
+
+function rowHasTag(tagIds, targetTagId) {
+    return tagIds && tagIds.indexOf(targetTagId) !== -1;
+}
+
+function rowHasAnyTag(tagIds) {
+    return tagIds && tagIds.length > 0;
+}
+
+function getActiveTagDefs() {
+    return TagEngine.getAll().filter(function(def) {
+        return TagEngine.hasActiveConditions(def.id);
+    });
+}
+
 // ========== メイン描画 ==========
 
 function renderCompare() {
@@ -289,6 +306,7 @@ function renderCompare() {
     var rows = buildCompareRows();
     renderCompareSummary(rows);
     renderCompareTable(rows);
+    updateAnalysisTagSelect();
     renderCompareAnalysis(rows);
 }
 
@@ -398,84 +416,153 @@ function renderCompareTable(rows) {
     updateTagCountDisplay(rows, showTags);
 }
 
-// ========== 高設定タグ分析パネル ==========
+// ========== タグ選択セレクター ==========
+
+function updateAnalysisTagSelect() {
+    var select = document.getElementById('analysisTagSelect');
+    if (!select) return;
+
+    var tagDefs = getActiveTagDefs();
+    var currentVal = selectedAnalysisTagId;
+
+    var html = '';
+    if (tagDefs.length === 0) {
+        html = '<option value="">タグなし</option>';
+    } else {
+        html = tagDefs.map(function(def) {
+            var sel = def.id === currentVal ? ' selected' : '';
+            return '<option value="' + def.id + '"' + sel + '>' + def.icon + ' ' + escapeHtml(def.name) + '</option>';
+        }).join('');
+    }
+
+    select.innerHTML = html;
+
+    // 選択値の補正
+    if (tagDefs.length > 0) {
+        var validIds = tagDefs.map(function(d) { return d.id; });
+        if (validIds.indexOf(currentVal) === -1) {
+            selectedAnalysisTagId = tagDefs[0].id;
+            select.value = selectedAnalysisTagId;
+        }
+    } else {
+        selectedAnalysisTagId = '';
+    }
+}
+
+// ========== タグ分析パネル ==========
 
 function renderCompareAnalysis(rows) {
     var container = document.getElementById('compareAnalysisContainer');
     if (!container) return;
 
+    var summaryEl = document.getElementById('analysisSummary');
+    var tablesEl = document.getElementById('analysisTables');
+
     if (!hasActiveTagConditions()) {
-        document.getElementById('analysisSummary').innerHTML = '';
-        document.getElementById('analysisTables').innerHTML =
-            '<div class="analysis-empty">高設定タグの条件を設定すると分析が表示されます</div>';
+        if (summaryEl) summaryEl.innerHTML = '';
+        if (tablesEl) tablesEl.innerHTML = '<div class="analysis-empty">タグの条件を設定すると分析が表示されます</div>';
         return;
     }
 
-    var viewMode = document.getElementById('analysisViewMode').value;
-    renderAnalysisSummary(rows);
+    var tagDefs = getActiveTagDefs();
+    var selectedDef = tagDefs.find(function(d) { return d.id === selectedAnalysisTagId; });
 
+    if (!selectedDef && tagDefs.length > 0) {
+        selectedDef = tagDefs[0];
+        selectedAnalysisTagId = selectedDef.id;
+    }
+
+    if (!selectedDef) {
+        if (summaryEl) summaryEl.innerHTML = '';
+        if (tablesEl) tablesEl.innerHTML = '<div class="analysis-empty">タグを選択してください</div>';
+        return;
+    }
+
+    renderAnalysisSummary(rows, selectedDef, tagDefs);
+
+    var viewMode = document.getElementById('analysisViewMode').value;
     if (viewMode === 'overall') {
-        renderOverallAnalysis(rows);
+        renderOverallAnalysis(rows, selectedDef, tagDefs);
     } else {
-        renderMachineAnalysis(rows);
+        renderMachineAnalysis(rows, selectedDef, tagDefs);
     }
 }
 
 // ========== 分析サマリーカード ==========
 
-function renderAnalysisSummary(rows) {
+function renderAnalysisSummary(rows, selectedDef, allTagDefs) {
     var container = document.getElementById('analysisSummary');
     if (!container) return;
 
     var totalUnits = rows.length;
-    var tagBCount = rows.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
-    var tagACount = rows.filter(function(r) { return r.tagsA && r.tagsA.length > 0; }).length;
+    var html = '';
+
+    // 全体カード
+    html += '<div class="analysis-card card-total">';
+    html += '  <div class="analysis-card-label">設置台数</div>';
+    html += '  <div class="analysis-card-value">' + totalUnits + '</div>';
+    html += '</div>';
+
+    // 選択中タグの詳細カード
+    var tagBCount = rows.filter(function(r) { return rowHasTag(r.tagsB, selectedDef.id); }).length;
+    var tagACount = rows.filter(function(r) { return rowHasTag(r.tagsA, selectedDef.id); }).length;
     var tagBRate = totalUnits > 0 ? (tagBCount / totalUnits * 100) : 0;
 
-    var prevTagRows = rows.filter(function(r) { return r.tagsA && r.tagsA.length > 0; });
-    var repeatCount = prevTagRows.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
-    var repeatRate = prevTagRows.length > 0 ? (repeatCount / prevTagRows.length * 100) : 0;
+    html += '<div class="analysis-card" style="border-top: 3px solid ' + selectedDef.color + ';">';
+    html += '  <div class="analysis-card-label">' + selectedDef.icon + ' ' + escapeHtml(selectedDef.name) + ' 今回率</div>';
+    html += '  <div class="analysis-card-value" style="color: ' + selectedDef.color + ';">' + tagBRate.toFixed(1) + '%</div>';
+    html += '  <div class="analysis-card-sub">' + tagBCount + ' / ' + totalUnits + '台</div>';
+    html += '</div>';
+
+    html += '<div class="analysis-card" style="border-top: 3px solid ' + selectedDef.color + '40;">';
+    html += '  <div class="analysis-card-label">' + selectedDef.icon + ' 前回→今回</div>';
+    html += '  <div class="analysis-card-value">' + tagACount + ' → ' + tagBCount + '</div>';
+    html += '  <div class="analysis-card-sub">前回: ' + tagACount + '台</div>';
+    html += '</div>';
 
     var prevMinusRows = rows.filter(function(r) {
         return r.rowA && (parseInt(String(r.rowA['差枚']).replace(/,/g, '')) || 0) < 0;
     });
-    var recoveryCount = prevMinusRows.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
+    var recoveryCount = prevMinusRows.filter(function(r) { return rowHasTag(r.tagsB, selectedDef.id); }).length;
     var recoveryRate = prevMinusRows.length > 0 ? (recoveryCount / prevMinusRows.length * 100) : 0;
 
-    container.innerHTML =
-        '<div class="analysis-card card-total">' +
-        '  <div class="analysis-card-label">設置台数</div>' +
-        '  <div class="analysis-card-value">' + totalUnits + '</div>' +
-        '  <div class="analysis-card-sub">前回タグ: ' + tagACount + '台 / 今回タグ: ' + tagBCount + '台</div>' +
-        '</div>' +
-        '<div class="analysis-card card-tag-rate">' +
-        '  <div class="analysis-card-label">今回タグ率</div>' +
-        '  <div class="analysis-card-value">' + tagBRate.toFixed(1) + '%</div>' +
-        '  <div class="analysis-card-sub">' + tagBCount + ' / ' + totalUnits + '台</div>' +
-        '</div>' +
-        '<div class="analysis-card card-recovery">' +
-        '  <div class="analysis-card-label">前回マイナス→今回タグ</div>' +
-        '  <div class="analysis-card-value">' + recoveryRate.toFixed(1) + '%</div>' +
-        '  <div class="analysis-card-sub">前回マイナス' + prevMinusRows.length + '台中 ' + recoveryCount + '台</div>' +
-        '</div>';
+    html += '<div class="analysis-card card-recovery">';
+    html += '  <div class="analysis-card-label">前回ﾏｲﾅｽ→今回タグ</div>';
+    html += '  <div class="analysis-card-value">' + recoveryRate.toFixed(1) + '%</div>';
+    html += '  <div class="analysis-card-sub">' + prevMinusRows.length + '台中 ' + recoveryCount + '台</div>';
+    html += '</div>';
+
+    // 他のタグの概要
+    allTagDefs.forEach(function(def) {
+        if (def.id === selectedDef.id) return;
+        var bCount = rows.filter(function(r) { return rowHasTag(r.tagsB, def.id); }).length;
+        var bRate = totalUnits > 0 ? (bCount / totalUnits * 100) : 0;
+        html += '<div class="analysis-card" style="border-top: 3px solid ' + def.color + '40;">';
+        html += '  <div class="analysis-card-label">' + def.icon + ' ' + escapeHtml(def.name) + '</div>';
+        html += '  <div class="analysis-card-value" style="color: ' + def.color + ';">' + bRate.toFixed(1) + '%</div>';
+        html += '  <div class="analysis-card-sub">今回: ' + bCount + '台</div>';
+        html += '</div>';
+    });
+
+    container.innerHTML = html;
 }
 
 // ========== 全体分析テーブル ==========
 
-function renderOverallAnalysis(rows) {
+function renderOverallAnalysis(rows, selectedDef, allTagDefs) {
     var container = document.getElementById('analysisTables');
     if (!container) return;
 
     var html = '';
-    html += buildPositionAnalysisTable(rows);
-    html += buildSuffixAnalysisTable(rows);
-    html += buildPrevStateAnalysisTable(rows);
-    html += buildPrevGameRangeAnalysisTable(rows);
-    html += buildPrevSaRangeAnalysisTable(rows);
+    html += buildPositionAnalysisTableForTag(rows, selectedDef);
+    html += buildSuffixAnalysisTableForTag(rows, selectedDef);
+    html += buildPrevStateAnalysisTableForTag(rows, selectedDef, allTagDefs);
+    html += buildPrevGameRangeAnalysisTableForTag(rows, selectedDef, allTagDefs);
+    html += buildPrevSaRangeAnalysisTableForTag(rows, selectedDef, allTagDefs);
     container.innerHTML = html;
 }
 
-function buildPositionAnalysisTable(rows) {
+function buildPositionAnalysisTableForTag(rows, def) {
     var positionTags = (typeof getAllPositionTags === 'function') ? getAllPositionTags() : [];
     if (positionTags.length === 0) return '';
 
@@ -486,8 +573,8 @@ function buildPositionAnalysisTable(rows) {
             return tags.indexOf(tag.value) !== -1;
         });
         var total = matching.length;
-        var tagACount = matching.filter(function(r) { return r.tagsA && r.tagsA.length > 0; }).length;
-        var tagBCount = matching.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
+        var tagACount = matching.filter(function(r) { return rowHasTag(r.tagsA, def.id); }).length;
+        var tagBCount = matching.filter(function(r) { return rowHasTag(r.tagsB, def.id); }).length;
         return {
             label: tag.icon + ' ' + tag.label, total: total,
             tagACount: tagACount, prevRate: total > 0 ? (tagACount / total * 100) : 0,
@@ -500,7 +587,7 @@ function buildPositionAnalysisTable(rows) {
     var html = '<div class="analysis-table-block">';
     html += '<div class="analysis-table-title"><span class="title-icon">📍</span>位置別タグ率</div>';
     html += '<div class="analysis-table-wrapper"><table class="analysis-table">';
-    html += '<thead><tr><th>位置</th><th>台数</th><th>前回タグ</th><th>前回タグ率</th><th>今回タグ</th><th>今回タグ率</th></tr></thead><tbody>';
+    html += '<thead><tr><th>位置</th><th>台数</th><th>前回</th><th>前回率</th><th>今回</th><th>今回率</th></tr></thead><tbody>';
     tableRows.forEach(function(r) {
         html += '<tr><td>' + r.label + '</td><td>' + r.total + '</td><td>' + r.tagACount + '</td><td>' + buildPctBarCell(r.prevRate) + '</td><td>' + r.tagBCount + '</td><td>' + buildPctBarCell(r.rate) + '</td></tr>';
     });
@@ -508,7 +595,7 @@ function buildPositionAnalysisTable(rows) {
     return html;
 }
 
-function buildSuffixAnalysisTable(rows) {
+function buildSuffixAnalysisTableForTag(rows, def) {
     var suffixes = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
     var tableRows = suffixes.map(function(s) {
         var matching = rows.filter(function(r) {
@@ -516,8 +603,8 @@ function buildSuffixAnalysisTable(rows) {
             return num.length > 0 && num.slice(-1) === s;
         });
         var total = matching.length;
-        var tagACount = matching.filter(function(r) { return r.tagsA && r.tagsA.length > 0; }).length;
-        var tagBCount = matching.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
+        var tagACount = matching.filter(function(r) { return rowHasTag(r.tagsA, def.id); }).length;
+        var tagBCount = matching.filter(function(r) { return rowHasTag(r.tagsB, def.id); }).length;
         return {
             label: '末尾 ' + s, total: total,
             tagACount: tagACount, prevRate: total > 0 ? (tagACount / total * 100) : 0,
@@ -528,7 +615,7 @@ function buildSuffixAnalysisTable(rows) {
     var html = '<div class="analysis-table-block">';
     html += '<div class="analysis-table-title"><span class="title-icon">🔢</span>台番号末尾別タグ率</div>';
     html += '<div class="analysis-table-wrapper"><table class="analysis-table">';
-    html += '<thead><tr><th>末尾</th><th>台数</th><th>前回タグ</th><th>前回タグ率</th><th>今回タグ</th><th>今回タグ率</th></tr></thead><tbody>';
+    html += '<thead><tr><th>末尾</th><th>台数</th><th>前回</th><th>前回率</th><th>今回</th><th>今回率</th></tr></thead><tbody>';
     tableRows.forEach(function(r) {
         html += '<tr><td>' + r.label + '</td><td>' + r.total + '</td><td>' + r.tagACount + '</td><td>' + buildPctBarCell(r.prevRate) + '</td><td>' + r.tagBCount + '</td><td>' + buildPctBarCell(r.rate) + '</td></tr>';
     });
@@ -536,43 +623,105 @@ function buildSuffixAnalysisTable(rows) {
     return html;
 }
 
-function buildPrevStateAnalysisTable(rows) {
-    var categories = [
-        { label: '前回 高設定タグ', filter: function(r) { return r.tagsA && r.tagsA.length > 0; } },
-        { label: '前回 タグなし＆プラス', filter: function(r) {
-            if ((r.tagsA && r.tagsA.length > 0) || !r.rowA) return false;
-            return (parseInt(String(r.rowA['差枚']).replace(/,/g, '')) || 0) > 0;
-        }},
-        { label: '前回 マイナス', filter: function(r) {
-            if (!r.rowA) return false;
-            return (parseInt(String(r.rowA['差枚']).replace(/,/g, '')) || 0) < 0;
-        }},
-        { label: '前回 ±0', filter: function(r) {
-            if (!r.rowA) return false;
-            return (parseInt(String(r.rowA['差枚']).replace(/,/g, '')) || 0) === 0;
-        }},
-        { label: '前回 データなし', filter: function(r) { return !r.rowA; } }
-    ];
+function buildPrevStateAnalysisTableForTag(rows, selectedDef, allTagDefs) {
+    // ── カテゴリ構築: 全タグの前回状態を列挙 ──
+    var categories = [];
 
-    var tableRows = categories.map(function(cat) {
-        var matching = rows.filter(cat.filter);
-        var total = matching.length;
-        var tagBCount = matching.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
-        return { label: cat.label, total: total, tagBCount: tagBCount, rate: total > 0 ? (tagBCount / total * 100) : 0 };
+    // 各タグごとに「前回そのタグあり」カテゴリを追加
+    allTagDefs.forEach(function(def) {
+        categories.push({
+            label: '前回 ' + def.icon + ' ' + def.name,
+            color: def.color,
+            filter: function(r) { return rowHasTag(r.tagsA, def.id); }
+        });
     });
 
+    // 前回いずれかのタグあり（複合）
+    if (allTagDefs.length >= 2) {
+        categories.push({
+            label: '前回 いずれかのタグあり',
+            color: null,
+            filter: function(r) { return rowHasAnyTag(r.tagsA); }
+        });
+    }
+
+    // 前回タグなし＆プラス
+    categories.push({
+        label: '前回 タグなし＆プラス',
+        color: null,
+        filter: function(r) {
+            if (rowHasAnyTag(r.tagsA) || !r.rowA) return false;
+            return (parseInt(String(r.rowA['差枚']).replace(/,/g, '')) || 0) > 0;
+        }
+    });
+
+    // 前回マイナス
+    categories.push({
+        label: '前回 マイナス',
+        color: null,
+        filter: function(r) {
+            if (!r.rowA) return false;
+            return (parseInt(String(r.rowA['差枚']).replace(/,/g, '')) || 0) < 0;
+        }
+    });
+
+    // 前回 ±0
+    categories.push({
+        label: '前回 ±0',
+        color: null,
+        filter: function(r) {
+            if (!r.rowA) return false;
+            return (parseInt(String(r.rowA['差枚']).replace(/,/g, '')) || 0) === 0;
+        }
+    });
+
+    // 前回データなし
+    categories.push({
+        label: '前回 データなし',
+        color: null,
+        filter: function(r) { return !r.rowA; }
+    });
+
+    // ── テーブル構築 ──
     var html = '<div class="analysis-table-block">';
     html += '<div class="analysis-table-title"><span class="title-icon">📊</span>前回状態別 → 今回タグ率</div>';
     html += '<div class="analysis-table-wrapper"><table class="analysis-table">';
-    html += '<thead><tr><th>前回の状態</th><th>該当台数</th><th>今回タグ数</th><th>今回タグ率</th></tr></thead><tbody>';
-    tableRows.forEach(function(r) {
-        html += '<tr><td>' + r.label + '</td><td>' + r.total + '</td><td>' + r.tagBCount + '</td><td>' + buildPctBarCell(r.rate) + '</td></tr>';
+
+    // ヘッダー: 前回の状態 | 該当台数 | 各タグの今回数＆率
+    html += '<thead><tr><th>前回の状態</th><th>該当台数</th>';
+    allTagDefs.forEach(function(def) {
+        html += '<th style="color:' + def.color + ';">' + def.icon + ' ' + escapeHtml(def.name) + '</th>';
+        html += '<th style="color:' + def.color + ';">率</th>';
     });
+    html += '</tr></thead><tbody>';
+
+    categories.forEach(function(cat) {
+        var matching = rows.filter(cat.filter);
+        var total = matching.length;
+
+        html += '<tr>';
+        if (cat.color) {
+            html += '<td style="border-left: 3px solid ' + cat.color + ';">' + cat.label + '</td>';
+        } else {
+            html += '<td>' + cat.label + '</td>';
+        }
+        html += '<td>' + total + '</td>';
+
+        allTagDefs.forEach(function(def) {
+            var cnt = matching.filter(function(r) { return rowHasTag(r.tagsB, def.id); }).length;
+            var rate = total > 0 ? (cnt / total * 100) : 0;
+            html += '<td>' + cnt + '</td>';
+            html += '<td>' + buildPctBarCell(rate) + '</td>';
+        });
+
+        html += '</tr>';
+    });
+
     html += '</tbody></table></div></div>';
     return html;
 }
 
-function buildPrevGameRangeAnalysisTable(rows) {
+function buildPrevGameRangeAnalysisTableForTag(rows, selectedDef, allTagDefs) {
     var ranges = [
         { label: '0G（未稼働）', min: 0, max: 0 },
         { label: '1〜2000G', min: 1, max: 2000 },
@@ -582,29 +731,49 @@ function buildPrevGameRangeAnalysisTable(rows) {
         { label: '8001G以上', min: 8001, max: Infinity }
     ];
 
-    var tableRows = ranges.map(function(range) {
+    var html = '<div class="analysis-table-block">';
+    html += '<div class="analysis-table-title"><span class="title-icon">🎰</span>前回G数帯別 → 今回タグ率</div>';
+    html += '<div class="analysis-table-wrapper"><table class="analysis-table">';
+    html += '<thead><tr><th>前回G数帯</th><th>該当台数</th>';
+    html += '<th style="color:' + selectedDef.color + ';">' + selectedDef.icon + ' ' + escapeHtml(selectedDef.name) + '</th>';
+    html += '<th style="color:' + selectedDef.color + ';">率</th>';
+    allTagDefs.forEach(function(def) {
+        if (def.id === selectedDef.id) return;
+        html += '<th style="color:' + def.color + ';">' + def.icon + ' ' + escapeHtml(def.name) + '</th>';
+    });
+    html += '</tr></thead><tbody>';
+
+    ranges.forEach(function(range) {
         var matching = rows.filter(function(r) {
             if (!r.rowA) return false;
             var g = parseInt(String(r.rowA['G数']).replace(/,/g, '')) || 0;
             return g >= range.min && g <= range.max;
         });
         var total = matching.length;
-        var tagBCount = matching.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
-        return { label: range.label, total: total, tagBCount: tagBCount, rate: total > 0 ? (tagBCount / total * 100) : 0 };
+        var tagBCount = matching.filter(function(r) { return rowHasTag(r.tagsB, selectedDef.id); }).length;
+        var rate = total > 0 ? (tagBCount / total * 100) : 0;
+
+        html += '<tr>';
+        html += '<td>' + range.label + '</td>';
+        html += '<td>' + total + '</td>';
+        html += '<td>' + tagBCount + '</td>';
+        html += '<td>' + buildPctBarCell(rate) + '</td>';
+
+        allTagDefs.forEach(function(def) {
+            if (def.id === selectedDef.id) return;
+            var cnt = matching.filter(function(r) { return rowHasTag(r.tagsB, def.id); }).length;
+            var r2 = total > 0 ? (cnt / total * 100) : 0;
+            html += '<td>' + buildPctBarCell(r2) + '</td>';
+        });
+
+        html += '</tr>';
     });
 
-    var html = '<div class="analysis-table-block">';
-    html += '<div class="analysis-table-title"><span class="title-icon">🎰</span>前回G数帯別 → 今回タグ率</div>';
-    html += '<div class="analysis-table-wrapper"><table class="analysis-table">';
-    html += '<thead><tr><th>前回G数帯</th><th>該当台数</th><th>今回タグ数</th><th>今回タグ率</th></tr></thead><tbody>';
-    tableRows.forEach(function(r) {
-        html += '<tr><td>' + r.label + '</td><td>' + r.total + '</td><td>' + r.tagBCount + '</td><td>' + buildPctBarCell(r.rate) + '</td></tr>';
-    });
     html += '</tbody></table></div></div>';
     return html;
 }
 
-function buildPrevSaRangeAnalysisTable(rows) {
+function buildPrevSaRangeAnalysisTableForTag(rows, selectedDef, allTagDefs) {
     var ranges = [
         { label: '-3000枚以下', min: -Infinity, max: -3001 },
         { label: '-3000〜-1001枚', min: -3000, max: -1001 },
@@ -615,31 +784,51 @@ function buildPrevSaRangeAnalysisTable(rows) {
         { label: '+3001枚以上', min: 3001, max: Infinity }
     ];
 
-    var tableRows = ranges.map(function(range) {
+    var html = '<div class="analysis-table-block">';
+    html += '<div class="analysis-table-title"><span class="title-icon">💰</span>前回差枚帯別 → 今回タグ率</div>';
+    html += '<div class="analysis-table-wrapper"><table class="analysis-table">';
+    html += '<thead><tr><th>前回差枚帯</th><th>該当台数</th>';
+    html += '<th style="color:' + selectedDef.color + ';">' + selectedDef.icon + ' ' + escapeHtml(selectedDef.name) + '</th>';
+    html += '<th style="color:' + selectedDef.color + ';">率</th>';
+    allTagDefs.forEach(function(def) {
+        if (def.id === selectedDef.id) return;
+        html += '<th style="color:' + def.color + ';">' + def.icon + ' ' + escapeHtml(def.name) + '</th>';
+    });
+    html += '</tr></thead><tbody>';
+
+    ranges.forEach(function(range) {
         var matching = rows.filter(function(r) {
             if (!r.rowA) return false;
             var sa = parseInt(String(r.rowA['差枚']).replace(/,/g, '')) || 0;
             return sa >= range.min && sa <= range.max;
         });
         var total = matching.length;
-        var tagBCount = matching.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
-        return { label: range.label, total: total, tagBCount: tagBCount, rate: total > 0 ? (tagBCount / total * 100) : 0 };
+        var tagBCount = matching.filter(function(r) { return rowHasTag(r.tagsB, selectedDef.id); }).length;
+        var rate = total > 0 ? (tagBCount / total * 100) : 0;
+
+        html += '<tr>';
+        html += '<td>' + range.label + '</td>';
+        html += '<td>' + total + '</td>';
+        html += '<td>' + tagBCount + '</td>';
+        html += '<td>' + buildPctBarCell(rate) + '</td>';
+
+        allTagDefs.forEach(function(def) {
+            if (def.id === selectedDef.id) return;
+            var cnt = matching.filter(function(r) { return rowHasTag(r.tagsB, def.id); }).length;
+            var r2 = total > 0 ? (cnt / total * 100) : 0;
+            html += '<td>' + buildPctBarCell(r2) + '</td>';
+        });
+
+        html += '</tr>';
     });
 
-    var html = '<div class="analysis-table-block">';
-    html += '<div class="analysis-table-title"><span class="title-icon">💰</span>前回差枚帯別 → 今回タグ率</div>';
-    html += '<div class="analysis-table-wrapper"><table class="analysis-table">';
-    html += '<thead><tr><th>前回差枚帯</th><th>該当台数</th><th>今回タグ数</th><th>今回タグ率</th></tr></thead><tbody>';
-    tableRows.forEach(function(r) {
-        html += '<tr><td>' + r.label + '</td><td>' + r.total + '</td><td>' + r.tagBCount + '</td><td>' + buildPctBarCell(r.rate) + '</td></tr>';
-    });
     html += '</tbody></table></div></div>';
     return html;
 }
 
 // ========== 機種別分析 ==========
 
-function renderMachineAnalysis(rows) {
+function renderMachineAnalysis(rows, selectedDef, allTagDefs) {
     var container = document.getElementById('analysisTables');
     if (!container) return;
 
@@ -655,15 +844,26 @@ function renderMachineAnalysis(rows) {
     });
 
     var html = '<div class="analysis-table-block">';
-    html += '<div class="analysis-table-title"><span class="title-icon">🎰</span>機種別 高設定タグ分析</div>';
+    html += '<div class="analysis-table-title"><span class="title-icon">🎰</span>機種別タグ分析</div>';
     html += '<div class="analysis-table-wrapper"><table class="analysis-table analysis-machine-table">';
-    html += '<thead><tr><th>機種名</th><th>台数</th><th>前回タグ</th><th>前回タグ率</th><th>今回タグ</th><th>今回タグ率</th><th>前回マイナス→今回タグ</th></tr></thead><tbody>';
+    html += '<thead><tr><th>機種名</th><th>台数</th>';
+    html += '<th style="color:' + selectedDef.color + ';">前回</th>';
+    html += '<th style="color:' + selectedDef.color + ';">前回率</th>';
+    html += '<th style="color:' + selectedDef.color + ';">今回</th>';
+    html += '<th style="color:' + selectedDef.color + ';">今回率</th>';
+    html += '<th>前回ﾏｲﾅｽ→今回</th>';
+    // 他タグ列
+    allTagDefs.forEach(function(def) {
+        if (def.id === selectedDef.id) return;
+        html += '<th style="color:' + def.color + ';">' + def.icon + ' 今回率</th>';
+    });
+    html += '</tr></thead><tbody>';
 
     machineNames.forEach(function(name) {
         var mRows = machineMap[name];
         var total = mRows.length;
-        var tagACount = mRows.filter(function(r) { return r.tagsA && r.tagsA.length > 0; }).length;
-        var tagBCount = mRows.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
+        var tagACount = mRows.filter(function(r) { return rowHasTag(r.tagsA, selectedDef.id); }).length;
+        var tagBCount = mRows.filter(function(r) { return rowHasTag(r.tagsB, selectedDef.id); }).length;
         var tagARate = total > 0 ? (tagACount / total * 100) : 0;
         var tagBRate = total > 0 ? (tagBCount / total * 100) : 0;
 
@@ -671,7 +871,7 @@ function renderMachineAnalysis(rows) {
             if (!r.rowA) return false;
             return (parseInt(String(r.rowA['差枚']).replace(/,/g, '')) || 0) < 0;
         });
-        var recoveryCount = prevMinusRows.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
+        var recoveryCount = prevMinusRows.filter(function(r) { return rowHasTag(r.tagsB, selectedDef.id); }).length;
         var recoveryRate = prevMinusRows.length > 0 ? (recoveryCount / prevMinusRows.length * 100) : 0;
 
         html += '<tr>';
@@ -682,6 +882,14 @@ function renderMachineAnalysis(rows) {
         html += '<td>' + tagBCount + '</td>';
         html += '<td>' + buildPctBarCell(tagBRate) + '</td>';
         html += '<td>' + buildPctBarCell(recoveryRate, prevMinusRows.length) + '</td>';
+
+        allTagDefs.forEach(function(def) {
+            if (def.id === selectedDef.id) return;
+            var cnt = mRows.filter(function(r) { return rowHasTag(r.tagsB, def.id); }).length;
+            var r2 = total > 0 ? (cnt / total * 100) : 0;
+            html += '<td>' + buildPctBarCell(r2) + '</td>';
+        });
+
         html += '</tr>';
     });
 
@@ -751,10 +959,15 @@ function updateTagCountDisplay(rows, showTags) {
     var display = document.getElementById('tagCountDisplay');
     if (!display) return;
     if (!showTags || !TagEngine.hasAnyActiveConditions()) { display.textContent = ''; return; }
-    var tagACount = rows.filter(function(r) { return r.tagsA && r.tagsA.length > 0; }).length;
-    var tagBCount = rows.filter(function(r) { return r.tagsB && r.tagsB.length > 0; }).length;
-    var bothCount = rows.filter(function(r) { return r.tagsA && r.tagsA.length > 0 && r.tagsB && r.tagsB.length > 0; }).length;
-    display.textContent = '前回: ' + tagACount + '台 / 今回: ' + tagBCount + '台 / 両日: ' + bothCount + '台';
+
+    var tagDefs = getActiveTagDefs();
+    var parts = tagDefs.map(function(def) {
+        var aCount = rows.filter(function(r) { return rowHasTag(r.tagsA, def.id); }).length;
+        var bCount = rows.filter(function(r) { return rowHasTag(r.tagsB, def.id); }).length;
+        return def.icon + def.name + ' 前回:' + aCount + ' 今回:' + bCount;
+    });
+
+    display.textContent = parts.join(' / ');
 }
 
 // ========== コピー・ダウンロード ==========
@@ -851,6 +1064,16 @@ function setupCompareEventListeners() {
         if (diffVal) diffVal.value = '';
         if (compareMachineFilterSelect) compareMachineFilterSelect.reset();
         if (hasCompareData()) renderCompare();
+    });
+
+    // タグ選択
+    el = document.getElementById('analysisTagSelect');
+    if (el) el.addEventListener('change', function() {
+        selectedAnalysisTagId = this.value;
+        if (hasCompareData()) {
+            var rows = buildCompareRows();
+            renderCompareAnalysis(rows);
+        }
     });
 
     el = document.getElementById('analysisViewMode');
