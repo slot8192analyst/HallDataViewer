@@ -741,6 +741,7 @@ async function filterAndRender() {
     await updateDateNavWithEvents();
     updateFilterBadge();
     updateDailyTagCountDisplay(data);
+    renderSuffixStatsTable(data); 
 }
 
 // ===================
@@ -981,4 +982,250 @@ function setupDailyEventListeners() {
 
     restoreFilterPanelState();
     initDateSelectWithEvents();
+    setupSuffixStatsEventListeners();
+}
+
+// ===================
+// 台番号末尾別統計
+// ===================
+
+var suffixStatsPanelOpen = false;
+
+function toggleSuffixStatsPanel() {
+    var content = document.getElementById('suffixStatsContent');
+    var toggle = document.getElementById('suffixStatsToggle');
+    if (!content || !toggle) return;
+
+    suffixStatsPanelOpen = !suffixStatsPanelOpen;
+
+    if (suffixStatsPanelOpen) {
+        content.classList.add('open');
+        toggle.classList.add('open');
+        toggle.querySelector('.toggle-icon').textContent = '▲';
+    } else {
+        content.classList.remove('open');
+        toggle.classList.remove('open');
+        toggle.querySelector('.toggle-icon').textContent = '▼';
+    }
+    localStorage.setItem('suffixStatsPanelOpen', suffixStatsPanelOpen);
+}
+
+function restoreSuffixStatsPanelState() {
+    var saved = localStorage.getItem('suffixStatsPanelOpen');
+    if (saved === 'true') {
+        suffixStatsPanelOpen = false;
+        toggleSuffixStatsPanel();
+    }
+}
+
+function calculateSuffixStats(data) {
+    // 末尾0〜9のデータを集計
+    var stats = {};
+    for (var i = 0; i <= 9; i++) {
+        stats[i] = {
+            suffix: i,
+            count: 0,
+            totalSa: 0,
+            totalGames: 0,
+            totalBB: 0,
+            totalRB: 0,
+            totalART: 0,
+            winCount: 0
+        };
+    }
+
+    data.forEach(function(row) {
+        var unitNum = (row['台番号'] || '').replace(/\D/g, '');
+        if (unitNum.length === 0) return;
+
+        var suffix = parseInt(unitNum.slice(-1));
+        if (isNaN(suffix)) return;
+
+        var sa = parseInt(String(row['差枚']).replace(/,/g, '')) || 0;
+        var games = parseInt(String(row['G数']).replace(/,/g, '')) || 0;
+        var bb = parseInt(String(row['BB']).replace(/,/g, '')) || 0;
+        var rb = parseInt(String(row['RB']).replace(/,/g, '')) || 0;
+        var art = parseInt(String(row['ART']).replace(/,/g, '')) || 0;
+
+        stats[suffix].count++;
+        stats[suffix].totalSa += sa;
+        stats[suffix].totalGames += games;
+        stats[suffix].totalBB += bb;
+        stats[suffix].totalRB += rb;
+        stats[suffix].totalART += art;
+        if (sa > 0) stats[suffix].winCount++;
+    });
+
+    return stats;
+}
+
+function renderSuffixStatsTable(data) {
+    var table = document.getElementById('suffix-stats-table');
+    if (!table) return;
+
+    var thead = table.querySelector('thead');
+    var tbody = table.querySelector('tbody');
+
+    var stats = calculateSuffixStats(data);
+
+    // 全体合計の計算
+    var grandTotal = {
+        count: 0,
+        totalSa: 0,
+        totalGames: 0,
+        totalBB: 0,
+        totalRB: 0,
+        totalART: 0,
+        winCount: 0
+    };
+
+    for (var i = 0; i <= 9; i++) {
+        grandTotal.count += stats[i].count;
+        grandTotal.totalSa += stats[i].totalSa;
+        grandTotal.totalGames += stats[i].totalGames;
+        grandTotal.totalBB += stats[i].totalBB;
+        grandTotal.totalRB += stats[i].totalRB;
+        grandTotal.totalART += stats[i].totalART;
+        grandTotal.winCount += stats[i].winCount;
+    }
+
+    thead.innerHTML =
+        '<tr>' +
+        '<th>末尾</th>' +
+        '<th>台数</th>' +
+        '<th>合計差枚</th>' +
+        '<th>平均差枚</th>' +
+        '<th>合計G数</th>' +
+        '<th>平均G数</th>' +
+        '<th>機械割</th>' +
+        '<th>勝率</th>' +
+        '<th>BB</th>' +
+        '<th>RB</th>' +
+        '<th>ART</th>' +
+        '</tr>';
+
+    var rows = '';
+
+    for (var s = 0; s <= 9; s++) {
+        var st = stats[s];
+        var hasData = st.count > 0;
+        var noDataClass = hasData ? '' : ' class="no-data"';
+
+        var avgSa = hasData ? Math.round(st.totalSa / st.count) : 0;
+        var avgGames = hasData ? Math.round(st.totalGames / st.count) : 0;
+        var winRate = hasData ? ((st.winCount / st.count) * 100).toFixed(1) : '0.0';
+        var mechRate = calculateMechanicalRate(st.totalGames, st.totalSa);
+
+        var saClass = st.totalSa > 0 ? 'plus' : st.totalSa < 0 ? 'minus' : 'zero';
+        var avgSaClass = avgSa > 0 ? 'plus' : avgSa < 0 ? 'minus' : 'zero';
+        var mechRateClass = getMechanicalRateClass(mechRate);
+
+        rows += '<tr' + noDataClass + '>';
+        rows += '<td style="text-align:center; font-weight:bold;">' + s + '</td>';
+        rows += '<td style="text-align:center;">' + st.count + '</td>';
+        rows += '<td class="' + saClass + '">' + (hasData ? (st.totalSa >= 0 ? '+' : '') + st.totalSa.toLocaleString() : '-') + '</td>';
+        rows += '<td class="' + avgSaClass + '">' + (hasData ? (avgSa >= 0 ? '+' : '') + avgSa.toLocaleString() : '-') + '</td>';
+        rows += '<td>' + (hasData ? st.totalGames.toLocaleString() : '-') + '</td>';
+        rows += '<td>' + (hasData ? avgGames.toLocaleString() : '-') + '</td>';
+        rows += '<td class="' + mechRateClass + '">' + formatMechanicalRate(mechRate) + '</td>';
+        rows += '<td>' + (hasData ? winRate + '%' : '-') + '</td>';
+        rows += '<td>' + (hasData ? st.totalBB.toLocaleString() : '-') + '</td>';
+        rows += '<td>' + (hasData ? st.totalRB.toLocaleString() : '-') + '</td>';
+        rows += '<td>' + (hasData ? st.totalART.toLocaleString() : '-') + '</td>';
+        rows += '</tr>';
+    }
+
+    // 合計行
+    var grandAvgSa = grandTotal.count > 0 ? Math.round(grandTotal.totalSa / grandTotal.count) : 0;
+    var grandAvgGames = grandTotal.count > 0 ? Math.round(grandTotal.totalGames / grandTotal.count) : 0;
+    var grandWinRate = grandTotal.count > 0 ? ((grandTotal.winCount / grandTotal.count) * 100).toFixed(1) : '0.0';
+    var grandMechRate = calculateMechanicalRate(grandTotal.totalGames, grandTotal.totalSa);
+
+    var grandSaClass = grandTotal.totalSa > 0 ? 'plus' : grandTotal.totalSa < 0 ? 'minus' : 'zero';
+    var grandAvgSaClass = grandAvgSa > 0 ? 'plus' : grandAvgSa < 0 ? 'minus' : 'zero';
+    var grandMechRateClass = getMechanicalRateClass(grandMechRate);
+
+    rows += '<tr style="font-weight:bold; border-top: 2px solid var(--border-light);">';
+    rows += '<td style="text-align:center;">合計</td>';
+    rows += '<td style="text-align:center;">' + grandTotal.count + '</td>';
+    rows += '<td class="' + grandSaClass + '">' + (grandTotal.totalSa >= 0 ? '+' : '') + grandTotal.totalSa.toLocaleString() + '</td>';
+    rows += '<td class="' + grandAvgSaClass + '">' + (grandAvgSa >= 0 ? '+' : '') + grandAvgSa.toLocaleString() + '</td>';
+    rows += '<td>' + grandTotal.totalGames.toLocaleString() + '</td>';
+    rows += '<td>' + grandAvgGames.toLocaleString() + '</td>';
+    rows += '<td class="' + grandMechRateClass + '">' + formatMechanicalRate(grandMechRate) + '</td>';
+    rows += '<td>' + grandWinRate + '%</td>';
+    rows += '<td>' + grandTotal.totalBB.toLocaleString() + '</td>';
+    rows += '<td>' + grandTotal.totalRB.toLocaleString() + '</td>';
+    rows += '<td>' + grandTotal.totalART.toLocaleString() + '</td>';
+    rows += '</tr>';
+
+    tbody.innerHTML = rows;
+}
+
+function getSuffixStatsTableData() {
+    var table = document.getElementById('suffix-stats-table');
+    if (!table) return { headers: [], rows: [] };
+
+    var thead = table.querySelector('thead');
+    var tbody = table.querySelector('tbody');
+
+    var hdrs = [];
+    thead.querySelectorAll('th').forEach(function(cell) {
+        hdrs.push(cell.textContent.trim());
+    });
+
+    var rows = [];
+    tbody.querySelectorAll('tr').forEach(function(row) {
+        var rowData = [];
+        row.querySelectorAll('td').forEach(function(cell) {
+            var value = cell.textContent.trim();
+            var cleaned = value.replace(/[+,]/g, '').replace('%', '');
+            var num = parseFloat(cleaned);
+            if (!isNaN(num) && value !== '-') {
+                rowData.push(cleaned);
+            } else {
+                rowData.push(value);
+            }
+        });
+        if (rowData.length > 0) rows.push(rowData);
+    });
+
+    return { headers: hdrs, rows: rows };
+}
+
+function copySuffixStatsTable() {
+    var data = getSuffixStatsTableData();
+    var btn = document.getElementById('copySuffixTableBtn');
+    copyToClipboard(data, btn);
+}
+
+function downloadSuffixStatsCSV() {
+    var data = getSuffixStatsTableData();
+    if (data.rows.length === 0) {
+        showCopyToast('ダウンロードするデータがありません', true);
+        return;
+    }
+    var sortedFiles = sortFilesByDate(CSV_FILES, true);
+    var currentFile = sortedFiles[currentDateIndex];
+    var dateStr = currentFile ? currentFile.replace('.csv', '').replace('data/', '') : 'data';
+    downloadAsCSV(data, dateStr + '_suffix_stats.csv');
+}
+
+function setupSuffixStatsEventListeners() {
+    var toggle = document.getElementById('suffixStatsToggle');
+    if (toggle) {
+        toggle.addEventListener('click', toggleSuffixStatsPanel);
+    }
+
+    var copyBtn = document.getElementById('copySuffixTableBtn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', copySuffixStatsTable);
+    }
+
+    var downloadBtn = document.getElementById('downloadSuffixCsvBtn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', downloadSuffixStatsCSV);
+    }
+
+    restoreSuffixStatsPanelState();
 }

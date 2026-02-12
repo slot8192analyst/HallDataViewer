@@ -25,6 +25,7 @@ function setupFilterPanelToggle(toggleId, contentId) {
 }
 
 var compareTabInitialized = false;
+var tagmatchTabInitialized = false;
 
 function setupTabEventListeners() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -42,6 +43,11 @@ function setupTabEventListeners() {
                 if (!compareTabInitialized) {
                     initCompareTab();
                     compareTabInitialized = true;
+                }
+            } else if (btn.dataset.tab === 'tagmatch') {
+                if (!tagmatchTabInitialized) {
+                    setupTagMatchEventListeners();
+                    tagmatchTabInitialized = true;
                 }
             }
         });
