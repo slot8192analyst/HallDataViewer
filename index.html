@@ -28,9 +28,12 @@
         <button class="tab-btn" data-tab="compare">日別比較</button>
         <button class="tab-btn" data-tab="trend">データトレンド</button>
         <button class="tab-btn" data-tab="calendar">カレンダー</button>
+        <button class="tab-btn" data-tab="tagmatch">タグマッチング</button>
     </div>
 
-    <!-- 日別データタブ -->
+    <!-- =================== -->
+    <!-- 日別データタブ       -->
+    <!-- =================== -->
     <div id="daily" class="tab-content active">
         <div class="date-nav">
             <button id="prevDate">◀ 前日</button>
@@ -78,7 +81,6 @@
                     </div>
                 </div>
 
-                <!-- タグ条件セクション -->
                 <div class="filter-section">
                     <h5>🏷️ タグ条件</h5>
                     <p class="filter-hint">タグごとに名前・色・条件を自由に設定できます。グループ内はAND、グループ同士はORで判定します</p>
@@ -116,28 +118,52 @@
                 <tbody></tbody>
             </table>
         </div>
+
+        <!-- 台番号末尾別統計 -->
+        <div class="suffix-stats-block collapsible" id="suffixStatsBlock">
+            <div class="suffix-stats-header" id="suffixStatsToggle">
+                <h4 class="block-title">🔢 台番号末尾別統計</h4>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="suffix-stats-content" id="suffixStatsContent">
+                <div class="suffix-table-actions">
+                    <button class="btn-copy btn-small" id="copySuffixTableBtn" title="末尾統計をコピー">📋 コピー</button>
+                    <button class="btn-download btn-small" id="downloadSuffixCsvBtn" title="末尾統計CSVダウンロード">💾 CSV</button>
+                </div>
+                <div class="table-wrapper">
+                    <table class="suffix-stats-table" id="suffix-stats-table">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- 日別比較タブ -->
+    <!-- =================== -->
+    <!-- 日別比較タブ         -->
+    <!-- =================== -->
     <div id="compare" class="tab-content">
         <div class="compare-header">
             <h2>📅 日別データ比較</h2>
-            <p class="compare-description">2つの日付のデータを並べて比較します</p>
+            <p class="compare-description">基準日のデータを複数の比較日と並べて比較します</p>
         </div>
 
         <div class="compare-date-selectors">
-            <div class="compare-date-group">
-                <label>前回</label>
-                <select id="compareDateA"></select>
-                <span class="compare-date-info" id="compareDateAInfo"></span>
+            <div class="compare-date-section compare-date-base">
+                <div class="compare-date-section-label">📌 基準日（今回）</div>
+                <div class="compare-date-group">
+                    <select id="compareDateBase"></select>
+                    <span class="compare-date-info" id="compareDateBaseInfo"></span>
+                </div>
             </div>
-            <div class="compare-swap-btn-wrapper">
-                <button id="compareSwapDates" class="btn-swap" title="日付を入れ替え">⇄</button>
-            </div>
-            <div class="compare-date-group">
-                <label>今回</label>
-                <select id="compareDateB"></select>
-                <span class="compare-date-info" id="compareDateBInfo"></span>
+            <div class="compare-date-section compare-date-targets">
+                <div class="compare-date-section-label-row">
+                    <span class="compare-date-section-label">🔄 比較日</span>
+                    <button id="addCompareDate" class="btn-small">＋ 日付を追加</button>
+                </div>
+                <div id="compareDateList" class="compare-date-list">
+                </div>
             </div>
         </div>
 
@@ -162,10 +188,8 @@
                 <select id="compareSortBy">
                     <option value="diff_desc">差分 多い順</option>
                     <option value="diff_asc">差分 少ない順</option>
-                    <option value="a_desc">前回 多い順</option>
-                    <option value="a_asc">前回 少ない順</option>
-                    <option value="b_desc">今回 多い順</option>
-                    <option value="b_asc">今回 少ない順</option>
+                    <option value="base_desc">基準日 多い順</option>
+                    <option value="base_asc">基準日 少ない順</option>
                     <option value="unit_asc">台番号 ↑</option>
                     <option value="unit_desc">台番号 ↓</option>
                     <option value="machine_asc">機種名 あ→わ</option>
@@ -197,9 +221,9 @@
                             <label>表示</label>
                             <select id="compareShowFilter">
                                 <option value="">全て</option>
-                                <option value="improved">改善のみ（今回 > 前回）</option>
-                                <option value="declined">悪化のみ（今回 < 前回）</option>
-                                <option value="both">両日データあり</option>
+                                <option value="improved">改善のみ（基準日 > 比較日1）</option>
+                                <option value="declined">悪化のみ（基準日 < 比較日1）</option>
+                                <option value="both">全日データあり</option>
                             </select>
                         </div>
                         <div class="filter-item">
@@ -235,7 +259,7 @@
                         </label>
                         <label class="column-checkbox-item">
                             <input type="checkbox" id="showTagBothDays">
-                            <span>両日タグ付きのみ</span>
+                            <span>全日タグ付きのみ</span>
                         </label>
                         <span class="tag-count-display" id="tagCountDisplay"></span>
                     </div>
@@ -245,32 +269,53 @@
 
         <div class="compare-summary-cards" id="compareSummary"></div>
 
-        <div class="compare-analysis-container" id="compareAnalysisContainer">
-            <div class="analysis-header">
+        <div class="compare-analysis-container collapsible" id="compareAnalysisContainer">
+            <div class="compare-analysis-header" id="compareAnalysisToggle">
                 <h4>🏷️ タグ分析</h4>
-                <div class="analysis-controls">
-                    <div class="control-group">
-                        <label>タグ:</label>
-                        <select id="analysisTagSelect">
-                            <option value="">タグを選択...</option>
-                        </select>
+                <div class="analysis-header-right">
+                    <div class="analysis-controls" onclick="event.stopPropagation();">
+                        <div class="control-group">
+                            <label>タグ:</label>
+                            <select id="analysisTagSelect">
+                                <option value="">タグを選択...</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>表示:</label>
+                            <select id="analysisViewMode">
+                                <option value="overall">全体</option>
+                                <option value="machine">機種別</option>
+                            </select>
+                        </div>
+                        <button class="btn-copy btn-analysis-action" id="copyAnalysisBtn" title="分析データをコピー">📋</button>
+                        <button class="btn-download btn-analysis-action" id="downloadAnalysisCsvBtn" title="分析CSVダウンロード">💾</button>
                     </div>
-                    <div class="control-group">
-                        <label>表示:</label>
-                        <select id="analysisViewMode">
-                            <option value="overall">全体</option>
-                            <option value="machine">機種別</option>
-                        </select>
-                    </div>
+                    <span class="toggle-icon">▼</span>
                 </div>
             </div>
-            <div class="analysis-summary" id="analysisSummary"></div>
-            <div class="analysis-tables" id="analysisTables"></div>
+            <div class="compare-analysis-content" id="compareAnalysisContent">
+                <div class="analysis-summary" id="analysisSummary"></div>
+                <div class="analysis-tables" id="analysisTables"></div>
+            </div>
         </div>
 
         <div class="table-actions">
             <button class="btn-copy" id="copyCompareTableBtn" title="テーブルをクリップボードにコピー">📋 コピー</button>
             <button class="btn-download" id="downloadCompareCsvBtn" title="CSVファイルをダウンロード">💾 CSV</button>
+            <div class="compare-col-select-wrapper">
+                <button class="btn-col-select" id="compareColSelectBtn" title="表示列を選択">📋 表示列</button>
+                <div class="compare-col-dropdown" id="compareColDropdown">
+                    <div class="compare-col-dropdown-header">
+                        <span>表示列の選択</span>
+                        <div class="compare-col-dropdown-actions">
+                            <button class="btn-small" id="compareSelectAllCols">全選択</button>
+                            <button class="btn-small" id="compareDeselectAllCols">全解除</button>
+                        </div>
+                    </div>
+                    <div class="compare-col-dropdown-list" id="compareColumnCheckboxes">
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="table-wrapper">
@@ -281,7 +326,9 @@
         </div>
     </div>
 
-    <!-- データトレンドタブ -->
+    <!-- =================== -->
+    <!-- データトレンドタブ   -->
+    <!-- =================== -->
     <div id="trend" class="tab-content">
         <div class="controls">
             <div class="control-group">
@@ -463,7 +510,9 @@
         </div>
     </div>
 
-    <!-- カレンダータブ -->
+    <!-- =================== -->
+    <!-- カレンダータブ       -->
+    <!-- =================== -->
     <div id="calendar" class="tab-content">
         <div class="calendar-container">
             <div class="calendar-header">
@@ -492,7 +541,73 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- =================== -->
+    <!-- タグマッチングタブ   -->
+    <!-- =================== -->
+    <div id="tagmatch" class="tab-content">
+        <div class="tagmatch-header">
+            <h2>🏷️ タグマッチング</h2>
+            <p class="tagmatch-description">条件グループを組み合わせて対象台を抽出します（グループ内: AND / グループ間: OR）</p>
+        </div>
+
+        <!-- 機種フィルター -->
+        <div class="controls" style="margin-bottom: 15px;">
+            <div class="control-group">
+                <label>機種:</label>
+                <div id="tmMachineFilterContainer"></div>
+            </div>
+        </div>
+
+        <!-- 条件グループ設定 -->
+        <div class="tagmatch-rules-panel">
+            <div class="tagmatch-rules-header">
+                <h4>📋 マッチング条件</h4>
+                <div class="tagmatch-rules-actions">
+                    <button class="btn-small" id="tmAddGroup">＋ 条件グループを追加</button>
+                    <button class="btn-reset" id="tmClearRules">全てクリア</button>
+                </div>
+            </div>
+
+            <div class="filter-hint" style="margin-bottom:10px;">グループ内の条件はAND（すべて満たす）、グループ同士はOR（いずれか満たす）で判定します</div>
+
+            <div id="tmRulesList" class="tagmatch-rules-list">
+                <div class="tagmatch-rules-empty">条件グループを追加してマッチングを開始してください</div>
+            </div>
+
+            <button class="btn-apply tagmatch-execute-btn" id="tmExecute">🔍 マッチング実行</button>
+        </div>
+
+        <!-- 結果サマリー -->
+        <div class="tagmatch-summary" id="tmSummary" style="display:none;">
+            <div class="tagmatch-summary-cards" id="tmSummaryCards"></div>
+        </div>
+
+        <!-- 結果テーブル -->
+        <div id="tmResultSection" style="display:none;">
+            <div class="table-actions">
+                <button class="btn-copy" id="tmCopyBtn" title="結果をコピー">📋 全列コピー</button>
+                <button class="btn-copy" id="tmCopySimpleBtn" title="台番号・機種名のみコピー">📋 台番号・機種名</button>
+                <button class="btn-download" id="tmDownloadBtn" title="CSVダウンロード">💾 CSV</button>
+                <div class="control-group" style="margin-left:auto;">
+                    <label>並び替え:</label>
+                    <select id="tmSortBy">
+                        <option value="match_desc">マッチ数 多い順</option>
+                        <option value="unit_asc">台番号 ↑</option>
+                        <option value="unit_desc">台番号 ↓</option>
+                        <option value="machine_asc">機種名 あ→わ</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table class="tagmatch-result-table" id="tmResultTable">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/data.js"></script>
@@ -503,6 +618,7 @@
     <script src="js/trend.js"></script>
     <script src="js/compare.js"></script>
     <script src="js/calendar.js"></script>
+    <script src="js/tagmatch.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

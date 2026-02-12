@@ -1963,9 +1963,7 @@ var POSITION_TAGS = {
     '角': { label: '角', icon: '', color: '#ef4444', priority: 1 },
     '角2': { label: '角2', icon: '', color: '#f97316', priority: 2 },
     '角3': { label: '角3', icon: '', color: '#eab308', priority: 3 },
-    '円卓': { label: '円卓', icon: '', color: '#22c55e', priority: 4 },
-    '奇数': { label: '奇数', icon: '', color: '#3b82f6', priority: 10 },
-    '偶数': { label: '偶数', icon: '', color: '#8b5cf6', priority: 11 }
+    '円卓': { label: '円卓', icon: '', color: '#22c55e', priority: 4 }
 };
 
 var positionDataCache = null;
