@@ -33,21 +33,28 @@ function setupTabEventListeners() {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             btn.classList.add('active');
-            document.getElementById(btn.dataset.tab).classList.add('active');
+            
+            var tabName = btn.dataset.tab;  // ← ここで定義
+            document.getElementById(tabName).classList.add('active');
 
-            if (btn.dataset.tab === 'calendar') {
+            if (tabName === 'calendar') {
                 renderCalendar();
-            } else if (btn.dataset.tab === 'trend') {
+            } else if (tabName === 'trend') {
                 loadTrendData();
-            } else if (btn.dataset.tab === 'compare') {
+            } else if (tabName === 'compare') {
                 if (!compareTabInitialized) {
                     initCompareTab();
                     compareTabInitialized = true;
                 }
-            } else if (btn.dataset.tab === 'tagmatch') {
+            } else if (tabName === 'tagmatch') {
                 if (!tagmatchTabInitialized) {
                     setupTagMatchEventListeners();
                     tagmatchTabInitialized = true;
+                }
+            } else if (tabName === 'island') {
+                // 島図タブの初期化
+                if (typeof IslandMap !== 'undefined' && typeof IslandMap.init === 'function') {
+                    IslandMap.init();
                 }
             }
         });

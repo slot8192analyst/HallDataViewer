@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="css/calendar.css">
     <link rel="stylesheet" href="css/compare.css">
     <link rel="stylesheet" href="css/tagmatch.css">
+    <link rel="stylesheet" href="css/island.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -35,6 +36,7 @@
         <button class="tab-btn" data-tab="compare">日別比較</button>
         <button class="tab-btn" data-tab="trend">データトレンド</button>
         <button class="tab-btn" data-tab="calendar">カレンダー</button>
+        <button class="tab-btn" data-tab="island">ヒートマップ</button>
         <button class="tab-btn" data-tab="tagmatch">タグマッチング</button>
     </div>
 
@@ -550,6 +552,70 @@
     </div>
 
     <!-- =================== -->
+    <!-- 島図タブ             -->
+    <!-- =================== -->
+    <div id="island" class="tab-content">
+        <div class="island-header">
+            <h2>🗺️ 島図</h2>
+            <p class="island-description">フロアレイアウトと台データを視覚的に確認できます</p>
+        </div>
+    
+        <!-- 日付ナビゲーション -->
+        <div class="island-date-nav">
+            <button id="islandPrevDate">◀ 前日</button>
+            <span class="current-date" id="islandDateLabel">-</span>
+            <button id="islandNextDate">翌日 ▶</button>
+        </div>
+    
+        <!-- 日付セレクター追加 -->
+        <div class="island-date-select-wrapper">
+            <select id="islandDateSelect"></select>
+        </div>
+    
+        <!-- 表示モード選択 -->
+        <div class="island-controls">
+            <div class="island-view-modes">
+                <span class="control-label">表示:</span>
+                <div class="island-mode-buttons">
+                    <button class="island-mode-btn active" data-mode="machine">機種名</button>
+                    <button class="island-mode-btn" data-mode="diff">差枚</button>
+                    <button class="island-mode-btn" data-mode="rate">機械割</button>
+                    <button class="island-mode-btn" data-mode="games">G数</button>
+                    <button class="island-mode-btn" data-mode="tag">タグ</button>
+                </div>
+            </div>
+        </div>
+    
+        <!-- 凡例 -->
+        <div class="island-legend" id="islandLegend">
+            <div class="legend-title">凡例</div>
+            <div class="legend-items" id="islandLegendItems">
+                <!-- 動的に生成 -->
+            </div>
+        </div>
+    
+        <!-- 島図エリア -->
+        <div class="island-map-container">
+            <div class="island-map" id="islandMap">
+                <!-- 動的に生成 -->
+            </div>
+        </div>
+    
+        <!-- 台詳細モーダル -->
+        <div class="island-unit-modal" id="islandUnitModal">
+            <div class="island-unit-modal-content">
+                <div class="island-unit-modal-header">
+                    <h3 id="islandUnitModalTitle">台番号: ---</h3>
+                    <button class="close-btn" id="islandUnitModalClose">×</button>
+                </div>
+                <div class="island-unit-modal-body" id="islandUnitModalBody">
+                    <!-- 動的に生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =================== -->
     <!-- タグマッチングタブ   -->
     <!-- =================== -->
     <div id="tagmatch" class="tab-content">
@@ -626,6 +692,7 @@
     <script src="js/compare.js"></script>
     <script src="js/calendar.js"></script>
     <script src="js/tagmatch.js"></script>
+    <script src="js/island.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

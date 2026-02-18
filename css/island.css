@@ -1,0 +1,574 @@
+/* ===================
+   island.css - 島図タブ専用
+   =================== */
+
+/* ヘッダー */
+.island-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.island-header h2 {
+    margin: 0 0 5px 0;
+    font-size: var(--font-size-xl);
+}
+
+.island-description {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    margin: 0;
+}
+
+/* 日付ナビゲーション */
+.island-date-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.island-date-nav button {
+    padding: 10px 15px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: var(--font-size-md);
+    transition: background var(--transition-fast);
+}
+
+.island-date-nav button:hover:not(:disabled) {
+    background: var(--primary-dark);
+}
+
+.island-date-nav button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.island-date-nav .current-date {
+    font-size: var(--font-size-lg);
+    font-weight: bold;
+    min-width: 200px;
+    text-align: center;
+}
+
+/* コントロール */
+.island-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding: 15px;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    align-items: center;
+}
+
+.island-view-modes {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.island-mode-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.island-mode-btn {
+    padding: 8px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.island-mode-btn:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-color);
+}
+
+.island-mode-btn.active {
+    background: var(--primary-color);
+    border-color: var(--primary-hover);
+    color: #fff;
+}
+
+.island-filters {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+
+/* 凡例 */
+.island-legend {
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    padding: 12px 15px;
+    margin-bottom: 15px;
+}
+
+.legend-title {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-color {
+    width: 18px;
+    height: 18px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255,255,255,0.2);
+    flex-shrink: 0;
+}
+
+.legend-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.legend-hint {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+}
+
+/* 島図マップ */
+.island-map-container {
+    overflow: auto;
+    max-height: 80vh;
+    padding: 10px;
+    background: var(--bg-base);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    -webkit-overflow-scrolling: touch;
+}
+
+.island-map {
+    min-width: fit-content;
+}
+
+/* エリア区切り */
+.island-area {
+    margin-bottom: 40px;
+}
+
+.island-area:last-child {
+    margin-bottom: 0;
+}
+
+.island-area-title {
+    font-size: var(--font-size-lg);
+    font-weight: bold;
+    color: var(--text-primary);
+    padding: 10px 15px;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    margin-bottom: 15px;
+    border-left: 4px solid var(--primary-color);
+}
+
+/* 島リスト（縦並び） */
+.island-list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* 島ブロック */
+.island-block {
+    background: transparent;
+}
+
+/* 2段島：段同士の間隔は狭く */
+.island-block.island-double .island-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* 1段島 */
+.island-block.island-single .island-rows {
+    display: flex;
+    flex-direction: column;
+}
+
+/* 縦並び島 */
+.island-block.island-vertical .island-rows {
+    flex-direction: row;
+    gap: 2px;
+}
+
+.island-block.island-vertical .island-row {
+    flex-direction: column;
+    gap: 2px;
+}
+
+.island-row {
+    display: flex;
+    gap: 2px;
+}
+
+/* 台ユニット */
+.island-unit {
+    width: 44px;
+    height: 48px;
+    padding: 2px;
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    text-align: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.island-unit:hover {
+    transform: scale(1.12);
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.island-unit.no-data {
+    cursor: default;
+    opacity: 0.3;
+}
+
+.island-unit.no-data:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.unit-number {
+    font-size: 10px;
+    font-weight: bold;
+    line-height: 1.2;
+}
+
+.unit-machine {
+    font-size: 7px;
+    line-height: 1.1;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.9;
+}
+
+.unit-sub {
+    font-size: 8px;
+    font-weight: bold;
+    line-height: 1.1;
+    margin-top: 1px;
+}
+
+/* 台詳細モーダル */
+.island-unit-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: var(--z-modal);
+    justify-content: center;
+    align-items: center;
+}
+
+.island-unit-modal.active {
+    display: flex;
+}
+
+.island-unit-modal-content {
+    background: var(--bg-surface);
+    border-radius: var(--radius-lg);
+    width: 90%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.island-unit-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.island-unit-modal-header h3 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    color: var(--text-primary);
+}
+
+.island-unit-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.unit-detail-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.unit-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg-base);
+    border-radius: var(--radius-sm);
+}
+
+.unit-detail-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.unit-detail-value {
+    font-size: var(--font-size-md);
+    color: var(--text-primary);
+    font-weight: 600;
+    text-align: right;
+}
+
+.unit-detail-value .plus {
+    color: var(--color-success);
+}
+
+.unit-detail-value .minus {
+    color: var(--color-danger);
+}
+
+.unit-detail-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 8px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: bold;
+    border: 1px solid;
+    margin: 2px;
+}
+
+.unit-detail-empty {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-muted);
+}
+
+/* レスポンシブ */
+@media (max-width: 600px) {
+    .island-date-nav {
+        gap: 8px;
+    }
+    
+    .island-date-nav button {
+        padding: 8px 12px;
+        font-size: var(--font-size-sm);
+    }
+    
+    .island-date-nav .current-date {
+        font-size: var(--font-size-md);
+        min-width: 140px;
+    }
+    
+    .island-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding: 10px;
+    }
+    
+    .island-view-modes {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .island-mode-buttons {
+        flex-wrap: wrap;
+    }
+    
+    .island-mode-btn {
+        flex: 1;
+        text-align: center;
+        padding: 10px 8px;
+        min-width: 60px;
+    }
+    
+    .island-filters {
+        margin-left: 0;
+    }
+    
+    .island-list {
+        gap: 20px;
+    }
+    
+    .island-area {
+        margin-bottom: 30px;
+    }
+    
+    .island-area-title {
+        font-size: var(--font-size-md);
+        padding: 8px 12px;
+    }
+    
+    .island-unit {
+        width: 38px;
+        height: 42px;
+    }
+    
+    .unit-number {
+        font-size: 9px;
+    }
+    
+    .unit-machine {
+        font-size: 6px;
+    }
+    
+    .unit-sub {
+        font-size: 7px;
+    }
+    
+    .legend-items {
+        gap: 8px;
+    }
+    
+    .legend-color {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .legend-label {
+        font-size: var(--font-size-xs);
+    }
+    
+    .island-unit-modal-content {
+        max-width: 95%;
+    }
+}
+
+@media (min-width: 1024px) {
+    .island-unit {
+        width: 48px;
+        height: 52px;
+    }
+    
+    .unit-number {
+        font-size: 11px;
+    }
+    
+    .unit-machine {
+        font-size: 8px;
+    }
+    
+    .unit-sub {
+        font-size: 9px;
+    }
+    
+    .island-list {
+        gap: 26px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .island-unit {
+        width: 52px;
+        height: 56px;
+    }
+    
+    .unit-number {
+        font-size: 12px;
+    }
+    
+    .unit-machine {
+        font-size: 9px;
+    }
+    
+    .unit-sub {
+        font-size: 10px;
+    }
+    
+    .island-list {
+        gap: 28px;
+    }
+}
+
+/* スペーサー（空白マス） */
+.island-unit.spacer {
+    background: transparent;
+    border: none;
+    cursor: default;
+    visibility: hidden;
+}
+
+.island-unit.spacer:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* 日付セレクター */
+.island-date-select-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+#islandDateSelect {
+    min-width: 280px;
+    max-width: 400px;
+    padding: 10px 12px;
+    font-size: var(--font-size-md);
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+}
+
+#islandDateSelect:focus {
+    outline: none;
+    border-color: var(--border-focus);
+}
+
+@media (max-width: 600px) {
+    #islandDateSelect {
+        min-width: 100%;
+        max-width: 100%;
+    }
+    
+    .island-date-select-wrapper {
+        padding: 0 10px;
+    }
+}
