@@ -1,0 +1,780 @@
+/* ===================
+   calendar.css - カレンダータブ専用
+   =================== */
+
+/* ===================
+   カレンダーコンテナ
+   =================== */
+.calendar-container {
+    position: relative;
+    background: var(--bg-elevated);
+    border-radius: var(--radius-lg);
+    overflow: visible;
+    width: 100%;
+    max-width: 100%;
+}
+
+.calendar-header {
+    background: var(--bg-card);
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.calendar-header h2 {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    white-space: nowrap;
+}
+
+.calendar-header button {
+    background: var(--primary-color);
+    border: none;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: var(--font-size-md);
+    transition: background var(--transition-fast);
+    white-space: nowrap;
+}
+
+.calendar-header button:hover {
+    background: var(--primary-hover);
+}
+
+/* ===================
+   カレンダーフィルター
+   =================== */
+.calendar-filter-container {
+    position: relative;
+    z-index: var(--z-dropdown);
+    padding: 10px 15px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    overflow: visible;
+}
+
+.calendar-filters {
+    position: relative;
+    z-index: var(--z-dropdown);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.calendar-filters .filter-group {
+    position: relative;
+    z-index: var(--z-dropdown);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+
+.calendar-filters .filter-group label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.calendar-filters .filter-group .searchable-select,
+.calendar-filters .multi-select-filter {
+    position: relative;
+    z-index: var(--z-dropdown);
+    min-width: 120px;
+    flex: 1;
+}
+
+.calendar-filters .searchable-select-dropdown,
+.calendar-filters .multi-select-dropdown {
+    z-index: var(--z-dropdown-overlay);
+}
+
+.calendar-filters .btn-small {
+    padding: 8px 12px;
+    margin-left: auto;
+}
+
+/* ===================
+   カレンダースクロール
+   =================== */
+.calendar-scroll-wrapper {
+    position: relative;
+    z-index: 1;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+}
+
+.calendar-scroll-wrapper::-webkit-scrollbar {
+    height: 12px;
+}
+
+.calendar-scroll-wrapper::-webkit-scrollbar-track {
+    background: var(--bg-base);
+    border-radius: var(--radius-md);
+}
+
+.calendar-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: var(--radius-md);
+}
+
+.calendar-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-hover);
+}
+
+/* ===================
+   カレンダー曜日・日付グリッド
+   =================== */
+.calendar-weekdays {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: var(--bg-base);
+    min-width: 700px;
+}
+
+.calendar-weekdays .weekday {
+    padding: 10px 5px;
+    text-align: center;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.calendar-weekdays .weekday.sunday {
+    color: var(--color-danger);
+}
+
+.calendar-weekdays .weekday.saturday {
+    color: var(--color-info);
+}
+
+.calendar-days {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    min-width: 700px;
+}
+
+/* ===================
+   カレンダー日付セル
+   =================== */
+.calendar-day {
+    min-height: 120px;
+    border: 1px solid var(--border-color);
+    padding: 4px;
+    background: var(--bg-base);
+    min-width: 100px;
+}
+
+.calendar-day.empty {
+    background: var(--bg-card);
+    opacity: 0.5;
+    min-height: 50px;
+}
+
+.calendar-day.has-data {
+    background: var(--bg-surface);
+}
+
+.calendar-day.has-event {
+    border: 2px solid var(--color-warning);
+}
+
+.calendar-day.filtered-out {
+    opacity: 0.3;
+}
+
+.calendar-day.sunday .day-number {
+    color: var(--color-danger);
+}
+
+.calendar-day.saturday .day-number {
+    color: var(--color-info);
+}
+
+.calendar-day .day-number {
+    font-weight: bold;
+    font-size: var(--font-size-sm);
+    margin-bottom: 4px;
+}
+
+/* クリック可能な日付 */
+.calendar-day.clickable {
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+    position: relative;
+}
+
+.calendar-day.clickable:hover {
+    transform: scale(1.02);
+    box-shadow: var(--shadow-lg);
+    z-index: 10;
+    background: var(--bg-elevated);
+}
+
+.calendar-day.clickable:active {
+    transform: scale(0.98);
+}
+
+.calendar-day.clickable::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--primary-color);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.calendar-day.clickable:hover::after {
+    opacity: 0.08;
+}
+
+.calendar-day.clickable .day-number::after {
+    content: ' →';
+    font-size: 0.7em;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    color: var(--color-info);
+}
+
+.calendar-day.clickable:hover .day-number::after {
+    opacity: 0.8;
+}
+
+/* ===================
+   カレンダー内イベントバッジ
+   =================== */
+.calendar-day .event-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 4px;
+}
+
+.event-badge {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    border: 1px solid;
+    font-size: 8px;
+    line-height: 1.2;
+    overflow: hidden;
+}
+
+.event-icon {
+    font-size: 9px;
+    flex-shrink: 0;
+}
+
+.event-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-primary);
+}
+
+.event-performers {
+    font-size: 7px;
+    color: var(--text-secondary);
+    padding: 1px 4px;
+    background: var(--bg-elevated);
+    border-radius: 2px;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ===================
+   カレンダーヒストグラム
+   =================== */
+.calendar-day .histogram {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.calendar-day .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 12px;
+}
+
+.calendar-day .bar-label {
+    font-size: 7px;
+    color: var(--text-muted);
+    width: 20px;
+    flex-shrink: 0;
+}
+
+.calendar-day .bar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--border-color);
+    border-radius: 2px;
+    overflow: hidden;
+    min-width: 30px;
+}
+
+.calendar-day .bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width var(--transition-normal);
+}
+
+.calendar-day .bar-value {
+    font-size: 7px;
+    color: var(--text-secondary);
+    width: 35px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.calendar-day .bar-value.plus {
+    color: var(--color-success);
+}
+
+.calendar-day .bar-value.minus {
+    color: var(--color-danger);
+}
+
+.calendar-day .bar.bar-avg-sa.plus {
+    background: linear-gradient(90deg, #22c55e, var(--color-success));
+}
+
+.calendar-day .bar.bar-avg-sa.minus {
+    background: linear-gradient(90deg, #ef4444, var(--color-danger));
+}
+
+.calendar-day .bar.bar-avg-game {
+    background: linear-gradient(90deg, #3b82f6, var(--color-info));
+}
+
+.calendar-day .bar.bar-win-rate {
+    background: linear-gradient(90deg, var(--color-purple), #c084fc);
+}
+
+.calendar-day .bar.bar-total-sa.plus {
+    background: linear-gradient(90deg, #f59e0b, var(--color-warning));
+}
+
+.calendar-day .bar.bar-total-sa.minus {
+    background: linear-gradient(90deg, #dc2626, #ef4444);
+}
+
+/* ===================
+   カレンダー凡例
+   =================== */
+.calendar-legend {
+    padding: 10px 15px;
+    background: var(--bg-card);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.legend-bar {
+    width: 16px;
+    height: 6px;
+    border-radius: 2px;
+}
+
+.legend-bar.avg-sa {
+    background: linear-gradient(90deg, var(--color-danger), var(--color-success));
+}
+
+.legend-bar.avg-game {
+    background: linear-gradient(90deg, #3b82f6, var(--color-info));
+}
+
+.legend-bar.win-rate {
+    background: linear-gradient(90deg, var(--color-purple), #c084fc);
+}
+
+.legend-bar.total-sa {
+    background: linear-gradient(90deg, #ef4444, var(--color-warning));
+}
+
+/* ===================
+   月間サマリー
+   =================== */
+.calendar-month-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.month-summary-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 12px;
+}
+
+.month-summary-item.main {
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    padding: 8px 16px;
+}
+
+.month-summary-item .summary-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.month-summary-item .summary-value {
+    font-size: var(--font-size-md);
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.month-summary-item.main .summary-value {
+    font-size: var(--font-size-lg);
+}
+
+.month-summary-divider {
+    width: 1px;
+    height: 30px;
+    background: var(--border-color);
+}
+
+/* ===================
+   週間おすすめバッジ
+   =================== */
+.weekly-rec-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 2px;
+}
+
+.weekly-rec-badge {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 4px;
+    background: var(--rec-color, #3b82f6);
+    border-radius: 3px;
+    color: #fff;
+    font-size: 8px;
+    line-height: 1.2;
+    overflow: hidden;
+}
+
+.weekly-rec-badge .rec-icon {
+    font-size: 9px;
+    flex-shrink: 0;
+}
+
+.weekly-rec-badge .rec-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ===================
+   レスポンシブ
+   =================== */
+@media (max-width: 480px) {
+    .calendar-header {
+        padding: 10px 12px;
+    }
+
+    .calendar-header h2 {
+        flex: 1;
+        text-align: center;
+    }
+
+    .calendar-header button {
+        padding: 6px 10px;
+    }
+
+    .calendar-filter-container {
+        padding: 8px 10px;
+    }
+
+    .calendar-filters {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .calendar-filters .filter-group {
+        width: 100%;
+    }
+
+    .calendar-filters .filter-group .searchable-select,
+    .calendar-filters .multi-select-filter {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .calendar-filters .filter-group label {
+        min-width: 50px;
+    }
+
+    .calendar-filters .btn-small {
+        margin-left: 0;
+        margin-top: 5px;
+    }
+
+    .calendar-days,
+    .calendar-weekdays {
+        min-width: 600px;
+    }
+
+    .calendar-day {
+        min-height: 100px;
+        min-width: 85px;
+        padding: 3px;
+    }
+
+    .calendar-day .histogram {
+        gap: 3px;
+    }
+
+    .calendar-day .bar-row {
+        height: 10px;
+        gap: 1px;
+    }
+
+    .calendar-day .bar-label {
+        font-size: 6px;
+        width: 18px;
+    }
+
+    .calendar-day .bar-track {
+        height: 6px;
+        min-width: 20px;
+    }
+
+    .calendar-day .bar-value {
+        font-size: 6px;
+        width: 30px;
+    }
+
+    .event-badge {
+        font-size: 7px;
+        padding: 1px 3px;
+    }
+
+    .event-icon {
+        font-size: 8px;
+    }
+
+    .event-performers {
+        font-size: 6px;
+    }
+
+    .calendar-legend {
+        padding: 8px 10px;
+        gap: 8px;
+    }
+
+    .legend-bar {
+        width: 14px;
+        height: 5px;
+    }
+
+    /* カレンダークリック - タッチ対応 */
+    .calendar-day.clickable:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    .calendar-day.clickable:active {
+        transform: scale(0.95);
+        background: var(--primary-dark);
+    }
+
+    .calendar-day.clickable .day-number::after {
+        display: none;
+    }
+
+    /* 月間サマリー */
+    .calendar-month-summary {
+        gap: 4px;
+        padding: 8px;
+    }
+
+    .month-summary-item {
+        flex: 1;
+        min-width: 70px;
+        padding: 4px;
+    }
+
+    .month-summary-item.main {
+        flex: none;
+        width: 100%;
+        margin-bottom: 4px;
+    }
+
+    .month-summary-item .summary-label {
+        font-size: 9px;
+    }
+
+    .month-summary-item .summary-value {
+        font-size: var(--font-size-xs);
+    }
+
+    .month-summary-item.main .summary-label {
+        font-size: var(--font-size-xs);
+    }
+
+    .month-summary-item.main .summary-value {
+        font-size: var(--font-size-md);
+    }
+
+    .month-summary-divider {
+        display: none;
+    }
+
+    /* 週間おすすめ */
+    .weekly-rec-badge {
+        font-size: 7px;
+        padding: 1px 3px;
+    }
+
+    .weekly-rec-badge .rec-icon {
+        font-size: 8px;
+    }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+    .calendar-days,
+    .calendar-weekdays {
+        min-width: 650px;
+    }
+
+    .calendar-day {
+        min-height: 110px;
+        min-width: 90px;
+    }
+
+    .calendar-filters .filter-group {
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .calendar-month-summary {
+        gap: 8px;
+        padding: 10px 12px;
+    }
+
+    .month-summary-item {
+        padding: 4px 8px;
+    }
+
+    .month-summary-item.main {
+        width: 100%;
+        flex-direction: row;
+        justify-content: center;
+        gap: 10px;
+        padding: 8px 12px;
+    }
+
+    .month-summary-item .summary-value {
+        font-size: var(--font-size-sm);
+    }
+
+    .month-summary-item.main .summary-value {
+        font-size: var(--font-size-md);
+    }
+
+    .month-summary-divider {
+        display: none;
+    }
+}
+
+@media (min-width: 769px) {
+    .calendar-days,
+    .calendar-weekdays {
+        min-width: auto;
+    }
+
+    .calendar-day {
+        min-height: 140px;
+        min-width: auto;
+        padding: 6px;
+    }
+
+    .calendar-day .histogram {
+        gap: 5px;
+    }
+
+    .calendar-day .bar-row {
+        height: 14px;
+        gap: 4px;
+    }
+
+    .calendar-day .bar-label {
+        font-size: 9px;
+        width: 24px;
+    }
+
+    .calendar-day .bar-track {
+        height: 10px;
+    }
+
+    .calendar-day .bar-value {
+        font-size: 9px;
+        width: 40px;
+    }
+
+    .event-badge {
+        font-size: 9px;
+        padding: 2px 5px;
+    }
+
+    .event-icon {
+        font-size: 10px;
+    }
+
+    .event-performers {
+        font-size: 8px;
+    }
+
+    .weekly-rec-badge {
+        font-size: 9px;
+        padding: 2px 5px;
+    }
+
+    .weekly-rec-badge .rec-icon {
+        font-size: 10px;
+    }
+}

@@ -1,0 +1,266 @@
+/* ===================
+   daily.css - 日別データタブ専用
+   =================== */
+
+/* ===================
+   日別データテーブル
+   =================== */
+#data-table td:nth-child(1),
+#data-table th:nth-child(1) {
+    text-align: left;
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    min-width: 120px;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#data-table th:nth-child(1) {
+    z-index: var(--z-sticky-header);
+    background: var(--table-header-bg);
+    text-align: center;
+}
+
+#data-table tr:nth-child(even) td:nth-child(1) {
+    background: var(--table-row-even);
+}
+
+#data-table tr:nth-child(odd) td:nth-child(1) {
+    background: var(--table-row-odd);
+}
+
+/* ===================
+   イベントバッジ
+   =================== */
+.daily-event-info {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0;
+    padding: 8px;
+}
+
+.daily-event-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+.daily-event-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.85em;
+    border: 1px solid;
+    white-space: nowrap;
+}
+
+/* イベント・演者サマリー */
+.event-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 15px;
+    padding: 12px 15px;
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+}
+
+.event-summary-section {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.event-summary-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-right: 5px;
+}
+
+.event-summary-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid;
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+}
+
+.event-summary-item.performer-item {
+    background: #ec489920;
+    border-color: var(--color-pink);
+}
+
+.event-summary-more {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+/* 日付セレクト幅 */
+#dateSelect {
+    min-width: 280px;
+    max-width: 400px;
+}
+
+select option {
+    padding: 4px 8px;
+}
+
+/* ===================
+   台番号末尾統計テーブル（トグル式）
+   =================== */
+.suffix-stats-block.collapsible {
+    margin-top: 20px;
+    background: var(--bg-surface);
+    border-radius: var(--radius-lg);
+    padding: 0;
+    overflow: hidden;
+}
+
+.suffix-stats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    user-select: none;
+}
+
+.suffix-stats-header:hover {
+    background: var(--primary-dark);
+}
+
+.suffix-stats-header.open {
+    background: var(--primary-dark);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.suffix-stats-header .block-title {
+    margin: 0;
+    padding: 0;
+    border: none;
+    font-size: var(--font-size-md);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.suffix-stats-header .toggle-icon {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    transition: transform var(--transition-normal);
+}
+
+.suffix-stats-header.open .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.suffix-stats-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height var(--transition-normal), padding var(--transition-normal);
+    padding: 0 15px;
+}
+
+.suffix-stats-content.open {
+    max-height: 800px;
+    padding: 15px;
+    transition: max-height 0.5s ease-in, padding var(--transition-normal);
+}
+
+.suffix-stats-table {
+    font-size: var(--font-size-sm);
+}
+
+.suffix-stats-table tbody tr.no-data {
+    opacity: 0.4;
+}
+
+.suffix-stats-table tbody tr.no-data td {
+    color: var(--text-disabled);
+}
+
+/* テーブルアクション（末尾統計内） */
+.suffix-table-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.suffix-table-actions .btn-copy,
+.suffix-table-actions .btn-download {
+    padding: 5px 10px;
+    font-size: var(--font-size-sm);
+}
+
+/* ===================
+   レスポンシブ
+   =================== */
+@media (max-width: 480px) {
+    #data-table td:nth-child(1),
+    #data-table th:nth-child(1) {
+        min-width: 100px;
+        max-width: 130px;
+    }
+
+    .daily-event-info {
+        margin-bottom: 10px;
+    }
+
+    .daily-event-badges {
+        padding: 8px;
+        gap: 5px;
+    }
+
+    /* 日付セレクト全幅 */
+    #dateSelect {
+        min-width: 100%;
+        max-width: 100%;
+    }
+
+    .suffix-table-actions {
+        flex-wrap: wrap;
+    }
+
+    .suffix-table-actions .btn-copy,
+    .suffix-table-actions .btn-download {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .event-summary {
+        padding: 8px 10px;
+    }
+
+    .event-summary-section {
+        gap: 5px;
+    }
+
+    .event-summary-label {
+        width: 100%;
+    }
+}
+
+@media (min-width: 769px) {
+    #data-table td:nth-child(1),
+    #data-table th:nth-child(1) {
+        min-width: 180px;
+        max-width: 250px;
+    }
+
+    #dateSelect {
+        min-width: 320px;
+    }
+}
