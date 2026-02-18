@@ -1,0 +1,923 @@
+/* ===================
+   compare.css - 日別比較タブ専用
+   =================== */
+
+/* ===================
+   比較ヘッダー
+   =================== */
+.compare-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.compare-header h2 {
+    margin: 0 0 5px 0;
+    font-size: var(--font-size-xl);
+}
+
+.compare-description {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    margin: 0;
+}
+
+/* ===================
+   日付選択エリア
+   =================== */
+.compare-date-selectors {
+    display: flex;
+    align-items: flex-end;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding: 15px;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    flex-wrap: wrap;
+}
+
+.compare-date-section {
+    flex: 1;
+    min-width: 0;
+}
+
+.compare-date-section-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.compare-date-section-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.compare-date-section-label-row .compare-date-section-label {
+    margin-bottom: 0;
+}
+
+.compare-date-base {
+    flex: 0 0 auto;
+    min-width: 250px;
+    padding-right: 20px;
+    border-right: 2px solid var(--border-color);
+}
+
+.compare-date-targets {
+    flex: 1;
+    min-width: 250px;
+    padding-left: 20px;
+}
+
+.compare-date-group {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.compare-date-group label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.compare-date-group select {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: var(--font-size-md);
+}
+
+.compare-date-info {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    min-height: 18px;
+}
+
+/* 比較日リスト */
+.compare-date-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.compare-target-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: var(--bg-base);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+.compare-target-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    white-space: nowrap;
+    min-width: 50px;
+    flex-shrink: 0;
+}
+
+.compare-target-select {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: var(--font-size-md);
+    min-width: 0;
+}
+
+.compare-target-remove {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--color-danger);
+    color: var(--color-danger);
+    font-size: var(--font-size-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: all var(--transition-fast);
+}
+
+.compare-target-remove:hover {
+    background: var(--color-danger);
+    color: #fff;
+}
+
+.compare-target-remove:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.compare-target-remove:disabled:hover {
+    background: transparent;
+    color: var(--color-danger);
+}
+
+/* 入れ替えボタン */
+.compare-swap-btn-wrapper {
+    display: flex;
+    align-items: center;
+    padding-bottom: 20px;
+}
+
+.btn-swap {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    border: 2px solid var(--primary-hover);
+    color: #fff;
+    font-size: var(--font-size-xl);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-swap:hover {
+    background: var(--primary-hover);
+    transform: rotate(180deg);
+}
+
+/* ===================
+   比較コントロール
+   =================== */
+.compare-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+    align-items: flex-end;
+}
+
+/* ===================
+   サマリーカード
+   =================== */
+.compare-summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.compare-summary-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    padding: 12px 15px;
+    text-align: center;
+    border-left: 3px solid var(--border-color);
+}
+
+.compare-summary-card.card-a {
+    border-left-color: var(--color-info);
+}
+
+.compare-summary-card.card-b {
+    border-left-color: var(--color-warning);
+}
+
+.compare-summary-card.card-diff {
+    border-left-color: var(--color-purple);
+}
+
+.compare-summary-card.card-improved {
+    border-left-color: var(--color-success);
+}
+
+.compare-summary-card.card-declined {
+    border-left-color: var(--color-danger);
+}
+
+.compare-card-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.compare-card-value {
+    font-size: var(--font-size-lg);
+    font-weight: bold;
+}
+
+.compare-card-sub {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+/* ===================
+   比較テーブル
+   =================== */
+#compare-table td:nth-child(1),
+#compare-table th:nth-child(1) {
+    text-align: left;
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    min-width: 120px;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#compare-table th:nth-child(1) {
+    z-index: var(--z-sticky-header);
+    background: var(--table-header-bg);
+    text-align: center;
+}
+
+#compare-table tr:nth-child(even) td:nth-child(1) {
+    background: var(--table-row-even);
+}
+
+#compare-table tr:nth-child(odd) td:nth-child(1) {
+    background: var(--table-row-odd);
+}
+
+/* 機種別モードの2列目も固定 */
+#compare-table.mode-unit td:nth-child(2),
+#compare-table.mode-unit th:nth-child(2) {
+    text-align: left;
+    position: sticky;
+    left: 120px;
+    z-index: 5;
+    min-width: 80px;
+}
+
+#compare-table.mode-unit th:nth-child(2) {
+    z-index: var(--z-sticky-header);
+    background: var(--table-header-bg);
+}
+
+#compare-table.mode-unit tr:nth-child(even) td:nth-child(2) {
+    background: var(--table-row-even);
+}
+
+#compare-table.mode-unit tr:nth-child(odd) td:nth-child(2) {
+    background: var(--table-row-odd);
+}
+
+/* ヘッダーの色分け */
+#compare-table th.header-a {
+    background: rgba(96, 165, 250, 0.15);
+    color: var(--color-info);
+}
+
+#compare-table th.header-b {
+    background: rgba(251, 191, 36, 0.15);
+    color: var(--color-warning);
+}
+
+#compare-table th.header-diff {
+    background: rgba(168, 85, 247, 0.15);
+    color: var(--color-purple);
+}
+
+/* 差分セル */
+.compare-diff-positive {
+    color: var(--color-success);
+    font-weight: bold;
+}
+
+.compare-diff-negative {
+    color: var(--color-danger);
+}
+
+.compare-diff-zero {
+    color: var(--text-muted);
+}
+
+.compare-cell-a {
+    background: rgba(96, 165, 250, 0.05);
+}
+
+.compare-cell-b {
+    background: rgba(251, 191, 36, 0.05);
+}
+
+.compare-cell-diff {
+    background: rgba(168, 85, 247, 0.05);
+}
+
+.compare-no-data {
+    color: var(--text-disabled);
+    font-style: italic;
+}
+
+/* 比較グラフ */
+.compare-chart-container {
+    background: var(--bg-surface);
+    border-radius: var(--radius-lg);
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+/* ===================
+   列選択ドロップダウン
+   =================== */
+.compare-col-select-wrapper {
+    position: relative;
+    margin-left: auto;
+}
+
+.btn-col-select {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-col-select:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-color);
+}
+
+.btn-col-select.active {
+    background: var(--primary-color);
+    border-color: var(--primary-hover);
+    color: #fff;
+}
+
+.compare-col-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 4px;
+    background: var(--bg-surface);
+    border: 1px solid var(--primary-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: var(--z-dropdown);
+    min-width: 240px;
+    max-width: 320px;
+}
+
+.compare-col-dropdown.open {
+    display: block;
+}
+
+.compare-col-dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.compare-col-dropdown-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.compare-col-dropdown-actions .btn-small {
+    padding: 3px 8px;
+    font-size: var(--font-size-xs);
+}
+
+.compare-col-dropdown-list {
+    padding: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.compare-col-dropdown-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.compare-col-dropdown-list::-webkit-scrollbar-track {
+    background: var(--bg-base);
+}
+
+.compare-col-dropdown-list::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 3px;
+}
+
+.compare-col-dropdown-list .column-checkbox-item {
+    padding: 6px 8px;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-sm);
+}
+
+.compare-col-dropdown-list .column-checkbox-item:hover {
+    background: var(--primary-dark);
+}
+
+/* ===================
+   タグ分析パネル
+   =================== */
+.compare-analysis-container.collapsible {
+    background: var(--bg-surface);
+    border-radius: var(--radius-lg);
+    padding: 0;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.compare-analysis-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    user-select: none;
+}
+
+.compare-analysis-header:hover {
+    background: var(--primary-dark);
+}
+
+.compare-analysis-header.open {
+    background: var(--primary-dark);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.compare-analysis-header h4 {
+    margin: 0;
+    font-size: var(--font-size-md);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.analysis-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.analysis-header-right .analysis-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.analysis-header-right .toggle-icon {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    transition: transform var(--transition-normal);
+    flex-shrink: 0;
+}
+
+.compare-analysis-header.open .analysis-header-right .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.compare-analysis-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height var(--transition-normal), padding var(--transition-normal);
+    padding: 0 15px;
+}
+
+.compare-analysis-content.open {
+    max-height: 50000px;
+    padding: 15px;
+    transition: max-height 0.8s ease-in, padding var(--transition-normal);
+}
+
+/* 分析アクションボタン */
+.btn-analysis-action {
+    padding: 5px 10px;
+    font-size: var(--font-size-sm);
+    min-width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-analysis-action:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-hover);
+    color: #fff;
+}
+
+/* ===================
+   分析サマリーカード
+   =================== */
+.analysis-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.analysis-card {
+    background: var(--bg-base);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    text-align: center;
+    border-top: 3px solid var(--border-color);
+}
+
+.analysis-card.card-total {
+    border-top-color: var(--color-info);
+}
+
+.analysis-card.card-tag-rate {
+    border-top-color: var(--color-warning);
+}
+
+.analysis-card.card-repeat {
+    border-top-color: var(--color-success);
+}
+
+.analysis-card.card-recovery {
+    border-top-color: var(--color-purple);
+}
+
+.analysis-card .analysis-card-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.analysis-card .analysis-card-value {
+    font-size: var(--font-size-xl);
+    font-weight: bold;
+}
+
+.analysis-card .analysis-card-sub {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    margin-top: 3px;
+}
+
+/* ===================
+   分析テーブル
+   =================== */
+.analysis-tables {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.analysis-table-block {
+    background: var(--bg-base);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.analysis-table-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border-color);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.analysis-table-title .title-icon {
+    font-size: var(--font-size-md);
+}
+
+.analysis-table-wrapper {
+    overflow-x: auto;
+}
+
+.analysis-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+}
+
+.analysis-table th,
+.analysis-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    text-align: center;
+    white-space: nowrap;
+}
+
+.analysis-table th {
+    background: var(--bg-card);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    position: sticky;
+    top: 0;
+}
+
+.analysis-table td:first-child {
+    text-align: left;
+    font-weight: 500;
+    min-width: 80px;
+}
+
+.analysis-table tr:nth-child(even) {
+    background: var(--bg-elevated);
+}
+
+.analysis-table tr:nth-child(odd) {
+    background: var(--bg-base);
+}
+
+/* 機種別テーブル */
+.analysis-machine-table td:first-child {
+    min-width: 120px;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 分析なしメッセージ */
+.analysis-empty {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+}
+
+/* ===================
+   パーセントバーセル
+   =================== */
+.pct-bar-cell {
+    position: relative;
+    min-width: 100px;
+}
+
+.pct-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    opacity: 0.15;
+    border-radius: 0 2px 2px 0;
+}
+
+.pct-bar.bar-high {
+    background: var(--color-warning);
+}
+
+.pct-bar.bar-mid {
+    background: var(--color-info);
+}
+
+.pct-bar.bar-low {
+    background: var(--color-danger);
+}
+
+.pct-text {
+    position: relative;
+    z-index: 1;
+    font-weight: bold;
+}
+
+.pct-text.high {
+    color: var(--color-warning);
+}
+
+.pct-text.mid {
+    color: var(--text-primary);
+}
+
+.pct-text.low {
+    color: var(--text-muted);
+}
+
+/* タグサマリー */
+.compare-tag-summary {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg-surface);
+    border-radius: var(--radius-sm);
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.compare-tag-summary-item {
+    font-size: var(--font-size-sm);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* ===================
+   レスポンシブ
+   =================== */
+@media (max-width: 480px) {
+    .compare-date-selectors {
+        flex-direction: column;
+        gap: 15px;
+        padding: 12px;
+    }
+
+    .compare-date-base {
+        min-width: 100%;
+        padding-right: 0;
+        padding-bottom: 15px;
+        border-right: none;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .compare-date-targets {
+        min-width: 100%;
+        padding-left: 0;
+    }
+
+    .compare-target-row {
+        flex-wrap: wrap;
+    }
+
+    .compare-target-select {
+        flex: 1 1 100%;
+        order: 2;
+    }
+
+    .compare-target-label {
+        order: 1;
+    }
+
+    .compare-date-info {
+        order: 3;
+    }
+
+    .compare-target-remove {
+        order: 1;
+        margin-left: auto;
+    }
+
+    .compare-swap-btn-wrapper {
+        align-self: center;
+        padding-bottom: 0;
+    }
+
+    .btn-swap {
+        width: 36px;
+        height: 36px;
+        font-size: var(--font-size-lg);
+        transform: rotate(90deg);
+    }
+
+    .btn-swap:hover {
+        transform: rotate(270deg);
+    }
+
+    .compare-summary-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .compare-chart-container {
+        padding: 10px;
+    }
+
+    #compare-table td:nth-child(1),
+    #compare-table th:nth-child(1) {
+        min-width: 100px;
+        max-width: 130px;
+    }
+
+    .compare-col-select-wrapper {
+        margin-left: 0;
+    }
+
+    .compare-col-dropdown {
+        position: fixed;
+        right: 10px;
+        left: 10px;
+        top: auto;
+        bottom: 10px;
+        max-width: none;
+        max-height: 60vh;
+        border-radius: var(--radius-md);
+    }
+
+    .compare-col-dropdown-list {
+        max-height: 50vh;
+    }
+
+    .analysis-header-right {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .analysis-header-right .analysis-controls {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .analysis-header-right .control-group {
+        width: auto;
+    }
+
+    .analysis-header-right .control-group select {
+        min-width: 80px;
+        padding: 5px 8px;
+        font-size: var(--font-size-sm);
+    }
+
+    .analysis-header-right .control-group label {
+        font-size: var(--font-size-xs);
+    }
+
+    .btn-analysis-action {
+        padding: 4px 8px;
+        font-size: var(--font-size-xs);
+        min-width: 28px;
+        height: 28px;
+    }
+
+    .analysis-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .analysis-card .analysis-card-value {
+        font-size: var(--font-size-lg);
+    }
+
+    .analysis-table th,
+    .analysis-table td {
+        padding: 6px 8px;
+        font-size: var(--font-size-xs);
+    }
+
+    .analysis-table td:first-child {
+        min-width: 60px;
+    }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+    .compare-date-base {
+        min-width: 220px;
+    }
+
+    .compare-date-targets {
+        min-width: 220px;
+    }
+}
