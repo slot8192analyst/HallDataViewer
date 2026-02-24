@@ -34,9 +34,13 @@ import lxml.html
 
 
 def get_script_dir() -> str:
-    """スクリプトのディレクトリを取得"""
-    return os.path.dirname(os.path.abspath(__file__))
-
+    """スクリプト（またはexe）のディレクトリを取得"""
+    if getattr(sys, 'frozen', False):
+        # PyInstallerでexe化されている場合
+        return os.path.dirname(sys.executable)
+    else:
+        # 通常のPython実行の場合
+        return os.path.dirname(os.path.abspath(__file__))
 
 def get_data_dir() -> str:
     """dataディレクトリのパスを取得"""
