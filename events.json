@@ -166,6 +166,13 @@
       "media": "DMMぱちタウン",
       "name": ["パチタウンエンジェルズ"],
       "note": ""
+    },
+    {
+      "date": "2026_03_21",
+      "type": "dmm",
+      "media": "DMMぱちタウン",
+      "name": ["天運総撃"],
+      "note": ""
     }
   ],
       "recurringEvents": [
@@ -321,6 +328,18 @@
       "startDate": "2026_02_16",
       "endDate": "2026_02_22",
       "machines": ["ハナハナ"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_02_23",
+      "endDate": "2026_03_01",
+      "machines": ["鉄拳6"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_03_02",
+      "endDate": "2026_03_08",
+      "machines": ["転生の章2"],
       "color": "#3b82f6"
     }
   ],
