@@ -5,3 +5,7 @@ converter/build/
 *.exe
 データサイト更新手順メモ.xlsx
 ~$データサイト更新手順メモ.xlsx
+<<<<<<< HEAD
+=======
+data/2026_03.json
+>>>>>>> d5fd1db894aad46f70f04ddf67445c9ad91b0777
