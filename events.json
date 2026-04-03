@@ -78,6 +78,182 @@
       "icon": "😈"
     }
   ],
+　　　"weeklyRecommendations": [
+    {
+      "startDate": "2025_09_01",
+      "endDate": "2025_09_07",
+      "machines": ["からくり"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2025_09_08",
+      "endDate": "2025_09_14",
+      "machines": ["東京喰種"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2025_09_15",
+      "endDate": "2025_09_21",
+      "machines": ["エヴァ"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2025_09_22",
+      "endDate": "2025_09_28",
+      "machines": ["東リベ"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2025_10_01",
+      "endDate": "2025_10_07",
+      "machines": ["北斗"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2025_10_08",
+      "endDate": "2025_10_14",
+      "machines": ["番長"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2025_10_15",
+      "endDate": "2025_10_21",
+      "machines": ["モンキーV"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2025_10_22",
+      "endDate": "2025_10_28",
+      "machines": ["ジャグラー"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2025_11_03",
+      "endDate": "2025_11_09",
+      "machines": ["東京喰種"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2025_11_10",
+      "endDate": "2025_11_16",
+      "machines": ["いざ番"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2025_11_17",
+      "endDate": "2025_11_23",
+      "machines": ["新鬼武者3"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2025_11_24",
+      "endDate": "2025_11_30",
+      "machines": ["エヴァ"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2025_12_01",
+      "endDate": "2025_12_07",
+      "machines": ["東京喰種"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2025_12_08",
+      "endDate": "2025_12_14",
+      "machines": ["ヴヴヴ2"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2025_12_15",
+      "endDate": "2025_12_21",
+      "machines": ["いざ番"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2025_12_22",
+      "endDate": "2025_12_28",
+      "machines": ["沖ブラ,ハナ"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2026_01_05",
+      "endDate": "2026_01_11",
+      "machines": ["北斗の拳"],
+      "color": "#8b5cf6"
+    },
+    {
+      "startDate": "2026_01_12",
+      "endDate": "2026_01_18",
+      "machines": ["東京喰種"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_01_19",
+      "endDate": "2026_01_25",
+      "machines": ["沖ドキ系"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_01_26",
+      "endDate": "2026_02_01",
+      "machines": ["ハナハナ"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_02_03",
+      "endDate": "2026_02_08",
+      "machines": ["転生の章2"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_02_09",
+      "endDate": "2026_02_15",
+      "machines": ["東京喰種"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_02_16",
+      "endDate": "2026_02_22",
+      "machines": ["ハナハナ"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_02_23",
+      "endDate": "2026_03_01",
+      "machines": ["鉄拳6"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_03_02",
+      "endDate": "2026_03_08",
+      "machines": ["転生の章2"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_03_09",
+      "endDate": "2026_03_15",
+      "machines": ["東京喰種"],
+      "color": "#3b82f6"
+    }.
+    {
+      "startDate": "2026_03_16",
+      "endDate": "2026_03_22",
+      "machines": ["ハナハナ"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_03_23",
+      "endDate": "2026_03_29",
+      "machines": ["ヴヴヴ2"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_03_30",
+      "endDate": "2026_04_05",
+      "machines": ["東京喰種2"],
+      "color": "#3b82f6"
+    }
+ ],
   "mediaTypes": [
     "DMMぱちタウン",
     "その他"
