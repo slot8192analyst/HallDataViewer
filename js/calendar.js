@@ -613,6 +613,9 @@ async function renderCalendar() {
     }
 
     container.innerHTML = html;
+
+    // 月間累積差枚推移グラフを描画
+    renderCalendarTrendChart(year, month);
 }
 
 /**
@@ -686,4 +689,197 @@ function changeCalendarMonth(delta) {
 function setupCalendarEventListeners() {
     document.getElementById('prevMonth')?.addEventListener('click', () => changeCalendarMonth(-1));
     document.getElementById('nextMonth')?.addEventListener('click', () => changeCalendarMonth(1));
+}
+
+
+// ===================
+// 月間累積差枚推移グラフ
+// ===================
+
+let calendarTrendChartInstance = null;
+
+/**
+ * 指定した年月の日別累積差枚データを取得
+ * @param {number} year
+ * @param {number} month
+ * @returns {Promise<{day: number, cumulative: number}[]>}
+ */
+async function getMonthlyDailyCumulative(year, month) {
+    const result = [];
+    let cumulative = 0;
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateKey = `${year}_${String(month).padStart(2, '0')}_${String(day).padStart(2, '0')}`;
+        const filename = `data/${dateKey}.csv`;
+        const data = await loadCSV(filename);
+
+        if (data) {
+            const totalSa = data.reduce((sum, r) => sum + (parseInt(String(r['差枚']).replace(/,/g, '')) || 0), 0);
+            cumulative += totalSa;
+            result.push({ day, cumulative });
+        }
+        // データがない日はスキップ（グラフにはその日の点が出ない）
+    }
+
+    return result;
+}
+
+/**
+ * 月間累積差枚推移グラフを描画
+ * @param {number} year  - 表示月の年
+ * @param {number} month - 表示月
+ */
+async function renderCalendarTrendChart(year, month) {
+    const canvas = document.getElementById('calendarTrendChart');
+    if (!canvas) return;
+
+    // 既存チャートを破棄
+    if (calendarTrendChartInstance) {
+        calendarTrendChartInstance.destroy();
+        calendarTrendChartInstance = null;
+    }
+
+    // ローディング表示
+    const wrapper = document.getElementById('calendarTrendChartWrapper');
+    if (wrapper) wrapper.classList.add('loading');
+
+    // 3か月分のデータを取得（当月・前月・前々月）
+    const months = [
+        { year, month, label: `${year}年${month}月`, color: '#ef4444', borderWidth: 2.5 },
+        (() => {
+            const d = new Date(year, month - 2, 1);
+            return { year: d.getFullYear(), month: d.getMonth() + 1, label: `${d.getFullYear()}年${d.getMonth() + 1}月`, color: '#22d3ee', borderWidth: 2 };
+        })(),
+        (() => {
+            const d = new Date(year, month - 3, 1);
+            return { year: d.getFullYear(), month: d.getMonth() + 1, label: `${d.getFullYear()}年${d.getMonth() + 1}月`, color: '#9ca3af', borderWidth: 1.5 };
+        })()
+    ];
+
+    const datasets = [];
+
+    for (const m of months) {
+        const seriesData = await getMonthlyDailyCumulative(m.year, m.month);
+        if (seriesData.length === 0) continue;
+
+        // X軸は1〜31の日番号、データのない日はnullにスパン
+        const daysInMonth = new Date(m.year, m.month, 0).getDate();
+        const dataMap = {};
+        seriesData.forEach(d => { dataMap[d.day] = d.cumulative; });
+
+        const points = [];
+        for (let day = 1; day <= daysInMonth; day++) {
+            points.push(dataMap[day] !== undefined ? dataMap[day] : null);
+        }
+
+        datasets.push({
+            label: m.label,
+            data: points,
+            borderColor: m.color,
+            backgroundColor: m.color + '18',
+            borderWidth: m.borderWidth,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            pointBackgroundColor: m.color,
+            pointBorderColor: '#1e1e2e',
+            pointBorderWidth: 1,
+            tension: 0.15,
+            fill: false,
+            spanGaps: true
+        });
+    }
+
+    if (wrapper) wrapper.classList.remove('loading');
+
+    if (datasets.length === 0) {
+        canvas.parentElement.querySelector('.calendar-trend-no-data')?.remove();
+        const msg = document.createElement('p');
+        msg.className = 'calendar-trend-no-data';
+        msg.textContent = 'データがありません';
+        canvas.parentElement.appendChild(msg);
+        return;
+    }
+
+    // X軸ラベルは「1日〜31日」の最大値（当月の日数）
+    const maxDays = new Date(year, month, 0).getDate();
+    const labels = Array.from({ length: maxDays }, (_, i) => `${i + 1}日`);
+
+    calendarTrendChartInstance = new Chart(canvas, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#eee',
+                        font: { size: 11 },
+                        boxWidth: 14,
+                        padding: 12,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(20, 20, 40, 0.95)',
+                    titleColor: '#fff',
+                    bodyColor: '#eee',
+                    borderColor: '#444',
+                    borderWidth: 1,
+                    padding: 10,
+                    callbacks: {
+                        label: function(context) {
+                            const val = context.parsed.y;
+                            if (val === null) return `${context.dataset.label}: -`;
+                            const sign = val >= 0 ? '+' : '';
+                            return `${context.dataset.label}: ${sign}${val.toLocaleString()}枚`;
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: '月間累積差枚推移',
+                    color: '#ccc',
+                    font: { size: 13, weight: 'bold' }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.06)', drawBorder: false },
+                    ticks: {
+                        color: '#aaa',
+                        font: { size: 10 },
+                        maxTicksLimit: 16,
+                        callback: function(value, index) {
+                            const day = index + 1;
+                            return (day === 1 || day % 5 === 0 || day === maxDays) ? `${day}日` : '';
+                        }
+                    }
+                },
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.08)', drawBorder: false },
+                    ticks: {
+                        color: '#aaa',
+                        font: { size: 11 },
+                        callback: function(value) {
+                            if (Math.abs(value) >= 1000) {
+                                return (value / 1000).toFixed(0) + 'k';
+                            }
+                            return value.toLocaleString();
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: '累積差枚（枚）',
+                        color: '#888',
+                        font: { size: 11 }
+                    }
+                }
+            }
+        }
+    });
 }
