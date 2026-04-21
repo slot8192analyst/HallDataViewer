@@ -26,6 +26,7 @@ function setupFilterPanelToggle(toggleId, contentId) {
 
 var compareTabInitialized = false;
 var tagmatchTabInitialized = false;
+var machinetrendTabInitialized = false;
 
 function setupTabEventListeners() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -55,6 +56,14 @@ function setupTabEventListeners() {
                 // 島図タブの初期化
                 if (typeof IslandMap !== 'undefined' && typeof IslandMap.init === 'function') {
                     IslandMap.init();
+                }
+            } else if (tabName === 'machinetrend') {
+                // 機種別グラフタブの初期化
+                if (!machinetrendTabInitialized) {
+                    if (typeof MachineTrend !== 'undefined') {
+                        MachineTrend.init();
+                        machinetrendTabInitialized = true;
+                    }
                 }
             }
         });
