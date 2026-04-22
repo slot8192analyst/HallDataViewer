@@ -601,3 +601,96 @@
         justify-content: flex-start;
     }
 }
+
+/* ===================
+   機種別サマリーカード
+   =================== */
+
+.trend-machine-summary-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 0;
+}
+
+.trend-mc-card {
+    background: #1a1a2e;
+    border: 2px solid var(--mc-color, #4ade80);
+    border-radius: 10px;
+    padding: 14px 16px;
+    min-width: 180px;
+    flex: 1 1 180px;
+    max-width: 260px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.trend-mc-name {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--mc-color, #4ade80);
+    margin-bottom: 6px;
+    word-break: break-all;
+}
+
+.trend-mc-units {
+    font-size: 11px;
+    font-weight: normal;
+    color: #888;
+}
+
+.trend-mc-total {
+    font-size: 22px;
+    font-weight: bold;
+    margin: 4px 0 2px;
+}
+
+.trend-mc-total.plus { color: #4ade80; }
+.trend-mc-total.minus { color: #f87171; }
+
+.trend-mc-label {
+    font-size: 10px;
+    color: #888;
+    margin-bottom: 10px;
+}
+
+.trend-mc-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.trend-mc-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.trend-mc-stat-label {
+    font-size: 10px;
+    color: #888;
+}
+
+.trend-mc-stat-val {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ddd;
+}
+
+.trend-mc-stat-val.plus { color: #4ade80; }
+.trend-mc-stat-val.minus { color: #f87171; }
+
+.trend-mc-nodata {
+    color: #666;
+    font-size: 12px;
+    padding: 8px 0;
+}
+
+@media (max-width: 480px) {
+    .trend-mc-card {
+        min-width: 140px;
+        max-width: 100%;
+    }
+    .trend-mc-total {
+        font-size: 18px;
+    }
+}
