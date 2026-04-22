@@ -606,11 +606,80 @@
    機種別サマリーカード
    =================== */
 
+/* ラッパー（ページネーション＋カード全体） */
+#trendMachineSummaryWrapper {
+    padding: 8px 0;
+}
+
+/* ページネーションバー */
+.trend-mc-pagination {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.trend-mc-pager {
+    background: #2a2a3e;
+    color: #ccc;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    transition: background 0.15s, color 0.15s;
+}
+.trend-mc-pager:hover:not(:disabled) {
+    background: #3a3a5e;
+    color: #fff;
+}
+.trend-mc-pager:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.trend-mc-page-btns {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.trend-mc-page-btn {
+    background: #2a2a3e;
+    color: #ccc;
+    border: 1px solid #444;
+    border-radius: 5px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    min-width: 32px;
+    transition: background 0.15s, color 0.15s;
+}
+.trend-mc-page-btn:hover {
+    background: #3a3a5e;
+    color: #fff;
+}
+.trend-mc-page-btn.active {
+    background: #4f6ef7;
+    color: #fff;
+    border-color: #4f6ef7;
+    font-weight: bold;
+}
+
+.trend-mc-page-info {
+    font-size: 12px;
+    color: #888;
+    margin-left: 4px;
+}
+
+/* カード一覧 */
 .trend-machine-summary-cards {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
-    padding: 12px 0;
+    padding: 4px 0 12px;
 }
 
 .trend-mc-card {
