@@ -15,6 +15,7 @@ function renderTrendChart(results, targetFiles, options = {}) {
     const {
         showTop = true,
         showBottom = false,
+        showAll = false,
         displayCount = 5,
         mode = 'unit',
         config = null
@@ -46,18 +47,23 @@ function renderTrendChart(results, targetFiles, options = {}) {
     });
 
     let displayData = [];
-    if (showTop) displayData = displayData.concat(sortedResults.slice(0, displayCount));
-    if (showBottom) {
-        sortedResults.slice(-displayCount).reverse().forEach(item => {
-            const key = mode === 'machine' ? item.machine : `${item.machine}_${item.num}`;
-            const exists = displayData.find(d => {
-                const dKey = mode === 'machine' ? d.machine : `${d.machine}_${d.num}`;
-                return dKey === key;
+    if (showAll) {
+        // 全件表示：件数制限なし（ソート順はそのまま）
+        displayData = sortedResults;
+    } else {
+        if (showTop) displayData = displayData.concat(sortedResults.slice(0, displayCount));
+        if (showBottom) {
+            sortedResults.slice(-displayCount).reverse().forEach(item => {
+                const key = mode === 'machine' ? item.machine : `${item.machine}_${item.num}`;
+                const exists = displayData.find(d => {
+                    const dKey = mode === 'machine' ? d.machine : `${d.machine}_${d.num}`;
+                    return dKey === key;
+                });
+                if (!exists) displayData.push(item);
             });
-            if (!exists) displayData.push(item);
-        });
+        }
+        if (displayData.length === 0) displayData = sortedResults.slice(0, displayCount);
     }
-    if (displayData.length === 0) displayData = sortedResults.slice(0, displayCount);
 
     const labels = targetFiles.map(file => formatDateShort(file));
 
@@ -166,11 +172,12 @@ function renderTrendChart(results, targetFiles, options = {}) {
 function updateTrendChart() {
     if (typeof getTrendDisplayData === 'function') {
         const { results, targetFiles, mode, config } = getTrendDisplayData();
-        const showTop = document.getElementById('chartShowTop')?.checked ?? true;
+        const showTop    = document.getElementById('chartShowTop')?.checked ?? true;
         const showBottom = document.getElementById('chartShowBottom')?.checked ?? false;
+        const showAll    = document.getElementById('chartShowAll')?.checked ?? false;
         const displayCount = parseInt(document.getElementById('chartDisplayCount')?.value || '5');
         
-        renderTrendChart(results, targetFiles, { showTop, showBottom, displayCount, mode, config });
+        renderTrendChart(results, targetFiles, { showTop, showBottom, showAll, displayCount, mode, config });
     }
 }
 

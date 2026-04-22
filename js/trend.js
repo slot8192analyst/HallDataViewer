@@ -771,6 +771,73 @@ function renderTrendSummary(results, targetFiles, selectedMachines, totalFilterT
         info += ' | 合計: <span class="' + config.colorClass(tv) + '">' + config.format(tv) + '</span>';
     }
     el.innerHTML = info;
+
+    // 機種別モード時はサマリーカードも描画
+    if (isMachineMode && config.canSum) {
+        renderMachineSummaryCards(results, targetFiles, config);
+    } else {
+        var sc = document.getElementById('trendMachineSummaryCards');
+        if (sc) sc.style.display = 'none';
+    }
+}
+
+/**
+ * 機種別モード用サマリーカード描画
+ */
+function renderMachineSummaryCards(results, targetFiles, config) {
+    var container = document.getElementById('trendMachineSummaryCards');
+    if (!container) return;
+
+    var COLORS = [
+        '#4ade80','#60a5fa','#f472b6','#fbbf24','#a78bfa',
+        '#fb923c','#2dd4bf','#f87171','#818cf8','#34d399',
+        '#e879f9','#38bdf8','#facc15','#fb7185','#a3e635',
+        '#22d3ee','#c084fc','#fca5a5','#86efac','#93c5fd',
+    ];
+
+    var cards = results.map(function(row, idx) {
+        var color = COLORS[idx % COLORS.length];
+        var dailyValues = targetFiles
+            .map(function(f) { return row.dates[f]; })
+            .filter(function(v) { return v !== null && v !== undefined; });
+
+        if (dailyValues.length === 0) {
+            return '<div class="trend-mc-card" style="--mc-color:' + color + '">'
+                + '<div class="trend-mc-name">' + row.machine + '</div>'
+                + '<div class="trend-mc-nodata">データなし</div>'
+                + '</div>';
+        }
+
+        var total    = dailyValues.reduce(function(a, b) { return a + b; }, 0);
+        var avg      = total / dailyValues.length;
+        var maxVal   = Math.max.apply(null, dailyValues);
+        var minVal   = Math.min.apply(null, dailyValues);
+        var plusDays = dailyValues.filter(function(v) { return v > 0; }).length;
+        var winRate  = ((plusDays / dailyValues.length) * 100).toFixed(1);
+        var totalClass = total > 0 ? 'plus' : total < 0 ? 'minus' : '';
+        var sign = function(v) { return v >= 0 ? '+' : ''; };
+
+        return '<div class="trend-mc-card" style="--mc-color:' + color + '">'
+            + '<div class="trend-mc-name">' + row.machine + '<span class="trend-mc-units">（' + row.num + '）</span></div>'
+            + '<div class="trend-mc-total ' + totalClass + '">' + sign(total) + Math.round(total).toLocaleString() + config.unit + '</div>'
+            + '<div class="trend-mc-label">期間合計</div>'
+            + '<div class="trend-mc-stats">'
+            +   '<div class="trend-mc-stat"><span class="trend-mc-stat-label">日平均</span>'
+            +     '<span class="trend-mc-stat-val ' + (avg > 0 ? 'plus' : avg < 0 ? 'minus' : '') + '">'
+            +     sign(avg) + Math.round(avg).toLocaleString() + '</span></div>'
+            +   '<div class="trend-mc-stat"><span class="trend-mc-stat-label">最高日</span>'
+            +     '<span class="trend-mc-stat-val plus">' + sign(maxVal) + Math.round(maxVal).toLocaleString() + '</span></div>'
+            +   '<div class="trend-mc-stat"><span class="trend-mc-stat-label">最低日</span>'
+            +     '<span class="trend-mc-stat-val ' + (minVal < 0 ? 'minus' : '') + '">'
+            +     sign(minVal) + Math.round(minVal).toLocaleString() + '</span></div>'
+            +   '<div class="trend-mc-stat"><span class="trend-mc-stat-label">勝率</span>'
+            +     '<span class="trend-mc-stat-val">' + winRate + '% (' + plusDays + '/' + dailyValues.length + '日)</span></div>'
+            + '</div>'
+            + '</div>';
+    }).join('');
+
+    container.innerHTML = cards;
+    container.style.display = results.length > 0 ? 'flex' : 'none';
 }
 
 // ===================
@@ -885,10 +952,11 @@ function renderValueCell(val, config) {
 function renderTrendChartData(results, targetFiles, mode, config) {
     window.trendDisplayData = { results: results, targetFiles: targetFiles, mode: mode, config: config };
     if (trendShowChart && typeof renderTrendChart === 'function') {
-        var st = document.getElementById('chartShowTop') ? document.getElementById('chartShowTop').checked : true;
-        var sb = document.getElementById('chartShowBottom') ? document.getElementById('chartShowBottom').checked : false;
-        var dc = parseInt((document.getElementById('chartDisplayCount') || {}).value || '5');
-        renderTrendChart(results, targetFiles, { showTop: st, showBottom: sb, displayCount: dc, mode: mode, config: config });
+        var st  = document.getElementById('chartShowTop')    ? document.getElementById('chartShowTop').checked    : true;
+        var sb  = document.getElementById('chartShowBottom') ? document.getElementById('chartShowBottom').checked : false;
+        var sa  = document.getElementById('chartShowAll')    ? document.getElementById('chartShowAll').checked    : false;
+        var dc  = parseInt((document.getElementById('chartDisplayCount') || {}).value || '5');
+        renderTrendChart(results, targetFiles, { showTop: st, showBottom: sb, showAll: sa, displayCount: dc, mode: mode, config: config });
     }
 }
 
@@ -1037,7 +1105,7 @@ function setupTrendEventListeners() {
     document.getElementById('copyTrendTableBtn')?.addEventListener('click', copyTrendTable);
     document.getElementById('downloadTrendCsvBtn')?.addEventListener('click', downloadTrendCSV);
 
-    ['chartShowTop','chartShowBottom','chartDisplayCount','chartDisplayType'].forEach(function(id) {
+    ['chartShowTop','chartShowBottom','chartShowAll','chartDisplayCount','chartDisplayType'].forEach(function(id) {
         var e = document.getElementById(id);
         if (e) e.addEventListener('change', function() {
             if (trendShowChart) {

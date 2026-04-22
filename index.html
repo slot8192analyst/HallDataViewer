@@ -13,7 +13,6 @@
     <link rel="stylesheet" href="css/compare.css">
     <link rel="stylesheet" href="css/tagmatch.css">
     <link rel="stylesheet" href="css/island.css">
-    <link rel="stylesheet" href="css/machinetrend.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -39,7 +38,6 @@
         <button class="tab-btn" data-tab="calendar">カレンダー</button>
         <button class="tab-btn" data-tab="island">ヒートマップ</button>
         <button class="tab-btn" data-tab="tagmatch">タグマッチング</button>
-        <button class="tab-btn" data-tab="machinetrend">機種別グラフ</button>
     </div>
 
     <!-- =================== -->
@@ -478,12 +476,16 @@
 
         <div id="trendSummary" class="summary"></div>
 
+        <!-- 機種別モード用サマリーカード -->
+        <div id="trendMachineSummaryCards" class="trend-machine-summary-cards" style="display:none;"></div>
+
         <div class="trend-chart-container">
             <div class="chart-header">
                 <h4 id="trendChartTitle">📈 差枚推移グラフ</h4>
                 <div class="chart-controls">
                     <label><input type="checkbox" id="chartShowTop" checked> 上位</label>
                     <label><input type="checkbox" id="chartShowBottom"> 下位</label>
+                    <label><input type="checkbox" id="chartShowAll"> 全件</label>
                     <select id="chartDisplayCount">
                         <option value="5">5件表示</option>
                         <option value="10">10件表示</option>
@@ -705,13 +707,6 @@
 
     </div><!-- /#tagmatch -->
 
-    <!-- =================== -->
-    <!-- 機種別グラフタブ     -->
-    <!-- =================== -->
-    <div id="machinetrend" class="tab-content">
-        <!-- MachineTrend.init() で中身を生成 -->
-    </div>
-
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/data.js"></script>
@@ -724,7 +719,6 @@
     <script src="js/calendar.js"></script>
     <script src="js/tagmatch.js"></script>
     <script src="js/island.js"></script>
-    <script src="js/machinetrend.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

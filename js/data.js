@@ -339,11 +339,6 @@ function refreshUIAfterBackgroundLoad() {
             if (typeof renderCalendar === 'function') {
                 renderCalendar();
             }
-        } else if (tabName === 'machinetrend') {
-            // 機種別グラフタブの機種リスト・期間を更新
-            if (typeof MachineTrend !== 'undefined' && typeof MachineTrend.refresh === 'function') {
-                MachineTrend.refresh();
-            }
         }
     }
     
