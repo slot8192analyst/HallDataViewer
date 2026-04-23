@@ -776,17 +776,53 @@ function renderTrendSummary(results, targetFiles, selectedMachines, totalFilterT
     if (isMachineMode && config.canSum) {
         renderMachineSummaryCards(results, targetFiles, config);
     } else {
-        var sc = document.getElementById('trendMachineSummaryCards');
+        var sc = document.getElementById('trendMachineSummaryWrapper');
         if (sc) sc.style.display = 'none';
     }
 }
 
+// ===================
+// 機種別サマリーカード ページネーション状態
+// ===================
+
+var machineSummaryPage = 0;
+var machineSummaryPageSize = 5;
+var machineSummaryResults = [];
+var machineSummaryTargetFiles = [];
+var machineSummaryConfig = null;
+
 /**
- * 機種別モード用サマリーカード描画
+ * 機種別モード用サマリーカード描画（ページネーション対応）
  */
 function renderMachineSummaryCards(results, targetFiles, config) {
-    var container = document.getElementById('trendMachineSummaryCards');
-    if (!container) return;
+    var wrapper = document.getElementById('trendMachineSummaryWrapper');
+    if (!wrapper) return;
+
+    // データを保存（ページ切り替え時に再利用）
+    machineSummaryResults = results;
+    machineSummaryTargetFiles = targetFiles;
+    machineSummaryConfig = config;
+    // データが新しく来たときはページを先頭に戻す
+    machineSummaryPage = 0;
+
+    renderMachineSummaryPage();
+}
+
+/**
+ * 現在のページを描画する
+ */
+function renderMachineSummaryPage() {
+    var wrapper = document.getElementById('trendMachineSummaryWrapper');
+    if (!wrapper) return;
+
+    var results     = machineSummaryResults;
+    var targetFiles = machineSummaryTargetFiles;
+    var config      = machineSummaryConfig;
+
+    if (!results || results.length === 0) {
+        wrapper.style.display = 'none';
+        return;
+    }
 
     var COLORS = [
         '#4ade80','#60a5fa','#f472b6','#fbbf24','#a78bfa',
@@ -795,7 +831,19 @@ function renderMachineSummaryCards(results, targetFiles, config) {
         '#22d3ee','#c084fc','#fca5a5','#86efac','#93c5fd',
     ];
 
-    var cards = results.map(function(row, idx) {
+    var pageSize   = machineSummaryPageSize;
+    var totalPages = Math.ceil(results.length / pageSize);
+    // ページ範囲を正規化
+    if (machineSummaryPage < 0) machineSummaryPage = 0;
+    if (machineSummaryPage >= totalPages) machineSummaryPage = totalPages - 1;
+
+    var start = machineSummaryPage * pageSize;
+    var pageItems = results.slice(start, start + pageSize);
+
+    var sign = function(v) { return v >= 0 ? '+' : ''; };
+
+    var cards = pageItems.map(function(row, localIdx) {
+        var idx   = start + localIdx;            // 全体インデックス（色を全体で統一）
         var color = COLORS[idx % COLORS.length];
         var dailyValues = targetFiles
             .map(function(f) { return row.dates[f]; })
@@ -808,36 +856,72 @@ function renderMachineSummaryCards(results, targetFiles, config) {
                 + '</div>';
         }
 
-        var total    = dailyValues.reduce(function(a, b) { return a + b; }, 0);
-        var avg      = total / dailyValues.length;
-        var maxVal   = Math.max.apply(null, dailyValues);
-        var minVal   = Math.min.apply(null, dailyValues);
-        var plusDays = dailyValues.filter(function(v) { return v > 0; }).length;
-        var winRate  = ((plusDays / dailyValues.length) * 100).toFixed(1);
+        var total      = dailyValues.reduce(function(a, b) { return a + b; }, 0);
+        var avg        = total / dailyValues.length;
+        var maxVal     = Math.max.apply(null, dailyValues);
+        var minVal     = Math.min.apply(null, dailyValues);
+        var plusDays   = dailyValues.filter(function(v) { return v > 0; }).length;
+        var winRate    = ((plusDays / dailyValues.length) * 100).toFixed(1);
         var totalClass = total > 0 ? 'plus' : total < 0 ? 'minus' : '';
-        var sign = function(v) { return v >= 0 ? '+' : ''; };
 
         return '<div class="trend-mc-card" style="--mc-color:' + color + '">'
-            + '<div class="trend-mc-name">' + row.machine + '<span class="trend-mc-units">（' + row.num + '）</span></div>'
-            + '<div class="trend-mc-total ' + totalClass + '">' + sign(total) + Math.round(total).toLocaleString() + config.unit + '</div>'
+            + '<div class="trend-mc-name">' + row.machine
+            +   '<span class="trend-mc-units">（' + row.num + '）</span></div>'
+            + '<div class="trend-mc-total ' + totalClass + '">'
+            +   sign(total) + Math.round(total).toLocaleString() + config.unit + '</div>'
             + '<div class="trend-mc-label">期間合計</div>'
             + '<div class="trend-mc-stats">'
             +   '<div class="trend-mc-stat"><span class="trend-mc-stat-label">日平均</span>'
             +     '<span class="trend-mc-stat-val ' + (avg > 0 ? 'plus' : avg < 0 ? 'minus' : '') + '">'
             +     sign(avg) + Math.round(avg).toLocaleString() + '</span></div>'
             +   '<div class="trend-mc-stat"><span class="trend-mc-stat-label">最高日</span>'
-            +     '<span class="trend-mc-stat-val plus">' + sign(maxVal) + Math.round(maxVal).toLocaleString() + '</span></div>'
+            +     '<span class="trend-mc-stat-val plus">'
+            +     sign(maxVal) + Math.round(maxVal).toLocaleString() + '</span></div>'
             +   '<div class="trend-mc-stat"><span class="trend-mc-stat-label">最低日</span>'
             +     '<span class="trend-mc-stat-val ' + (minVal < 0 ? 'minus' : '') + '">'
             +     sign(minVal) + Math.round(minVal).toLocaleString() + '</span></div>'
             +   '<div class="trend-mc-stat"><span class="trend-mc-stat-label">勝率</span>'
-            +     '<span class="trend-mc-stat-val">' + winRate + '% (' + plusDays + '/' + dailyValues.length + '日)</span></div>'
+            +     '<span class="trend-mc-stat-val">' + winRate + '%'
+            +     ' (' + plusDays + '/' + dailyValues.length + '日)</span></div>'
             + '</div>'
             + '</div>';
     }).join('');
 
-    container.innerHTML = cards;
-    container.style.display = results.length > 0 ? 'flex' : 'none';
+    // ページネーションボタン生成
+    var pageBtns = '';
+    for (var p = 0; p < totalPages; p++) {
+        pageBtns += '<button class="trend-mc-page-btn' + (p === machineSummaryPage ? ' active' : '') + '" data-page="' + p + '">' + (p + 1) + '</button>';
+    }
+
+    var rangeEnd = Math.min(start + pageSize, results.length);
+    var infoText = (start + 1) + '〜' + rangeEnd + ' / ' + results.length + '機種';
+
+    wrapper.innerHTML =
+        '<div class="trend-mc-pagination">'
+        + '<button class="trend-mc-pager" id="mcPrevPage" ' + (machineSummaryPage === 0 ? 'disabled' : '') + '>◀</button>'
+        + '<div class="trend-mc-page-btns">' + pageBtns + '</div>'
+        + '<button class="trend-mc-pager" id="mcNextPage" ' + (machineSummaryPage >= totalPages - 1 ? 'disabled' : '') + '>▶</button>'
+        + '<span class="trend-mc-page-info">' + infoText + '</span>'
+        + '</div>'
+        + '<div id="trendMachineSummaryCards" class="trend-machine-summary-cards">' + cards + '</div>';
+
+    // ページネーションイベント
+    var prevBtn = document.getElementById('mcPrevPage');
+    var nextBtn = document.getElementById('mcNextPage');
+    if (prevBtn) prevBtn.addEventListener('click', function() {
+        if (machineSummaryPage > 0) { machineSummaryPage--; renderMachineSummaryPage(); }
+    });
+    if (nextBtn) nextBtn.addEventListener('click', function() {
+        if (machineSummaryPage < totalPages - 1) { machineSummaryPage++; renderMachineSummaryPage(); }
+    });
+    wrapper.querySelectorAll('.trend-mc-page-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            machineSummaryPage = parseInt(btn.dataset.page);
+            renderMachineSummaryPage();
+        });
+    });
+
+    wrapper.style.display = 'block';
 }
 
 // ===================
