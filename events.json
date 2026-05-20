@@ -81,6 +81,20 @@
       "media": "DMMぱちタウン",
       "name": ["天運総撃"],
       "note": ""
+    },
+    {
+      "date": "2026_05_12",
+      "type":"new_machine",
+      "media": "バイオRe3、ビッグドリーム、スーパーリオエース2、タクトオーパス",
+      "name": ["新台入替"],
+      "note": ""
+    },
+    {
+      "date": "2026_05_23",
+      "type": "dmm",
+      "media": "DMMぱちタウン",
+      "name": ["奥義ノ矢"],
+      "note": ""
     }
   ],
       "recurringEvents": [
@@ -296,6 +310,12 @@
       "startDate": "2026_05_04",
       "endDate": "2026_05_10",
       "machines": ["ゴーゴージャグラー3"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_05_18",
+      "endDate": "2026_05_24",
+      "machines": ["ジャグラーガールズ・カバネリ海門"],
       "color": "#3b82f6"
     }
  ],
