@@ -556,6 +556,11 @@ function loadTrendData() {
 
     // === レンダリング ===
     var results = trendCache.finalResults;
+
+    // 機種内バッジ付与（台別モードのみ・レンダリング時に再計算）
+    if (trendViewMode === 'unit' && typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled()) {
+        results = MachineBadge.assignBadgesForTrend(results, 'total');
+    }
     
     renderTrendSummary(results, targetFiles, selectedMachines, totalFilterType, totalFilterValue, prevTotalFilterType, prevTotalFilterValue, trendViewMode === 'machine', config);
     
@@ -935,7 +940,7 @@ function renderTrendTables(results, targetFiles, config) {
     var stb = document.querySelector('#trend-scroll-table tbody');
     if (!fth || !ftb || !sth || !stb) return;
 
-    fth.innerHTML = '<tr><th>機種名</th><th>台番号</th><th>位置</th></tr>';
+    fth.innerHTML = '<tr><th>機種名</th><th>台番号</th><th>位置</th><th>機種内順位</th></tr>';
 
     var sh = targetFiles.map(function(f) { return '<th>' + formatDateShort(f) + '</th>'; }).join('');
     if (trendShowTotal) sh += '<th>合計</th>';
@@ -949,7 +954,10 @@ function renderTrendTables(results, targetFiles, config) {
     results.forEach(function(row) {
         var ftr = document.createElement('tr');
         var posHtml = (typeof renderPositionTags === 'function') ? (renderPositionTags(row.num, { compact: true }) || '-') : '-';
-        ftr.innerHTML = '<td>' + row.machine + '</td><td>' + row.num + '</td><td>' + posHtml + '</td>';
+        var badgeInner = (typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled())
+            ? MachineBadge.renderBadgeInner(row._machineBadge || { tako: null, kubi: null })
+            : '-';
+        ftr.innerHTML = '<td>' + row.machine + '</td><td>' + row.num + '</td><td>' + posHtml + '</td><td class="mb-cell">' + badgeInner + '</td>';
         ff.appendChild(ftr);
 
         var str = document.createElement('tr');
@@ -984,7 +992,7 @@ function renderTrendTablesByMachine(results, targetFiles, config) {
     var stb = document.querySelector('#trend-scroll-table tbody');
     if (!fth || !ftb || !sth || !stb) return;
 
-    fth.innerHTML = '<tr><th>機種名</th><th>延べ台数</th></tr>';
+    fth.innerHTML = '<tr><th>機種名</th><th>延べ台数</th><th>機種内順位</th></tr>';
 
     var al = (!config.canSum || trendMachineAggType === 'avg') ? '平均' : '合計';
     var sh = targetFiles.map(function(f) { return '<th>' + formatDateShort(f) + '</th>'; }).join('');
@@ -998,7 +1006,10 @@ function renderTrendTablesByMachine(results, targetFiles, config) {
 
     results.forEach(function(row) {
         var ftr = document.createElement('tr');
-        ftr.innerHTML = '<td>' + row.machine + '</td><td>' + row.num + '</td>';
+        var mBadgeInner = (typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled())
+            ? MachineBadge.renderBadgeInner(row._machineBadge || { tako: null, kubi: null })
+            : '-';
+        ftr.innerHTML = '<td>' + row.machine + '</td><td>' + row.num + '</td><td class="mb-cell">' + mBadgeInner + '</td>';
         ff.appendChild(ftr);
 
         var str = document.createElement('tr');

@@ -476,12 +476,20 @@ function initColumnSelector() {
         allColumns.push('タグ');
     }
 
+    if (allColumns.indexOf('機種内順位') === -1) {
+        allColumns.push('機種内順位');
+    }
+
     var savedColumns = localStorage.getItem('visibleColumns');
     if (savedColumns) {
         try {
             var parsed = JSON.parse(savedColumns);
             parsed = parsed.map(function(col) { return col === '高設定タグ' ? 'タグ' : col; });
             visibleColumns = parsed.filter(function(col) { return allColumns.indexOf(col) !== -1; });
+            // 機種内順位列が既存設定にない場合は追加
+            if (visibleColumns.length > 0 && visibleColumns.indexOf('機種内順位') === -1) {
+                visibleColumns.push('機種内順位');
+            }
             if (visibleColumns.length === 0) visibleColumns = [].concat(allColumns);
         } catch (e) {
             visibleColumns = [].concat(allColumns);
@@ -503,6 +511,32 @@ function renderPositionFilter() {
     });
     html += '</div>';
     return html;
+}
+
+// ===================
+// 機種内バッジ設定セクション
+// ===================
+
+function renderMachineBadgeSettingsSection() {
+    var filterContent = document.getElementById('filterContent');
+    if (!filterContent) return;
+    if (typeof MachineBadge === 'undefined') return;
+
+    var existing = filterContent.querySelector('.mb-settings-section');
+    if (existing) existing.remove();
+
+    var section = document.createElement('div');
+    section.className = 'filter-section mb-settings-section';
+    section.innerHTML =
+        '<h5>🐙 機種内バッジ設定</h5>' +
+        '<p class="filter-hint">フィルター後の同機種内で差枚（またはG数）の順位を表示します。タコだし=高い順、凹み=低い順で上位3位まで表示。</p>' +
+        MachineBadge.renderSettingsHtml('dailyMb');
+
+    filterContent.appendChild(section);
+
+    MachineBadge.setupSettingsEvents('dailyMb', function() {
+        filterAndRender();
+    });
 }
 
 function renderPositionFilterSection() {
@@ -682,6 +716,7 @@ async function filterAndRender() {
     }
 
     renderPositionFilterSection();
+    renderMachineBadgeSettingsSection();
 
     if (!dailyMachineFilterSelect) initDailyMachineFilter();
     else updateDailyMachineFilterCounts();
@@ -725,6 +760,16 @@ async function filterAndRender() {
     // ソート
     if (sortBy) {
         switch (sortBy) {
+            case 'mb_tako_asc': data.sort(function(a, b) {
+                var ta = (a._machineBadge && a._machineBadge.tako) ? a._machineBadge.tako : 999;
+                var tb = (b._machineBadge && b._machineBadge.tako) ? b._machineBadge.tako : 999;
+                return ta - tb;
+            }); break;
+            case 'mb_kubi_asc': data.sort(function(a, b) {
+                var ka = (a._machineBadge && a._machineBadge.kubi) ? a._machineBadge.kubi : 999;
+                var kb = (b._machineBadge && b._machineBadge.kubi) ? b._machineBadge.kubi : 999;
+                return ka - kb;
+            }); break;
             case 'sa_desc': data.sort(function(a, b) { return (parseInt(String(b['差枚']).replace(/,/g, '')) || 0) - (parseInt(String(a['差枚']).replace(/,/g, '')) || 0); }); break;
             case 'sa_asc': data.sort(function(a, b) { return (parseInt(String(a['差枚']).replace(/,/g, '')) || 0) - (parseInt(String(b['差枚']).replace(/,/g, '')) || 0); }); break;
             case 'game_desc': data.sort(function(a, b) { return (parseInt(String(b['G数']).replace(/,/g, '')) || 0) - (parseInt(String(a['G数']).replace(/,/g, '')) || 0); }); break;
@@ -735,6 +780,11 @@ async function filterAndRender() {
             case 'unit_asc': data = sortByUnitNumber(data, '台番号', true); break;
             case 'unit_desc': data = sortByUnitNumber(data, '台番号', false); break;
         }
+    }
+
+    // 機種内バッジ付与（フィルター・ソート後のデータで機種内順位を確定）
+    if (typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled()) {
+        data = MachineBadge.assignBadges(data, MachineBadge.getTargetColumn());
     }
 
     renderTableWithColumns(data, 'data-table', 'summary', visibleColumns);
@@ -763,6 +813,14 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
     tbody.innerHTML = data.map(function(row) {
         return '<tr>' + displayColumns.map(function(h) {
             var val = row[h];
+
+            if (h === '機種内順位') {
+                if (typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled()) {
+                    var badgeInfo = row['_machineBadge'] || { tako: null, kubi: null };
+                    return MachineBadge.renderBadgeHtml(badgeInfo);
+                }
+                return '<td class="mb-cell">-</td>';
+            }
 
             if (h === 'タグ') {
                 var matchedTags = row['_matchedTags'] || [];
