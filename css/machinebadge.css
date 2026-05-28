@@ -1,0 +1,177 @@
+/* ===================
+   機種内バッジ (MachineBadge) スタイル
+   🐙タコだし 1/2/3位  &  凹み 1/2/3位
+   =================== */
+
+/* テーブルセル */
+.mb-cell {
+    white-space: nowrap;
+    text-align: center;
+    padding: 3px 5px !important;
+    min-width: 60px;
+}
+
+/* 共通バッジベース */
+.mb-tako,
+.mb-kubi {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 5px;
+    border-radius: 4px;
+    margin: 1px 2px;
+    border: 1px solid transparent;
+    cursor: default;
+    letter-spacing: -0.02em;
+    transition: transform 0.1s;
+}
+
+.mb-tako:hover,
+.mb-kubi:hover {
+    transform: scale(1.15);
+}
+
+/* ----- 🐙 タコだし（上位差枚） ----- */
+
+/* 1位: ゴールド */
+.mb-tako-1 {
+    background: linear-gradient(135deg, #fef3c7, #fbbf24);
+    color: #78350f;
+    border-color: #f59e0b;
+    box-shadow: 0 1px 3px rgba(245, 158, 11, 0.45);
+}
+
+/* 2位: シルバー */
+.mb-tako-2 {
+    background: linear-gradient(135deg, #f1f5f9, #94a3b8);
+    color: #1e293b;
+    border-color: #64748b;
+    box-shadow: 0 1px 3px rgba(100, 116, 139, 0.35);
+}
+
+/* 3位: ブロンズ */
+.mb-tako-3 {
+    background: linear-gradient(135deg, #fef2e4, #cd7f32);
+    color: #fff;
+    border-color: #a05c20;
+    box-shadow: 0 1px 3px rgba(160, 92, 32, 0.35);
+}
+
+/* ----- 凹み（下位差枚）----- */
+
+/* 1位凹み: 深い青紫 */
+.mb-kubi-1 {
+    background: linear-gradient(135deg, #ede9fe, #7c3aed);
+    color: #fff;
+    border-color: #6d28d9;
+    box-shadow: 0 1px 3px rgba(124, 58, 237, 0.45);
+}
+
+/* 2位凹み: 青 */
+.mb-kubi-2 {
+    background: linear-gradient(135deg, #dbeafe, #3b82f6);
+    color: #fff;
+    border-color: #2563eb;
+    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.35);
+}
+
+/* 3位凹み: 水色 */
+.mb-kubi-3 {
+    background: linear-gradient(135deg, #e0f2fe, #0ea5e9);
+    color: #fff;
+    border-color: #0284c7;
+    box-shadow: 0 1px 3px rgba(14, 165, 233, 0.30);
+}
+
+/* なし */
+.mb-none {
+    color: #9ca3af;
+    font-size: 11px;
+}
+
+/* ===================
+   バッジ設定UI（フィルターパネル内）
+   =================== */
+
+.mb-settings-section h5 {
+    margin-bottom: 6px;
+}
+
+.mb-settings {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 18px;
+    padding: 8px 10px;
+    background: var(--card-bg, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 6px;
+    margin-top: 4px;
+}
+
+.mb-settings-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.mb-settings-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.mb-settings-item span,
+.mb-settings-toggle span {
+    user-select: none;
+}
+
+.mb-target-select {
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color, #334155);
+    background: var(--bg-color, #0f172a);
+    color: var(--text-color, #f1f5f9);
+}
+
+/* ダークモード自動対応 */
+@media (prefers-color-scheme: light) {
+    .mb-settings {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+    }
+    .mb-target-select {
+        background: #fff;
+        color: #1e293b;
+        border-color: #cbd5e1;
+    }
+}
+
+/* ===================
+   バッジ凡例（オプション）
+   =================== */
+
+.mb-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    align-items: center;
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 6px;
+}
+
+.mb-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
