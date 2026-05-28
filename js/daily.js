@@ -528,8 +528,8 @@ function renderMachineBadgeSettingsSection() {
     var section = document.createElement('div');
     section.className = 'filter-section mb-settings-section';
     section.innerHTML =
-        '<h5>🐙 機種内バッジ設定</h5>' +
-        '<p class="filter-hint">フィルター後の同機種内で差枚（またはG数）の順位を表示します。タコだし=高い順、凹み=低い順で上位3位まで表示。</p>' +
+        '<h5>🐙💀 機種内バッジ設定</h5>' +
+        '<p class="filter-hint">その日を含む直近N日間の累積差枚（またはG数）で機種内順位を付けます。フィルター後の同機種内での順位。</p>' +
         MachineBadge.renderSettingsHtml('dailyMb');
 
     filterContent.appendChild(section);
@@ -783,8 +783,9 @@ async function filterAndRender() {
     }
 
     // 機種内バッジ付与（フィルター・ソート後のデータで機種内順位を確定）
+    // 計算ベース: currentFile を含む過去 badgeDays 日間の累積差枚（フィルター後の同機種内）
     if (typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled()) {
-        data = MachineBadge.assignBadges(data, MachineBadge.getTargetColumn());
+        data = MachineBadge.assignBadges(data, currentFile, dataCache, MachineBadge.getTargetColumn());
     }
 
     renderTableWithColumns(data, 'data-table', 'summary', visibleColumns);
