@@ -1,33 +1,39 @@
 // ===================
 // 機種内バッジシステム
-// タコだし（高差枚）1,2,3位 / 凹み（低差枚）1,2,3位
-// フィルター後の表示データに対して機種内順位を付与
+// タコだし（高差枚）🐙1,2,3位 / 死に台（低差枚）💀1,2,3位
+//
+// 【計算ベース】
+//   日別タブ: 表示中の日を含む過去7日間の累積差枚（機種内・フィルター後）
+//   トレンドタブ: 選択期間の合計値（既存の動作と同じ）
 // ===================
 
 var MachineBadge = (function() {
 
     // ========== 設定 ==========
 
-    // バッジの有効/無効をlocalStorageで管理
-    var STORAGE_KEY_ENABLED   = 'machineBadgeEnabled';
-    var STORAGE_KEY_TARGET     = 'machineBadgeTarget';   // 'diff'=差枚 or 'games'=G数
-    var STORAGE_KEY_SHOW_TAKO  = 'machineBadgeShowTako'; // タコだし表示
-    var STORAGE_KEY_SHOW_KUBI  = 'machineBadgeShowKubi'; // 凹み表示
+    var STORAGE_KEY_ENABLED  = 'machineBadgeEnabled';
+    var STORAGE_KEY_TARGET   = 'machineBadgeTarget';    // 'diff'=差枚 or 'games'=G数
+    var STORAGE_KEY_SHOW_TAKO = 'machineBadgeShowTako'; // タコだし表示
+    var STORAGE_KEY_SHOW_KUBI = 'machineBadgeShowKubi'; // 💀死に台表示
+    var STORAGE_KEY_DAYS      = 'machineBadgeDays';     // 累積日数
 
     var enabled   = true;
-    var target    = 'diff';   // 'diff' | 'games'
+    var target    = 'diff';  // 'diff' | 'games'
     var showTako  = true;
     var showKubi  = true;
-    var topN      = 3;        // 上位・下位何位まで
+    var badgeDays = 7;       // 過去何日分累積するか
+    var topN      = 3;       // 上位・下位何位まで
 
     // ========== ストレージ ==========
 
     function loadSettings() {
         try {
-            enabled  = localStorage.getItem(STORAGE_KEY_ENABLED)  !== 'false';
-            target   = localStorage.getItem(STORAGE_KEY_TARGET)   || 'diff';
-            showTako = localStorage.getItem(STORAGE_KEY_SHOW_TAKO) !== 'false';
-            showKubi = localStorage.getItem(STORAGE_KEY_SHOW_KUBI) !== 'false';
+            enabled   = localStorage.getItem(STORAGE_KEY_ENABLED)   !== 'false';
+            target    = localStorage.getItem(STORAGE_KEY_TARGET)     || 'diff';
+            showTako  = localStorage.getItem(STORAGE_KEY_SHOW_TAKO)  !== 'false';
+            showKubi  = localStorage.getItem(STORAGE_KEY_SHOW_KUBI)  !== 'false';
+            var d     = parseInt(localStorage.getItem(STORAGE_KEY_DAYS));
+            if (!isNaN(d) && d >= 1 && d <= 30) badgeDays = d;
         } catch (e) {}
     }
 
@@ -37,103 +43,146 @@ var MachineBadge = (function() {
             localStorage.setItem(STORAGE_KEY_TARGET,    target);
             localStorage.setItem(STORAGE_KEY_SHOW_TAKO, showTako);
             localStorage.setItem(STORAGE_KEY_SHOW_KUBI, showKubi);
+            localStorage.setItem(STORAGE_KEY_DAYS,      badgeDays);
         } catch (e) {}
     }
 
-    // ========== コアロジック ==========
+    // ========== 7日累積計算 ==========
 
     /**
-     * rows: 同じ機種の行データ配列 [{台番号, 差枚, G数, ...}, ...]
-     * targetCol: 順位付けに使う列名（'差枚' or 'G数'）
-     * 戻り値: { '台番号_キー': { tako: 1|2|3|null, kubi: 1|2|3|null } }
+     * currentFile: 今表示中のファイル名（例: "data/2026_05_27.csv"）
+     * dataCache: グローバルの dataCache オブジェクト
+     * targetCol: '差枚' or 'G数'
+     * 戻り値: { '機種名_台番号': 累積値, ... }
      */
-    function calcRanks(rows, targetCol) {
-        if (!rows || rows.length === 0) return {};
+    function calcCumulativeValues(currentFile, dataCacheRef, targetCol) {
+        var col = targetCol || '差枚';
 
-        // 数値パース
-        var parsed = rows.map(function(row) {
-            var raw = row[targetCol] !== undefined ? row[targetCol] : row['差枚'];
-            var num = parseInt(String(raw || '0').replace(/,/g, '')) || 0;
-            return { key: row['機種名'] + '_' + row['台番号'], num: num, row: row };
+        // 表示中のファイルを含む直近 badgeDays 日分のファイルを取得
+        var allSorted = sortFilesByDate(CSV_FILES, true); // 新しい順
+        var currentIdx = allSorted.indexOf(currentFile);
+        if (currentIdx === -1) return {};
+
+        // 新しい順で currentIdx 〜 currentIdx+badgeDays-1 を取る → 古い順に並べ直す
+        var windowFiles = allSorted.slice(currentIdx, currentIdx + badgeDays);
+
+        var cumulative = {}; // key: '機種名_台番号' → 累積値
+
+        windowFiles.forEach(function(file) {
+            var rows = dataCacheRef[file];
+            if (!rows) return;
+            rows.forEach(function(row) {
+                var machine = row['機種名'] || '';
+                var num     = row['台番号'] || '';
+                var key     = machine + '_' + num;
+                var raw     = row[col] !== undefined ? row[col] : '0';
+                var val     = parseInt(String(raw).replace(/,/g, '')) || 0;
+                if (cumulative[key] === undefined) cumulative[key] = 0;
+                cumulative[key] += val;
+            });
         });
 
-        // 値が全て同じ場合は順位付けしない
-        var vals = parsed.map(function(p) { return p.num; });
-        var allSame = vals.every(function(v) { return v === vals[0]; });
+        return { values: cumulative, windowFiles: windowFiles };
+    }
 
+    // ========== コアランク計算 ==========
+
+    /**
+     * items: [{ key, num }, ...]  ← num は累積値
+     * 戻り値: { key: { tako, kubi } }
+     */
+    function calcRanksFromItems(items) {
         var result = {};
-        parsed.forEach(function(p) { result[p.key] = { tako: null, kubi: null }; });
+        items.forEach(function(p) { result[p.key] = { tako: null, kubi: null }; });
 
+        if (items.length < 2) return result;
+
+        var vals = items.map(function(p) { return p.num; });
+        var allSame = vals.every(function(v) { return v === vals[0]; });
         if (allSame) return result;
 
-        // タコだし: 降順ソートして上位topN
+        // タコだし: 降順
         if (showTako) {
-            var sorted_desc = parsed.slice().sort(function(a, b) { return b.num - a.num; });
-            var takoRank = 0;
-            var lastVal  = null;
-            sorted_desc.forEach(function(item, i) {
-                if (item.num !== lastVal) {
-                    takoRank = i + 1;
-                    lastVal  = item.num;
-                }
-                if (takoRank <= topN) result[item.key].tako = takoRank;
+            var sd = items.slice().sort(function(a, b) { return b.num - a.num; });
+            var tr = 0, lv = null;
+            sd.forEach(function(item, i) {
+                if (item.num !== lv) { tr = i + 1; lv = item.num; }
+                if (tr <= topN) result[item.key].tako = tr;
             });
         }
 
-        // 凹み: 昇順ソートして上位topN（最も差枚が低い）
+        // 💀死に台: 昇順
         if (showKubi) {
-            var sorted_asc = parsed.slice().sort(function(a, b) { return a.num - b.num; });
-            var kubiRank = 0;
-            var lastKVal = null;
-            sorted_asc.forEach(function(item, i) {
-                if (item.num !== lastKVal) {
-                    kubiRank = i + 1;
-                    lastKVal = item.num;
-                }
-                if (kubiRank <= topN) result[item.key].kubi = kubiRank;
+            var sa = items.slice().sort(function(a, b) { return a.num - b.num; });
+            var kr = 0, lkv = null;
+            sa.forEach(function(item, i) {
+                if (item.num !== lkv) { kr = i + 1; lkv = item.num; }
+                if (kr <= topN) result[item.key].kubi = kr;
             });
         }
 
         return result;
     }
 
-    /**
-     * データ配列全体に機種内順位バッジ情報を付与する（日別タブ用）
-     * data: フィルター適用済みの全行
-     * targetCol: '差枚' or 'G数'
-     * 戻り値: 各行に _machineBadge: { tako, kubi } が追加されたデータ
-     */
-    function assignBadges(data, targetCol) {
-        if (!enabled || !data || data.length === 0) return data;
-        var col = targetCol || target || '差枚';
+    // ========== 日別タブ用: 7日累積でバッジ付与 ==========
 
-        // 機種ごとにグループ化
+    /**
+     * data        : フィルター適用済みの行配列（表示中の1日分）
+     * currentFile : 表示中ファイル名
+     * dataCacheRef: グローバル dataCache
+     * targetCol   : '差枚' or 'G数'
+     *
+     * 戻り値: 各行に _machineBadge: { tako, kubi, cumVal, windowDays } を付与したデータ
+     */
+    function assignBadges(data, currentFile, dataCacheRef, targetCol) {
+        if (!enabled || !data || data.length === 0) return data;
+        var col = targetCol || getTargetColumn();
+
+        // --- 7日累積値を計算 ---
+        var cumResult = calcCumulativeValues(currentFile, dataCacheRef, col);
+        var cumValues = cumResult.values || {};
+        var windowFiles = cumResult.windowFiles || [];
+
+        // --- フィルター後の表示台のみで機種ごとにグループ化 ---
         var machineGroups = {};
         data.forEach(function(row) {
             var machine = row['機種名'] || '';
             if (!machineGroups[machine]) machineGroups[machine] = [];
-            machineGroups[machine].push(row);
+            var key = machine + '_' + (row['台番号'] || '');
+            machineGroups[machine].push({
+                key: key,
+                num: cumValues[key] !== undefined ? cumValues[key] : 0,
+                row: row
+            });
         });
 
-        // 機種ごとに順位計算
+        // --- 機種ごとにランク計算 ---
         var allRanks = {};
         Object.keys(machineGroups).forEach(function(machine) {
-            var rows  = machineGroups[machine];
-            var ranks = calcRanks(rows, col);
+            var items = machineGroups[machine];
+            var ranks = calcRanksFromItems(items);
             Object.assign(allRanks, ranks);
         });
 
-        // 行に付与
+        // --- 行に付与（累積値・期間情報も一緒に保存） ---
         return data.map(function(row) {
-            var key = row['機種名'] + '_' + row['台番号'];
-            var badge = allRanks[key] || { tako: null, kubi: null };
+            var key   = (row['機種名'] || '') + '_' + (row['台番号'] || '');
+            var badge = Object.assign(
+                allRanks[key] || { tako: null, kubi: null },
+                {
+                    cumVal:     cumValues[key] !== undefined ? cumValues[key] : null,
+                    windowDays: windowFiles.length
+                }
+            );
             return Object.assign({}, row, { _machineBadge: badge });
         });
     }
 
+    // ========== トレンドタブ用: aggregated結果に対してバッジ付与 ==========
+
     /**
-     * トレンドタブ用: aggregated結果（{machine, num, total}配列）の機種内順位付与
-     * 同じmachineを持つ行の中でtotalで順位付け
+     * results    : trend集計結果 [{machine, num, total, avg, ...}]
+     * targetProp : 'total' など
      */
     function assignBadgesForTrend(results, targetProp) {
         if (!enabled || !results || results.length === 0) return results;
@@ -143,48 +192,21 @@ var MachineBadge = (function() {
         results.forEach(function(row) {
             var machine = row.machine || '';
             if (!machineGroups[machine]) machineGroups[machine] = [];
-            machineGroups[machine].push(row);
+            machineGroups[machine].push({
+                key: machine + '_' + row.num,
+                num: (typeof row[prop] === 'number' && !isNaN(row[prop])) ? row[prop] : 0
+            });
         });
 
         var allRanks = {};
         Object.keys(machineGroups).forEach(function(machine) {
-            var rows = machineGroups[machine];
-            // trendのrowは {machine, num, total, avg, ...}
-            var parsed = rows.map(function(r) {
-                var num = (typeof r[prop] === 'number' && !isNaN(r[prop])) ? r[prop] : 0;
-                return { key: machine + '_' + r.num, num: num };
-            });
-
-            var vals = parsed.map(function(p) { return p.num; });
-            var allSame = vals.length > 1 && vals.every(function(v) { return v === vals[0]; });
-
-            parsed.forEach(function(p) {
-                allRanks[p.key] = { tako: null, kubi: null };
-            });
-
-            if (allSame || parsed.length < 2) return;
-
-            if (showTako) {
-                var sd = parsed.slice().sort(function(a, b) { return b.num - a.num; });
-                var tr = 0, lv = null;
-                sd.forEach(function(item, i) {
-                    if (item.num !== lv) { tr = i + 1; lv = item.num; }
-                    if (tr <= topN) allRanks[item.key].tako = tr;
-                });
-            }
-
-            if (showKubi) {
-                var sa = parsed.slice().sort(function(a, b) { return a.num - b.num; });
-                var kr = 0, lkv = null;
-                sa.forEach(function(item, i) {
-                    if (item.num !== lkv) { kr = i + 1; lkv = item.num; }
-                    if (kr <= topN) allRanks[item.key].kubi = kr;
-                });
-            }
+            var items = machineGroups[machine];
+            var ranks = calcRanksFromItems(items);
+            Object.assign(allRanks, ranks);
         });
 
         return results.map(function(row) {
-            var key = row.machine + '_' + row.num;
+            var key   = row.machine + '_' + row.num;
             var badge = allRanks[key] || { tako: null, kubi: null };
             return Object.assign({}, row, { _machineBadge: badge });
         });
@@ -193,26 +215,34 @@ var MachineBadge = (function() {
     // ========== HTML描画 ==========
 
     /**
-     * バッジHTMLを返す（コンパクト版）
-     * badge: { tako: 1|2|3|null, kubi: 1|2|3|null }
+     * badge: { tako, kubi, cumVal, windowDays }
+     * 戻り値: <td>...</td>
      */
     function renderBadgeHtml(badge) {
-        if (!badge) return '<td class="mb-cell">-</td>';
-        var inner = renderBadgeInner(badge);
-        return '<td class="mb-cell">' + inner + '</td>';
+        return '<td class="mb-cell">' + renderBadgeInner(badge) + '</td>';
     }
 
     /**
-     * バッジ内側のHTMLのみ（tdなし）
+     * バッジ内側HTMLのみ（tdなし）
+     * tooltip に累積値・期間を表示
      */
     function renderBadgeInner(badge) {
-        if (!badge) return '-';
-        var html = '';
+        if (!badge) return '<span class="mb-none">-</span>';
+
+        var html    = '';
+        var daysTip = badge.windowDays ? badge.windowDays + '日累積' : '';
+        var cumTip  = (badge.cumVal !== null && badge.cumVal !== undefined)
+            ? '累積差枚: ' + (badge.cumVal >= 0 ? '+' : '') + badge.cumVal.toLocaleString()
+            : '';
+        var baseTip = [daysTip, cumTip].filter(Boolean).join(' / ');
+
         if (badge.tako !== null && showTako) {
-            html += '<span class="mb-tako mb-tako-' + badge.tako + '" title="🐙 タコだし ' + badge.tako + '位（機種内）">🐙' + badge.tako + '</span>';
+            var tip = '🐙タコだし ' + badge.tako + '位（機種内）' + (baseTip ? ' | ' + baseTip : '');
+            html += '<span class="mb-tako mb-tako-' + badge.tako + '" title="' + tip + '">🐙' + badge.tako + '</span>';
         }
         if (badge.kubi !== null && showKubi) {
-            html += '<span class="mb-kubi mb-kubi-' + badge.kubi + '" title="凹み ' + badge.kubi + '位（機種内）">凹' + badge.kubi + '</span>';
+            var tip2 = '💀 ' + badge.kubi + '位（機種内）' + (baseTip ? ' | ' + baseTip : '');
+            html += '<span class="mb-kubi mb-kubi-' + badge.kubi + '" title="' + tip2 + '">💀' + badge.kubi + '</span>';
         }
         if (!html) {
             html = '<span class="mb-none">-</span>';
@@ -222,15 +252,16 @@ var MachineBadge = (function() {
 
     // ========== 設定UI ==========
 
-    /**
-     * 設定ツールチップHTML（フィルターパネルに差し込む用）
-     */
     function renderSettingsHtml(idPrefix) {
         idPrefix = idPrefix || 'mb';
+        var daysOpts = [3, 5, 7, 10, 14].map(function(d) {
+            return '<option value="' + d + '"' + (badgeDays === d ? ' selected' : '') + '>' + d + '日</option>';
+        }).join('');
+
         return '<div class="mb-settings">'
             + '<label class="mb-settings-toggle">'
             + '<input type="checkbox" id="' + idPrefix + 'Enabled"' + (enabled ? ' checked' : '') + '>'
-            + '<span>🐙凹バッジ表示</span>'
+            + '<span>🐙💀バッジ表示</span>'
             + '</label>'
             + '<label class="mb-settings-item">'
             + '<input type="checkbox" id="' + idPrefix + 'ShowTako"' + (showTako ? ' checked' : '') + '>'
@@ -238,52 +269,55 @@ var MachineBadge = (function() {
             + '</label>'
             + '<label class="mb-settings-item">'
             + '<input type="checkbox" id="' + idPrefix + 'ShowKubi"' + (showKubi ? ' checked' : '') + '>'
-            + '<span>凹み</span>'
+            + '<span>💀死に台</span>'
             + '</label>'
             + '<div class="mb-settings-item">'
-            + '<span>順位基準:</span>'
+            + '<span>集計期間:</span>'
+            + '<select id="' + idPrefix + 'Days" class="mb-target-select">' + daysOpts + '</select>'
+            + '</div>'
+            + '<div class="mb-settings-item">'
+            + '<span>基準列:</span>'
             + '<select id="' + idPrefix + 'Target" class="mb-target-select">'
-            + '<option value="diff"' + (target === 'diff' ? ' selected' : '') + '>差枚</option>'
+            + '<option value="diff"'  + (target === 'diff'  ? ' selected' : '') + '>差枚</option>'
             + '<option value="games"' + (target === 'games' ? ' selected' : '') + '>G数</option>'
             + '</select>'
             + '</div>'
             + '</div>';
     }
 
-    /**
-     * 設定UIのイベントを設定する
-     * onChange: 設定変更時に呼ぶコールバック
-     */
     function setupSettingsEvents(idPrefix, onChange) {
         idPrefix = idPrefix || 'mb';
-
-        var enEl = document.getElementById(idPrefix + 'Enabled');
-        var takoEl = document.getElementById(idPrefix + 'ShowTako');
-        var kubiEl = document.getElementById(idPrefix + 'ShowKubi');
+        var enEl     = document.getElementById(idPrefix + 'Enabled');
+        var takoEl   = document.getElementById(idPrefix + 'ShowTako');
+        var kubiEl   = document.getElementById(idPrefix + 'ShowKubi');
+        var daysEl   = document.getElementById(idPrefix + 'Days');
         var targetEl = document.getElementById(idPrefix + 'Target');
 
         function update() {
-            if (enEl)    enabled  = enEl.checked;
-            if (takoEl)  showTako = takoEl.checked;
-            if (kubiEl)  showKubi = kubiEl.checked;
-            if (targetEl) target  = targetEl.value;
+            if (enEl)     enabled   = enEl.checked;
+            if (takoEl)   showTako  = takoEl.checked;
+            if (kubiEl)   showKubi  = kubiEl.checked;
+            if (daysEl)   badgeDays = parseInt(daysEl.value) || 7;
+            if (targetEl) target    = targetEl.value;
             saveSettings();
             if (onChange) onChange();
         }
 
-        if (enEl)    enEl.addEventListener('change', update);
-        if (takoEl)  takoEl.addEventListener('change', update);
-        if (kubiEl)  kubiEl.addEventListener('change', update);
+        if (enEl)     enEl.addEventListener('change', update);
+        if (takoEl)   takoEl.addEventListener('change', update);
+        if (kubiEl)   kubiEl.addEventListener('change', update);
+        if (daysEl)   daysEl.addEventListener('change', update);
         if (targetEl) targetEl.addEventListener('change', update);
     }
 
     // ========== ゲッター ==========
 
-    function isEnabled()   { return enabled;  }
-    function getTarget()   { return target;   }
-    function isShowTako()  { return showTako; }
-    function isShowKubi()  { return showKubi; }
-    function getTopN()     { return topN;     }
+    function isEnabled()      { return enabled;   }
+    function getTarget()      { return target;    }
+    function isShowTako()     { return showTako;  }
+    function isShowKubi()     { return showKubi;  }
+    function getTopN()        { return topN;      }
+    function getBadgeDays()   { return badgeDays; }
 
     function getTargetColumn() {
         return target === 'games' ? 'G数' : '差枚';
@@ -308,6 +342,7 @@ var MachineBadge = (function() {
         getTargetColumn:        getTargetColumn,
         isShowTako:             isShowTako,
         isShowKubi:             isShowKubi,
-        getTopN:                getTopN
+        getTopN:                getTopN,
+        getBadgeDays:           getBadgeDays
     };
 })();

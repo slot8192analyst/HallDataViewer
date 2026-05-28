@@ -1,6 +1,6 @@
 /* ===================
    機種内バッジ (MachineBadge) スタイル
-   🐙タコだし 1/2/3位  &  凹み 1/2/3位
+   🐙タコだし 1/2/3位  &  💀死に台 1/2/3位
    =================== */
 
 /* テーブルセル */
@@ -8,7 +8,7 @@
     white-space: nowrap;
     text-align: center;
     padding: 3px 5px !important;
-    min-width: 60px;
+    min-width: 64px;
 }
 
 /* 共通バッジベース */
@@ -60,30 +60,31 @@
     box-shadow: 0 1px 3px rgba(160, 92, 32, 0.35);
 }
 
-/* ----- 凹み（下位差枚）----- */
+/* ----- 💀 死に台（下位差枚）----- */
 
-/* 1位凹み: 深い青紫 */
+/* 1位死に台: 濃い赤紫（最悪） */
 .mb-kubi-1 {
-    background: linear-gradient(135deg, #ede9fe, #7c3aed);
+    background: linear-gradient(135deg, #3b0000, #ef4444);
     color: #fff;
-    border-color: #6d28d9;
-    box-shadow: 0 1px 3px rgba(124, 58, 237, 0.45);
+    border-color: #b91c1c;
+    box-shadow: 0 1px 4px rgba(239, 68, 68, 0.55);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
 }
 
-/* 2位凹み: 青 */
+/* 2位死に台: オレンジ赤 */
 .mb-kubi-2 {
-    background: linear-gradient(135deg, #dbeafe, #3b82f6);
+    background: linear-gradient(135deg, #431407, #f97316);
     color: #fff;
-    border-color: #2563eb;
-    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.35);
+    border-color: #ea580c;
+    box-shadow: 0 1px 3px rgba(249, 115, 22, 0.45);
 }
 
-/* 3位凹み: 水色 */
+/* 3位死に台: 暗い黄色 */
 .mb-kubi-3 {
-    background: linear-gradient(135deg, #e0f2fe, #0ea5e9);
+    background: linear-gradient(135deg, #422006, #d97706);
     color: #fff;
-    border-color: #0284c7;
-    box-shadow: 0 1px 3px rgba(14, 165, 233, 0.30);
+    border-color: #b45309;
+    box-shadow: 0 1px 3px rgba(217, 119, 6, 0.35);
 }
 
 /* なし */
@@ -154,24 +155,4 @@
         color: #1e293b;
         border-color: #cbd5e1;
     }
-}
-
-/* ===================
-   バッジ凡例（オプション）
-   =================== */
-
-.mb-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 14px;
-    align-items: center;
-    font-size: 11px;
-    color: #94a3b8;
-    margin-top: 6px;
-}
-
-.mb-legend-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
 }
