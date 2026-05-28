@@ -11,18 +11,20 @@ var MachineBadge = (function() {
 
     // ========== 設定 ==========
 
-    var STORAGE_KEY_ENABLED  = 'machineBadgeEnabled';
-    var STORAGE_KEY_TARGET   = 'machineBadgeTarget';    // 'diff'=差枚 or 'games'=G数
-    var STORAGE_KEY_SHOW_TAKO = 'machineBadgeShowTako'; // タコだし表示
-    var STORAGE_KEY_SHOW_KUBI = 'machineBadgeShowKubi'; // 💀死に台表示
-    var STORAGE_KEY_DAYS      = 'machineBadgeDays';     // 累積日数
+    var STORAGE_KEY_ENABLED   = 'machineBadgeEnabled';
+    var STORAGE_KEY_TARGET    = 'machineBadgeTarget';    // 'diff'=差枚 or 'games'=G数
+    var STORAGE_KEY_SHOW_TAKO = 'machineBadgeShowTako';  // タコだし表示
+    var STORAGE_KEY_SHOW_KUBI = 'machineBadgeShowKubi';  // 💀死に台表示
+    var STORAGE_KEY_DAYS      = 'machineBadgeDays';      // 累積日数
+    var STORAGE_KEY_BASE      = 'machineBadgeBase';      // 'current'=当日基準 / 'prev'=前日基準
 
     var enabled   = true;
-    var target    = 'diff';  // 'diff' | 'games'
+    var target    = 'diff';     // 'diff' | 'games'
     var showTako  = true;
     var showKubi  = true;
-    var badgeDays = 7;       // 過去何日分累積するか
-    var topN      = 3;       // 上位・下位何位まで
+    var badgeDays = 7;          // 過去何日分累積するか
+    var badgeBase = 'current';  // 'current'=当日含む / 'prev'=前日から遡る
+    var topN      = 3;          // 上位・下位何位まで
 
     // ========== ストレージ ==========
 
@@ -34,6 +36,8 @@ var MachineBadge = (function() {
             showKubi  = localStorage.getItem(STORAGE_KEY_SHOW_KUBI)  !== 'false';
             var d     = parseInt(localStorage.getItem(STORAGE_KEY_DAYS));
             if (!isNaN(d) && d >= 1 && d <= 30) badgeDays = d;
+            var b     = localStorage.getItem(STORAGE_KEY_BASE);
+            if (b === 'prev' || b === 'current') badgeBase = b;
         } catch (e) {}
     }
 
@@ -44,6 +48,7 @@ var MachineBadge = (function() {
             localStorage.setItem(STORAGE_KEY_SHOW_TAKO, showTako);
             localStorage.setItem(STORAGE_KEY_SHOW_KUBI, showKubi);
             localStorage.setItem(STORAGE_KEY_DAYS,      badgeDays);
+            localStorage.setItem(STORAGE_KEY_BASE,      badgeBase);
         } catch (e) {}
     }
 
@@ -58,13 +63,15 @@ var MachineBadge = (function() {
     function calcCumulativeValues(currentFile, dataCacheRef, targetCol) {
         var col = targetCol || '差枚';
 
-        // 表示中のファイルを含む直近 badgeDays 日分のファイルを取得
         var allSorted = sortFilesByDate(CSV_FILES, true); // 新しい順
         var currentIdx = allSorted.indexOf(currentFile);
         if (currentIdx === -1) return {};
 
-        // 新しい順で currentIdx 〜 currentIdx+badgeDays-1 を取る → 古い順に並べ直す
-        var windowFiles = allSorted.slice(currentIdx, currentIdx + badgeDays);
+        // 基準モードに応じてウィンドウ開始位置を決定
+        //   current : 当日含む → [currentIdx, currentIdx+badgeDays)
+        //   prev    : 前日基準 → [currentIdx+1, currentIdx+1+badgeDays)
+        var startIdx = (badgeBase === 'prev') ? currentIdx + 1 : currentIdx;
+        var windowFiles = allSorted.slice(startIdx, startIdx + badgeDays);
 
         var cumulative = {}; // key: '機種名_台番号' → 累積値
 
@@ -171,7 +178,8 @@ var MachineBadge = (function() {
                 allRanks[key] || { tako: null, kubi: null },
                 {
                     cumVal:     cumValues[key] !== undefined ? cumValues[key] : null,
-                    windowDays: windowFiles.length
+                    windowDays: windowFiles.length,
+                    baseMode:   badgeBase
                 }
             );
             return Object.assign({}, row, { _machineBadge: badge });
@@ -230,9 +238,12 @@ var MachineBadge = (function() {
         if (!badge) return '<span class="mb-none">-</span>';
 
         var html    = '';
-        var daysTip = badge.windowDays ? badge.windowDays + '日累積' : '';
+        var baseModeLabel = badge.baseMode === 'prev' ? '前日基準' : '当日基準';
+        var daysTip = badge.windowDays
+            ? badge.windowDays + '日累積（' + baseModeLabel + '）'
+            : '';
         var cumTip  = (badge.cumVal !== null && badge.cumVal !== undefined)
-            ? '累積差枚: ' + (badge.cumVal >= 0 ? '+' : '') + badge.cumVal.toLocaleString()
+            ? '累積: ' + (badge.cumVal >= 0 ? '+' : '') + badge.cumVal.toLocaleString()
             : '';
         var baseTip = [daysTip, cumTip].filter(Boolean).join(' / ');
 
@@ -276,6 +287,13 @@ var MachineBadge = (function() {
             + '<select id="' + idPrefix + 'Days" class="mb-target-select">' + daysOpts + '</select>'
             + '</div>'
             + '<div class="mb-settings-item">'
+            + '<span>基準日:</span>'
+            + '<select id="' + idPrefix + 'Base" class="mb-target-select">'
+            + '<option value="current"' + (badgeBase === 'current' ? ' selected' : '') + '>当日含む</option>'
+            + '<option value="prev"'    + (badgeBase === 'prev'    ? ' selected' : '') + '>前日基準</option>'
+            + '</select>'
+            + '</div>'
+            + '<div class="mb-settings-item">'
             + '<span>基準列:</span>'
             + '<select id="' + idPrefix + 'Target" class="mb-target-select">'
             + '<option value="diff"'  + (target === 'diff'  ? ' selected' : '') + '>差枚</option>'
@@ -291,6 +309,7 @@ var MachineBadge = (function() {
         var takoEl   = document.getElementById(idPrefix + 'ShowTako');
         var kubiEl   = document.getElementById(idPrefix + 'ShowKubi');
         var daysEl   = document.getElementById(idPrefix + 'Days');
+        var baseEl   = document.getElementById(idPrefix + 'Base');
         var targetEl = document.getElementById(idPrefix + 'Target');
 
         function update() {
@@ -298,6 +317,7 @@ var MachineBadge = (function() {
             if (takoEl)   showTako  = takoEl.checked;
             if (kubiEl)   showKubi  = kubiEl.checked;
             if (daysEl)   badgeDays = parseInt(daysEl.value) || 7;
+            if (baseEl)   badgeBase = baseEl.value;
             if (targetEl) target    = targetEl.value;
             saveSettings();
             if (onChange) onChange();
@@ -307,6 +327,7 @@ var MachineBadge = (function() {
         if (takoEl)   takoEl.addEventListener('change', update);
         if (kubiEl)   kubiEl.addEventListener('change', update);
         if (daysEl)   daysEl.addEventListener('change', update);
+        if (baseEl)   baseEl.addEventListener('change', update);
         if (targetEl) targetEl.addEventListener('change', update);
     }
 
@@ -318,6 +339,7 @@ var MachineBadge = (function() {
     function isShowKubi()     { return showKubi;  }
     function getTopN()        { return topN;      }
     function getBadgeDays()   { return badgeDays; }
+    function getBadgeBase()   { return badgeBase; }
 
     function getTargetColumn() {
         return target === 'games' ? 'G数' : '差枚';
@@ -343,6 +365,7 @@ var MachineBadge = (function() {
         isShowTako:             isShowTako,
         isShowKubi:             isShowKubi,
         getTopN:                getTopN,
-        getBadgeDays:           getBadgeDays
+        getBadgeDays:           getBadgeDays,
+        getBadgeBase:           getBadgeBase
     };
 })();
