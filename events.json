@@ -102,6 +102,13 @@
       "media": "DMMぱちタウン",
       "name": ["天運総撃"],
       "note": ""
+    },
+    {
+      "date": "2026_06_09",
+      "type":"new_machine",
+      "media": "戦国乙女5,SAOⅡ,カバネリ海門(増台)",
+      "name": ["新台入替"],
+      "note": ""
     }
   ],
       "recurringEvents": [
