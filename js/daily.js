@@ -345,6 +345,88 @@ function updateDailyFilterBadge() {
 }
 
 // ===================
+// フィルターセクション個別トグル
+// ===================
+
+var FILTER_SECTION_STORAGE_KEY = 'dailyFilterSectionCollapsed';
+
+function getCollapsedSectionState() {
+    try {
+        var raw = localStorage.getItem(FILTER_SECTION_STORAGE_KEY);
+        if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object') return parsed;
+        }
+    } catch (e) {}
+    return {};
+}
+
+function saveCollapsedSectionState(state) {
+    try {
+        localStorage.setItem(FILTER_SECTION_STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {}
+}
+
+/**
+ * #filterContent 内の全 .filter-section-title にトグル機能を付与する。
+ * セクションは data-section-key（見出しテキスト）で識別し、開閉状態を保存する。
+ * 動的セクションの再生成後にも安全に呼べるよう、bound フラグで二重登録を防ぐ。
+ */
+function setupCollapsibleFilterSections() {
+    var filterContent = document.getElementById('filterContent');
+    if (!filterContent) return;
+
+    var collapsedState = getCollapsedSectionState();
+
+    filterContent.querySelectorAll('.filter-section').forEach(function(section) {
+        var title = section.querySelector('.filter-section-title');
+        var body = section.querySelector('.filter-section-body');
+        if (!title || !body) return;
+
+        // セクション識別キー（見出しテキストから記号を除いた素のテキスト）
+        var key = title.getAttribute('data-section-key');
+        if (!key) {
+            key = title.textContent.replace(/[▼▲]/g, '').trim();
+            title.setAttribute('data-section-key', key);
+        }
+
+        // トグルアイコンが無ければ付与
+        var icon = title.querySelector('.section-toggle-icon');
+        if (!icon) {
+            icon = document.createElement('span');
+            icon.className = 'section-toggle-icon';
+            icon.textContent = '▼';
+            title.appendChild(icon);
+        }
+
+        // 保存された折りたたみ状態を反映
+        var isCollapsed = collapsedState[key] === true;
+        if (isCollapsed) {
+            section.classList.add('section-collapsed');
+            icon.textContent = '▶';
+        } else {
+            section.classList.remove('section-collapsed');
+            icon.textContent = '▼';
+        }
+
+        // イベント二重登録防止
+        if (title.dataset.collapsibleBound === '1') return;
+        title.dataset.collapsibleBound = '1';
+        title.style.cursor = 'pointer';
+
+        title.addEventListener('click', function() {
+            var collapsed = section.classList.toggle('section-collapsed');
+            var ic = title.querySelector('.section-toggle-icon');
+            if (ic) ic.textContent = collapsed ? '▶' : '▼';
+
+            var state = getCollapsedSectionState();
+            state[key] = collapsed;
+            saveCollapsedSectionState(state);
+        });
+    });
+}
+
+// ===================
 // 日別タブ状態管理
 // ===================
 
@@ -528,9 +610,11 @@ function renderMachineBadgeSettingsSection() {
     var section = document.createElement('div');
     section.className = 'filter-section mb-settings-section';
     section.innerHTML =
-        '<h5>🐙💀 機種内バッジ設定</h5>' +
+        '<h5 class="filter-section-title">🐙💀 機種内バッジ設定<span class="section-toggle-icon">▼</span></h5>' +
+        '<div class="filter-section-body">' +
         '<p class="filter-hint">その日を含む直近N日間の累積差枚（またはG数）で機種内順位を付けます。フィルター後の同機種内での順位。バッジ列を非表示にしたい場合は「表示列」で「機種内順位」のチェックを外してください。</p>' +
-        MachineBadge.renderSettingsHtml('dailyMb');
+        MachineBadge.renderSettingsHtml('dailyMb') +
+        '</div>';
 
     filterContent.appendChild(section);
 
@@ -546,10 +630,14 @@ function renderPositionFilterSection() {
     if (existingSection) existingSection.remove();
     var section = document.createElement('div');
     section.className = 'filter-section position-filter-section';
-    section.innerHTML = '<h5>📍 位置フィルター</h5>' + renderMultiPositionFilter('daily', function() {
-        renderPositionFilterSection();
-        filterAndRender();
-    });
+    section.innerHTML =
+        '<h5 class="filter-section-title">📍 位置フィルター<span class="section-toggle-icon">▼</span></h5>' +
+        '<div class="filter-section-body">' +
+        renderMultiPositionFilter('daily', function() {
+            renderPositionFilterSection();
+            filterAndRender();
+        }) +
+        '</div>';
     var firstSection = filterContent.querySelector('.filter-section');
     if (firstSection) firstSection.before(section);
     else filterContent.prepend(section);
@@ -667,6 +755,71 @@ function updateFilterBadge() {
 }
 
 // ===================
+// タグ設定モーダル
+// ===================
+
+function renderDailyTagPreview() {
+    var preview = document.getElementById('dailyTagPreview');
+    if (!preview) return;
+
+    var defs = TagEngine.getAll();
+
+    if (!defs || defs.length === 0) {
+        preview.innerHTML = '<span class="daily-tag-preview-empty">設定中のタグはありません</span>';
+        return;
+    }
+
+    preview.innerHTML = defs.map(function(def) {
+        var hasCond = TagEngine.hasActiveConditions(def.id);
+        return '<span class="daily-tag-preview-badge" style="background: ' + def.color +
+            '20; border-color: ' + def.color + '; color: ' + def.color + ';' +
+            (hasCond ? '' : ' opacity:0.5;') + '"' +
+            (hasCond ? '' : ' title="条件未設定"') + '>' +
+            def.icon + ' ' + escapeHtmlTag(def.name) + '</span>';
+    }).join('');
+}
+
+function openDailyTagModal() {
+    var modal = document.getElementById('dailyTagModal');
+    if (!modal) return;
+    modal.classList.add('open');
+}
+
+function closeDailyTagModal() {
+    var modal = document.getElementById('dailyTagModal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    renderDailyTagPreview();
+}
+
+function setupDailyTagModalEvents() {
+    var openBtn = document.getElementById('openDailyTagModal');
+    if (openBtn) openBtn.addEventListener('click', openDailyTagModal);
+
+    var closeBtn = document.getElementById('closeDailyTagModal');
+    if (closeBtn) closeBtn.addEventListener('click', closeDailyTagModal);
+
+    var applyBtn = document.getElementById('applyDailyTagModal');
+    if (applyBtn) applyBtn.addEventListener('click', closeDailyTagModal);
+
+    // オーバーレイ（背景）クリックで閉じる
+    var modal = document.getElementById('dailyTagModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) closeDailyTagModal();
+        });
+    }
+
+    // Escキーで閉じる
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            var m = document.getElementById('dailyTagModal');
+            if (m && m.classList.contains('open')) closeDailyTagModal();
+        }
+    });
+}
+
+// ===================
 // 日付ナビゲーション
 // ===================
 
@@ -777,6 +930,9 @@ async function filterAndRender() {
     renderPositionFilterSection();
     renderMachineBadgeSettingsSection();
 
+    // 動的セクション生成後に折りたたみトグルを（再）バインド
+    setupCollapsibleFilterSections();
+
     if (!dailyMachineFilterSelect) initDailyMachineFilter();
     else updateDailyMachineFilterCounts();
 
@@ -851,7 +1007,7 @@ async function filterAndRender() {
     await updateDateNavWithEvents();
     updateFilterBadge();
     updateDailyTagCountDisplay(data);
-    renderSuffixStatsTable(data); 
+    renderSuffixStatsTable(data);
     renderDailyTagPreview();
 }
 
@@ -1099,11 +1255,14 @@ function setupDailyEventListeners() {
     loadDailyFilterGroups();
     renderDailyFilterGroups();
 
+    // 静的セクション（数値フィルター・タグ条件・表示列）にトグルを付与
+    setupCollapsibleFilterSections();
+
     restoreFilterPanelState();
     initDateSelectWithEvents();
     setupSuffixStatsEventListeners();
     setupDailyTagModalEvents();
-    renderDailyTagPreview(); 
+    renderDailyTagPreview();
 }
 
 // ===================
@@ -1349,69 +1508,4 @@ function setupSuffixStatsEventListeners() {
     }
 
     restoreSuffixStatsPanelState();
-}
-
-// ===================
-// タグ設定モーダル
-// ===================
-
-function renderDailyTagPreview() {
-    var preview = document.getElementById('dailyTagPreview');
-    if (!preview) return;
-
-    var defs = TagEngine.getAll();
-
-    if (!defs || defs.length === 0) {
-        preview.innerHTML = '<span class="daily-tag-preview-empty">設定中のタグはありません</span>';
-        return;
-    }
-
-    preview.innerHTML = defs.map(function(def) {
-        var hasCond = TagEngine.hasActiveConditions(def.id);
-        var opacity = hasCond ? '' : ' style="opacity:0.5;"';
-        return '<span class="daily-tag-preview-badge" style="background: ' + def.color +
-            '20; border-color: ' + def.color + '; color: ' + def.color + ';"' +
-            (hasCond ? '' : ' title="条件未設定"') + '>' +
-            def.icon + ' ' + escapeHtmlTag(def.name) + '</span>';
-    }).join('');
-}
-
-function openDailyTagModal() {
-    var modal = document.getElementById('dailyTagModal');
-    if (!modal) return;
-    modal.classList.add('open');
-}
-
-function closeDailyTagModal() {
-    var modal = document.getElementById('dailyTagModal');
-    if (!modal) return;
-    modal.classList.remove('open');
-    renderDailyTagPreview();
-}
-
-function setupDailyTagModalEvents() {
-    var openBtn = document.getElementById('openDailyTagModal');
-    if (openBtn) openBtn.addEventListener('click', openDailyTagModal);
-
-    var closeBtn = document.getElementById('closeDailyTagModal');
-    if (closeBtn) closeBtn.addEventListener('click', closeDailyTagModal);
-
-    var applyBtn = document.getElementById('applyDailyTagModal');
-    if (applyBtn) applyBtn.addEventListener('click', closeDailyTagModal);
-
-    // オーバーレイ（背景）クリックで閉じる
-    var modal = document.getElementById('dailyTagModal');
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) closeDailyTagModal();
-        });
-    }
-
-    // Escキーで閉じる
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            var m = document.getElementById('dailyTagModal');
-            if (m && m.classList.contains('open')) closeDailyTagModal();
-        }
-    });
 }
