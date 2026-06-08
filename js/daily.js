@@ -529,7 +529,7 @@ function renderMachineBadgeSettingsSection() {
     section.className = 'filter-section mb-settings-section';
     section.innerHTML =
         '<h5>🐙💀 機種内バッジ設定</h5>' +
-        '<p class="filter-hint">その日を含む直近N日間の累積差枚（またはG数）で機種内順位を付けます。フィルター後の同機種内での順位。</p>' +
+        '<p class="filter-hint">その日を含む直近N日間の累積差枚（またはG数）で機種内順位を付けます。フィルター後の同機種内での順位。バッジ列を非表示にしたい場合は「表示列」で「機種内順位」のチェックを外してください。</p>' +
         MachineBadge.renderSettingsHtml('dailyMb');
 
     filterContent.appendChild(section);
@@ -559,14 +559,61 @@ function renderPositionFilterSection() {
     });
 }
 
+// ===================
+// 表示列（統合グループ対応）
+// ===================
+
+// 統合グループ定義
+var COLUMN_GROUPS = [
+    { id: '__group_atari_count', label: '当たり回数', members: ['BB', 'RB', 'ART'] },
+    { id: '__group_atari_rate',  label: '当たり確率', members: ['合成確率', 'BB確率', 'RB確率', 'ART確率'] }
+];
+
+function getGroupedColumnLayout() {
+    // allColumns を、グループに属する列はグループ化し、その他は単独項目として並べる
+    var layout = [];
+    var consumedGroupIds = {};
+
+    allColumns.forEach(function(col) {
+        var group = COLUMN_GROUPS.find(function(g) { return g.members.indexOf(col) !== -1; });
+        if (group) {
+            if (!consumedGroupIds[group.id]) {
+                consumedGroupIds[group.id] = true;
+                // このグループに実在するメンバーだけを対象にする
+                var existingMembers = group.members.filter(function(m) {
+                    return allColumns.indexOf(m) !== -1;
+                });
+                layout.push({ type: 'group', id: group.id, label: group.label, members: existingMembers });
+            }
+        } else {
+            layout.push({ type: 'single', col: col });
+        }
+    });
+    return layout;
+}
+
 function renderColumnCheckboxes() {
     var container = document.getElementById('columnCheckboxes');
     if (!container) return;
-    container.innerHTML = allColumns.map(function(col) {
-        var checked = visibleColumns.indexOf(col) !== -1 ? 'checked' : '';
-        var id = 'col-' + col.replace(/[^a-zA-Z0-9]/g, '_');
-        return '<label class="column-checkbox-item"><input type="checkbox" id="' + id + '" value="' + col + '" ' + checked + '><span>' + col + '</span></label>';
+
+    var layout = getGroupedColumnLayout();
+
+    container.innerHTML = layout.map(function(item) {
+        if (item.type === 'group') {
+            // グループ内のメンバーが1つでも表示中ならチェック
+            var checked = item.members.some(function(m) {
+                return visibleColumns.indexOf(m) !== -1;
+            }) ? 'checked' : '';
+            return '<label class="column-checkbox-item"><input type="checkbox" data-group-id="' + item.id +
+                '" data-members="' + item.members.join(',') + '" ' + checked + '><span>' + item.label + '</span></label>';
+        } else {
+            var col = item.col;
+            var ckd = visibleColumns.indexOf(col) !== -1 ? 'checked' : '';
+            var id = 'col-' + col.replace(/[^a-zA-Z0-9]/g, '_');
+            return '<label class="column-checkbox-item"><input type="checkbox" id="' + id + '" value="' + col + '" ' + ckd + '><span>' + col + '</span></label>';
+        }
     }).join('');
+
     container.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
         cb.addEventListener('change', function() {
             updateVisibleColumns();
@@ -576,30 +623,42 @@ function renderColumnCheckboxes() {
 }
 
 function updateVisibleColumns() {
-    var checkboxes = document.querySelectorAll('#columnCheckboxes input[type="checkbox"]:checked');
-    visibleColumns = Array.from(checkboxes).map(function(cb) { return cb.value; });
+    var checkedCols = {};
+
+    document.querySelectorAll('#columnCheckboxes input[type="checkbox"]:checked').forEach(function(cb) {
+        if (cb.dataset.groupId) {
+            // グループ → メンバー実列を全て追加
+            (cb.dataset.members || '').split(',').forEach(function(m) {
+                if (m) checkedCols[m] = true;
+            });
+        } else if (cb.value) {
+            checkedCols[cb.value] = true;
+        }
+    });
+
+    // allColumns の並び順を維持して visibleColumns を構築
+    visibleColumns = allColumns.filter(function(col) { return checkedCols[col]; });
+
     if (visibleColumns.length === 0 && allColumns.length > 0) {
         visibleColumns = [allColumns[0]];
-        var firstCheckbox = document.querySelector('#columnCheckboxes input[type="checkbox"]');
-        if (firstCheckbox) firstCheckbox.checked = true;
+        renderColumnCheckboxes(); // 最低1列を確実にチェック状態へ反映
     }
+
     localStorage.setItem('visibleColumns', JSON.stringify(visibleColumns));
 }
 
 function selectAllColumns() {
     visibleColumns = [].concat(allColumns);
-    document.querySelectorAll('#columnCheckboxes input[type="checkbox"]').forEach(function(cb) { cb.checked = true; });
     localStorage.setItem('visibleColumns', JSON.stringify(visibleColumns));
+    renderColumnCheckboxes();
     filterAndRender();
 }
 
 function deselectAllColumns() {
     var essentialColumns = ['機種名', '台番号'].filter(function(col) { return allColumns.indexOf(col) !== -1; });
     visibleColumns = essentialColumns.length > 0 ? essentialColumns : [allColumns[0]];
-    document.querySelectorAll('#columnCheckboxes input[type="checkbox"]').forEach(function(cb) {
-        cb.checked = visibleColumns.indexOf(cb.value) !== -1;
-    });
     localStorage.setItem('visibleColumns', JSON.stringify(visibleColumns));
+    renderColumnCheckboxes();
     filterAndRender();
 }
 

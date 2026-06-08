@@ -5,23 +5,25 @@
 // 【計算ベース】
 //   日別タブ: 表示中の日を含む過去7日間の累積差枚（機種内・フィルター後）
 //   トレンドタブ: 選択期間の合計値（既存の動作と同じ）
+//
+// 【変更点】
+//   バッジ表示・🐙タコだし・💀死に台 のチェックボックスは廃止。
+//   これらは常にオン（true）固定。非表示にしたい場合は表示列で
+//   「機種内順位」のチェックを外す運用とする。
 // ===================
 
 var MachineBadge = (function() {
 
     // ========== 設定 ==========
 
-    var STORAGE_KEY_ENABLED   = 'machineBadgeEnabled';
     var STORAGE_KEY_TARGET    = 'machineBadgeTarget';    // 'diff'=差枚 or 'games'=G数
-    var STORAGE_KEY_SHOW_TAKO = 'machineBadgeShowTako';  // タコだし表示
-    var STORAGE_KEY_SHOW_KUBI = 'machineBadgeShowKubi';  // 💀死に台表示
     var STORAGE_KEY_DAYS      = 'machineBadgeDays';      // 累積日数
     var STORAGE_KEY_BASE      = 'machineBadgeBase';      // 'current'=当日基準 / 'prev'=前日基準
 
-    var enabled   = true;
+    var enabled   = true;       // 常にオン（チェックボックス廃止）
     var target    = 'diff';     // 'diff' | 'games'
-    var showTako  = true;
-    var showKubi  = true;
+    var showTako  = true;       // 常にオン（チェックボックス廃止）
+    var showKubi  = true;       // 常にオン（チェックボックス廃止）
     var badgeDays = 7;          // 過去何日分累積するか
     var badgeBase = 'current';  // 'current'=当日含む / 'prev'=前日から遡る
     var topN      = 3;          // 上位・下位何位まで
@@ -30,25 +32,26 @@ var MachineBadge = (function() {
 
     function loadSettings() {
         try {
-            enabled   = localStorage.getItem(STORAGE_KEY_ENABLED)   !== 'false';
-            target    = localStorage.getItem(STORAGE_KEY_TARGET)     || 'diff';
-            showTako  = localStorage.getItem(STORAGE_KEY_SHOW_TAKO)  !== 'false';
-            showKubi  = localStorage.getItem(STORAGE_KEY_SHOW_KUBI)  !== 'false';
-            var d     = parseInt(localStorage.getItem(STORAGE_KEY_DAYS));
+            // バッジ表示・タコだし・死に台は常にオン（チェックボックスを廃止したため）
+            enabled  = true;
+            showTako = true;
+            showKubi = true;
+
+            target = localStorage.getItem(STORAGE_KEY_TARGET) || 'diff';
+
+            var d = parseInt(localStorage.getItem(STORAGE_KEY_DAYS));
             if (!isNaN(d) && d >= 1 && d <= 30) badgeDays = d;
-            var b     = localStorage.getItem(STORAGE_KEY_BASE);
+
+            var b = localStorage.getItem(STORAGE_KEY_BASE);
             if (b === 'prev' || b === 'current') badgeBase = b;
         } catch (e) {}
     }
 
     function saveSettings() {
         try {
-            localStorage.setItem(STORAGE_KEY_ENABLED,   enabled);
-            localStorage.setItem(STORAGE_KEY_TARGET,    target);
-            localStorage.setItem(STORAGE_KEY_SHOW_TAKO, showTako);
-            localStorage.setItem(STORAGE_KEY_SHOW_KUBI, showKubi);
-            localStorage.setItem(STORAGE_KEY_DAYS,      badgeDays);
-            localStorage.setItem(STORAGE_KEY_BASE,      badgeBase);
+            localStorage.setItem(STORAGE_KEY_TARGET, target);
+            localStorage.setItem(STORAGE_KEY_DAYS,   badgeDays);
+            localStorage.setItem(STORAGE_KEY_BASE,   badgeBase);
         } catch (e) {}
     }
 
@@ -262,6 +265,8 @@ var MachineBadge = (function() {
     }
 
     // ========== 設定UI ==========
+    // チェックボックス（バッジ表示・タコだし・死に台）は廃止。
+    // 集計期間・基準日・基準列のみ表示する。
 
     function renderSettingsHtml(idPrefix) {
         idPrefix = idPrefix || 'mb';
@@ -270,18 +275,6 @@ var MachineBadge = (function() {
         }).join('');
 
         return '<div class="mb-settings">'
-            + '<label class="mb-settings-toggle">'
-            + '<input type="checkbox" id="' + idPrefix + 'Enabled"' + (enabled ? ' checked' : '') + '>'
-            + '<span>🐙💀バッジ表示</span>'
-            + '</label>'
-            + '<label class="mb-settings-item">'
-            + '<input type="checkbox" id="' + idPrefix + 'ShowTako"' + (showTako ? ' checked' : '') + '>'
-            + '<span>🐙タコだし</span>'
-            + '</label>'
-            + '<label class="mb-settings-item">'
-            + '<input type="checkbox" id="' + idPrefix + 'ShowKubi"' + (showKubi ? ' checked' : '') + '>'
-            + '<span>💀死に台</span>'
-            + '</label>'
             + '<div class="mb-settings-item">'
             + '<span>集計期間:</span>'
             + '<select id="' + idPrefix + 'Days" class="mb-target-select">' + daysOpts + '</select>'
@@ -305,17 +298,11 @@ var MachineBadge = (function() {
 
     function setupSettingsEvents(idPrefix, onChange) {
         idPrefix = idPrefix || 'mb';
-        var enEl     = document.getElementById(idPrefix + 'Enabled');
-        var takoEl   = document.getElementById(idPrefix + 'ShowTako');
-        var kubiEl   = document.getElementById(idPrefix + 'ShowKubi');
         var daysEl   = document.getElementById(idPrefix + 'Days');
         var baseEl   = document.getElementById(idPrefix + 'Base');
         var targetEl = document.getElementById(idPrefix + 'Target');
 
         function update() {
-            if (enEl)     enabled   = enEl.checked;
-            if (takoEl)   showTako  = takoEl.checked;
-            if (kubiEl)   showKubi  = kubiEl.checked;
             if (daysEl)   badgeDays = parseInt(daysEl.value) || 7;
             if (baseEl)   badgeBase = baseEl.value;
             if (targetEl) target    = targetEl.value;
@@ -323,9 +310,6 @@ var MachineBadge = (function() {
             if (onChange) onChange();
         }
 
-        if (enEl)     enEl.addEventListener('change', update);
-        if (takoEl)   takoEl.addEventListener('change', update);
-        if (kubiEl)   kubiEl.addEventListener('change', update);
         if (daysEl)   daysEl.addEventListener('change', update);
         if (baseEl)   baseEl.addEventListener('change', update);
         if (targetEl) targetEl.addEventListener('change', update);
