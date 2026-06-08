@@ -852,6 +852,7 @@ async function filterAndRender() {
     updateFilterBadge();
     updateDailyTagCountDisplay(data);
     renderSuffixStatsTable(data); 
+    renderDailyTagPreview();
 }
 
 // ===================
@@ -1101,6 +1102,8 @@ function setupDailyEventListeners() {
     restoreFilterPanelState();
     initDateSelectWithEvents();
     setupSuffixStatsEventListeners();
+    setupDailyTagModalEvents();
+    renderDailyTagPreview(); 
 }
 
 // ===================
@@ -1346,4 +1349,69 @@ function setupSuffixStatsEventListeners() {
     }
 
     restoreSuffixStatsPanelState();
+}
+
+// ===================
+// タグ設定モーダル
+// ===================
+
+function renderDailyTagPreview() {
+    var preview = document.getElementById('dailyTagPreview');
+    if (!preview) return;
+
+    var defs = TagEngine.getAll();
+
+    if (!defs || defs.length === 0) {
+        preview.innerHTML = '<span class="daily-tag-preview-empty">設定中のタグはありません</span>';
+        return;
+    }
+
+    preview.innerHTML = defs.map(function(def) {
+        var hasCond = TagEngine.hasActiveConditions(def.id);
+        var opacity = hasCond ? '' : ' style="opacity:0.5;"';
+        return '<span class="daily-tag-preview-badge" style="background: ' + def.color +
+            '20; border-color: ' + def.color + '; color: ' + def.color + ';"' +
+            (hasCond ? '' : ' title="条件未設定"') + '>' +
+            def.icon + ' ' + escapeHtmlTag(def.name) + '</span>';
+    }).join('');
+}
+
+function openDailyTagModal() {
+    var modal = document.getElementById('dailyTagModal');
+    if (!modal) return;
+    modal.classList.add('open');
+}
+
+function closeDailyTagModal() {
+    var modal = document.getElementById('dailyTagModal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    renderDailyTagPreview();
+}
+
+function setupDailyTagModalEvents() {
+    var openBtn = document.getElementById('openDailyTagModal');
+    if (openBtn) openBtn.addEventListener('click', openDailyTagModal);
+
+    var closeBtn = document.getElementById('closeDailyTagModal');
+    if (closeBtn) closeBtn.addEventListener('click', closeDailyTagModal);
+
+    var applyBtn = document.getElementById('applyDailyTagModal');
+    if (applyBtn) applyBtn.addEventListener('click', closeDailyTagModal);
+
+    // オーバーレイ（背景）クリックで閉じる
+    var modal = document.getElementById('dailyTagModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) closeDailyTagModal();
+        });
+    }
+
+    // Escキーで閉じる
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            var m = document.getElementById('dailyTagModal');
+            if (m && m.classList.contains('open')) closeDailyTagModal();
+        }
+    });
 }

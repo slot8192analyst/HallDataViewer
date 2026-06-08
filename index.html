@@ -96,13 +96,35 @@
                 <div class="filter-section">
                     <h5>🏷️ タグ条件</h5>
                     <p class="filter-hint">タグごとに名前・色・条件を自由に設定できます。グループ内はAND、グループ同士はORで判定します</p>
-                    <div id="dailyTagGroupsList"></div>
+                
+                    <!-- 設定を開くボタン＋現在のタグプレビュー -->
+                    <div class="daily-tag-trigger-row">
+                        <button class="btn-apply" id="openDailyTagModal">🏷️ タグを設定</button>
+                        <div class="daily-tag-preview" id="dailyTagPreview"></div>
+                    </div>
+                
                     <div class="tag-display-row">
                         <label class="column-checkbox-item">
                             <input type="checkbox" id="dailyShowTaggedOnly">
                             <span>タグ付きのみ表示</span>
                         </label>
                         <span class="tag-count-display" id="dailyTagCountDisplay"></span>
+                    </div>
+                </div>
+                
+                <!-- タグ設定モーダル -->
+                <div class="tag-modal" id="dailyTagModal">
+                    <div class="tag-modal-content">
+                        <div class="tag-modal-header">
+                            <h3>🏷️ タグ設定</h3>
+                            <button class="close-btn" id="closeDailyTagModal">×</button>
+                        </div>
+                        <div class="tag-modal-body">
+                            <div id="dailyTagGroupsList"></div>
+                        </div>
+                        <div class="tag-modal-footer">
+                            <button class="modal-btn primary" id="applyDailyTagModal">閉じる</button>
+                        </div>
                     </div>
                 </div>
 
