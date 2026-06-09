@@ -32,86 +32,95 @@
 }
 
 /* ===================
-   フィルターセクション個別トグル
+   フィルター・設定ボタンバー
    =================== */
-.filter-section-title {
+.daily-filter-bar {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
+    gap: 12px;
+    margin: 12px 0;
+}
+
+.daily-filter-btn-group {
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
-    margin: 0;
-    padding: 8px 4px;
-    user-select: none;
-    transition: color var(--transition-fast);
 }
 
-.filter-section-title:hover {
-    color: var(--primary-color, #3b82f6);
-}
-
-.filter-section-title .section-toggle-icon {
+.daily-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    cursor: pointer;
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
-    transition: transform var(--transition-normal);
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+    max-width: 100%;
+}
+
+.daily-filter-btn:hover {
+    border-color: var(--primary-color, #3b82f6);
+    background: var(--primary-dark, #1e3a5f);
+}
+
+.daily-filter-btn .dfb-icon {
     flex-shrink: 0;
 }
 
-.filter-section.section-collapsed .filter-section-title .section-toggle-icon {
-    /* ▶ をそのまま使うので回転は不要だが、念のため */
-    transform: none;
+.daily-filter-btn .dfb-label {
+    font-weight: 600;
+    white-space: nowrap;
 }
 
-.filter-section-body {
-    overflow: hidden;
-    transition: max-height var(--transition-normal), opacity var(--transition-fast);
-    max-height: 2000px;
-    opacity: 1;
-}
-
-.filter-section.section-collapsed .filter-section-body {
-    max-height: 0;
-    opacity: 0;
-    margin: 0;
-    padding: 0;
-}
-
-/* ===================
-   タグ設定モーダル
-   =================== */
-.daily-tag-trigger-row {
-    display: flex;
+.daily-filter-btn .dfb-preview {
+    display: inline-flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.daily-tag-preview {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    flex: 1;
-    min-width: 0;
-}
-
-.daily-tag-preview-empty {
-    font-size: var(--font-size-sm);
+    gap: 4px;
+    font-size: var(--font-size-xs);
     color: var(--text-muted);
+    max-width: 320px;
+    overflow: hidden;
+}
+
+.daily-filter-btn .dfb-preview.active {
+    color: var(--text-secondary);
 }
 
 .daily-tag-preview-badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px 10px;
+    gap: 3px;
+    padding: 1px 8px;
     border-radius: var(--radius-full);
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
     border: 1px solid;
     white-space: nowrap;
 }
 
-/* モーダル本体 */
-.tag-modal {
+.daily-filter-tagged-only {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.daily-filter-tagged-only .tag-count-display {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+/* ===================
+   汎用モーダル（app-modal）
+   =================== */
+.app-modal {
     display: none;
     position: fixed;
     inset: 0;
@@ -123,11 +132,11 @@
     overflow-y: auto;
 }
 
-.tag-modal.open {
+.app-modal.open {
     display: flex;
 }
 
-.tag-modal-content {
+.app-modal-content {
     background: var(--bg-surface, #1f2937);
     border-radius: var(--radius-lg);
     width: 100%;
@@ -138,7 +147,7 @@
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
-.tag-modal-header {
+.app-modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -147,13 +156,13 @@
     flex-shrink: 0;
 }
 
-.tag-modal-header h3 {
+.app-modal-header h3 {
     margin: 0;
     font-size: var(--font-size-lg);
     color: var(--text-primary);
 }
 
-.tag-modal-header .close-btn {
+.app-modal-header .close-btn {
     background: none;
     border: none;
     color: var(--text-muted);
@@ -163,17 +172,17 @@
     padding: 0 6px;
 }
 
-.tag-modal-header .close-btn:hover {
+.app-modal-header .close-btn:hover {
     color: var(--text-primary);
 }
 
-.tag-modal-body {
+.app-modal-body {
     padding: 18px 20px;
     overflow-y: auto;
     flex: 1;
 }
 
-.tag-modal-footer {
+.app-modal-footer {
     padding: 12px 20px;
     border-top: 1px solid var(--border-light);
     display: flex;
@@ -182,7 +191,7 @@
     flex-shrink: 0;
 }
 
-.tag-modal-footer .modal-btn {
+.app-modal-footer .modal-btn {
     padding: 8px 18px;
     border-radius: var(--radius-md);
     border: 1px solid var(--border-light);
@@ -191,7 +200,7 @@
     cursor: pointer;
 }
 
-.tag-modal-footer .modal-btn.primary {
+.app-modal-footer .modal-btn.primary {
     background: var(--primary-color, #3b82f6);
     border-color: var(--primary-color, #3b82f6);
     color: #fff;
@@ -396,6 +405,20 @@ select option {
         max-width: 100%;
     }
 
+    .daily-filter-btn-group {
+        width: 100%;
+    }
+
+    .daily-filter-btn {
+        flex: 1;
+        justify-content: center;
+        min-width: calc(50% - 4px);
+    }
+
+    .daily-filter-btn .dfb-preview {
+        display: none; /* スマホではプレビュー非表示でコンパクトに */
+    }
+
     .suffix-table-actions {
         flex-wrap: wrap;
     }
@@ -418,11 +441,11 @@ select option {
         width: 100%;
     }
 
-    .tag-modal {
+    .app-modal {
         padding: 15px 8px;
     }
 
-    .tag-modal-content {
+    .app-modal-content {
         max-height: calc(100vh - 30px);
     }
 }

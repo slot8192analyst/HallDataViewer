@@ -4,10 +4,9 @@
 
 var visibleColumns = [];
 var allColumns = [];
-var filterPanelOpen = false;
 var dailyMachineFilterSelect = null;
-var selectedPositionFilter = '';
 var dailyTagUIInitialized = false;
+var dailyBadgeUIInitialized = false;
 
 // ===================
 // 数値フィルター（グループAND/OR方式）
@@ -103,7 +102,7 @@ function renderDailyFilterGroups() {
 
     if (dailyFilterGroups.length === 0) {
         container.innerHTML = '<div class="filter-groups-empty">条件グループを追加してフィルターを設定してください</div>';
-        updateDailyFilterBadge();
+        updateNumFilterPreview();
         return;
     }
 
@@ -237,7 +236,7 @@ function renderDailyFilterGroups() {
         });
     });
 
-    updateDailyFilterBadge();
+    updateNumFilterPreview();
 }
 
 function getRowValueForFilter(row, column) {
@@ -319,111 +318,64 @@ function resetDailyFilterGroups() {
     renderDailyFilterGroups();
 }
 
-function updateDailyFilterBadge() {
-    var toggle = document.getElementById('filterToggle');
-    if (!toggle) return;
+// ===================
+// プレビュー更新
+// ===================
 
-    var filterCount = getActiveDailyFilterCount();
-    var hiddenColumns = allColumns.length - visibleColumns.length;
-    var positionState = getPositionFilterState('daily');
-    var positionCount = positionState.selected.length;
+function updateNumFilterPreview() {
+    var el = document.getElementById('numFilterPreview');
+    if (!el) return;
+    var count = getActiveDailyFilterCount();
+    el.textContent = count > 0 ? '条件' + count + '件' : '';
+    el.classList.toggle('active', count > 0);
+}
 
-    var existingBadge = toggle.querySelector('.filter-badge');
-    if (existingBadge) existingBadge.remove();
+function renderDailyTagPreview() {
+    var preview = document.getElementById('dailyTagPreview');
+    if (!preview) return;
 
-    var badgeText = [];
-    if (filterCount > 0) badgeText.push('条件' + filterCount + '件');
-    if (positionCount > 0) badgeText.push('位置' + positionCount);
-    if (hiddenColumns > 0) badgeText.push(hiddenColumns + '列非表示');
-
-    if (badgeText.length > 0) {
-        var badge = document.createElement('span');
-        badge.className = 'filter-badge';
-        badge.textContent = badgeText.join(' / ');
-        toggle.querySelector('h4').appendChild(badge);
+    var defs = TagEngine.getAll();
+    if (!defs || defs.length === 0) {
+        preview.textContent = '';
+        preview.classList.remove('active');
+        return;
     }
+
+    var html = defs.map(function(def) {
+        var hasCond = TagEngine.hasActiveConditions(def.id);
+        return '<span class="daily-tag-preview-badge" style="background: ' + def.color +
+            '20; border-color: ' + def.color + '; color: ' + def.color + ';' +
+            (hasCond ? '' : ' opacity:0.5;') + '"' +
+            (hasCond ? '' : ' title="条件未設定"') + '>' +
+            def.icon + ' ' + escapeHtmlTag(def.name) + '</span>';
+    }).join('');
+
+    preview.innerHTML = html;
+    preview.classList.add('active');
 }
 
-// ===================
-// フィルターセクション個別トグル
-// ===================
-
-var FILTER_SECTION_STORAGE_KEY = 'dailyFilterSectionCollapsed';
-
-function getCollapsedSectionState() {
-    try {
-        var raw = localStorage.getItem(FILTER_SECTION_STORAGE_KEY);
-        if (raw) {
-            var parsed = JSON.parse(raw);
-            if (parsed && typeof parsed === 'object') return parsed;
-        }
-    } catch (e) {}
-    return {};
+function updateColumnPreview() {
+    var el = document.getElementById('columnPreview');
+    if (!el) return;
+    if (allColumns.length === 0) {
+        el.textContent = '';
+        el.classList.remove('active');
+        return;
+    }
+    var hidden = allColumns.length - visibleColumns.length;
+    el.textContent = hidden > 0 ? hidden + '列非表示' : '全列表示';
+    el.classList.toggle('active', hidden > 0);
 }
 
-function saveCollapsedSectionState(state) {
-    try {
-        localStorage.setItem(FILTER_SECTION_STORAGE_KEY, JSON.stringify(state));
-    } catch (e) {}
-}
-
-/**
- * #filterContent 内の全 .filter-section-title にトグル機能を付与する。
- * セクションは data-section-key（見出しテキスト）で識別し、開閉状態を保存する。
- * 動的セクションの再生成後にも安全に呼べるよう、bound フラグで二重登録を防ぐ。
- */
-function setupCollapsibleFilterSections() {
-    var filterContent = document.getElementById('filterContent');
-    if (!filterContent) return;
-
-    var collapsedState = getCollapsedSectionState();
-
-    filterContent.querySelectorAll('.filter-section').forEach(function(section) {
-        var title = section.querySelector('.filter-section-title');
-        var body = section.querySelector('.filter-section-body');
-        if (!title || !body) return;
-
-        // セクション識別キー（見出しテキストから記号を除いた素のテキスト）
-        var key = title.getAttribute('data-section-key');
-        if (!key) {
-            key = title.textContent.replace(/[▼▲]/g, '').trim();
-            title.setAttribute('data-section-key', key);
-        }
-
-        // トグルアイコンが無ければ付与
-        var icon = title.querySelector('.section-toggle-icon');
-        if (!icon) {
-            icon = document.createElement('span');
-            icon.className = 'section-toggle-icon';
-            icon.textContent = '▼';
-            title.appendChild(icon);
-        }
-
-        // 保存された折りたたみ状態を反映
-        var isCollapsed = collapsedState[key] === true;
-        if (isCollapsed) {
-            section.classList.add('section-collapsed');
-            icon.textContent = '▶';
-        } else {
-            section.classList.remove('section-collapsed');
-            icon.textContent = '▼';
-        }
-
-        // イベント二重登録防止
-        if (title.dataset.collapsibleBound === '1') return;
-        title.dataset.collapsibleBound = '1';
-        title.style.cursor = 'pointer';
-
-        title.addEventListener('click', function() {
-            var collapsed = section.classList.toggle('section-collapsed');
-            var ic = title.querySelector('.section-toggle-icon');
-            if (ic) ic.textContent = collapsed ? '▶' : '▼';
-
-            var state = getCollapsedSectionState();
-            state[key] = collapsed;
-            saveCollapsedSectionState(state);
-        });
-    });
+function updateBadgePreview() {
+    var el = document.getElementById('badgePreview');
+    if (!el) return;
+    if (typeof MachineBadge === 'undefined') { el.textContent = ''; return; }
+    var days = MachineBadge.getBadgeDays();
+    var base = MachineBadge.getBadgeBase() === 'prev' ? '前日基準' : '当日含む';
+    var col = MachineBadge.getTargetColumn();
+    el.textContent = days + '日 / ' + base + ' / ' + col;
+    el.classList.add('active');
 }
 
 // ===================
@@ -433,15 +385,11 @@ function setupCollapsibleFilterSections() {
 function syncDailyState() {
     HallData.state.daily.visibleColumns = visibleColumns;
     HallData.state.daily.allColumns = allColumns;
-    HallData.state.daily.filterPanelOpen = filterPanelOpen;
-    HallData.state.daily.positionFilter = selectedPositionFilter;
 }
 
 function loadDailyState() {
     if (HallData.state.daily.visibleColumns.length > 0) visibleColumns = HallData.state.daily.visibleColumns;
     if (HallData.state.daily.allColumns.length > 0) allColumns = HallData.state.daily.allColumns;
-    filterPanelOpen = HallData.state.daily.filterPanelOpen;
-    selectedPositionFilter = HallData.state.daily.positionFilter || '';
 }
 
 // ===================
@@ -477,33 +425,17 @@ function addMechanicalRateToData(data) {
 }
 
 // ===================
-// フィルターパネル
+// 汎用モーダル開閉
 // ===================
 
-function toggleFilterPanel() {
-    var content = document.getElementById('filterContent');
-    var toggle = document.getElementById('filterToggle');
-    var icon = toggle ? toggle.querySelector('.toggle-icon') : null;
-    if (!content || !toggle) return;
-    filterPanelOpen = !filterPanelOpen;
-    if (filterPanelOpen) {
-        content.classList.add('open');
-        toggle.classList.add('open');
-        if (icon) icon.textContent = '▲';
-    } else {
-        content.classList.remove('open');
-        toggle.classList.remove('open');
-        if (icon) icon.textContent = '▼';
-    }
-    localStorage.setItem('filterPanelOpen', filterPanelOpen);
+function openAppModal(modalId) {
+    var modal = document.getElementById(modalId);
+    if (modal) modal.classList.add('open');
 }
 
-function restoreFilterPanelState() {
-    var saved = localStorage.getItem('filterPanelOpen');
-    if (saved === 'true') {
-        filterPanelOpen = false;
-        toggleFilterPanel();
-    }
+function closeAppModal(modalId) {
+    var modal = document.getElementById(modalId);
+    if (modal) modal.classList.remove('open');
 }
 
 // ===================
@@ -583,66 +515,19 @@ function initColumnSelector() {
     renderColumnCheckboxes();
 }
 
-function renderPositionFilter() {
-    var positionTags = getAllPositionTags();
-    var html = '<div class="position-filter">';
-    html += '<button class="position-filter-btn ' + (selectedPositionFilter === '' ? 'active' : '') + '" data-position="" style="background: ' + (selectedPositionFilter === '' ? 'var(--primary-color)' : '') + '">全て</button>';
-    positionTags.forEach(function(tag) {
-        var isActive = selectedPositionFilter === tag.value;
-        html += '<button class="position-filter-btn ' + (isActive ? 'active' : '') + '" data-position="' + tag.value + '" style="' + (isActive ? 'background: ' + tag.color + '; border-color: ' + tag.color + ';' : 'border-color: ' + tag.color + '40;') + '">' + tag.icon + ' ' + tag.label + '</button>';
-    });
-    html += '</div>';
-    return html;
-}
-
 // ===================
-// 機種内バッジ設定セクション
+// 機種内バッジ設定（モーダル内）
 // ===================
 
-function renderMachineBadgeSettingsSection() {
-    var filterContent = document.getElementById('filterContent');
-    if (!filterContent) return;
+function renderBadgeSettings() {
+    var container = document.getElementById('badgeSettingsContainer');
+    if (!container) return;
     if (typeof MachineBadge === 'undefined') return;
 
-    var existing = filterContent.querySelector('.mb-settings-section');
-    if (existing) existing.remove();
-
-    var section = document.createElement('div');
-    section.className = 'filter-section mb-settings-section';
-    section.innerHTML =
-        '<h5 class="filter-section-title">🐙💀 機種内バッジ設定<span class="section-toggle-icon">▼</span></h5>' +
-        '<div class="filter-section-body">' +
-        '<p class="filter-hint">その日を含む直近N日間の累積差枚（またはG数）で機種内順位を付けます。フィルター後の同機種内での順位。バッジ列を非表示にしたい場合は「表示列」で「機種内順位」のチェックを外してください。</p>' +
-        MachineBadge.renderSettingsHtml('dailyMb') +
-        '</div>';
-
-    filterContent.appendChild(section);
+    container.innerHTML = MachineBadge.renderSettingsHtml('dailyMb');
 
     MachineBadge.setupSettingsEvents('dailyMb', function() {
-        filterAndRender();
-    });
-}
-
-function renderPositionFilterSection() {
-    var filterContent = document.getElementById('filterContent');
-    if (!filterContent) return;
-    var existingSection = filterContent.querySelector('.position-filter-section');
-    if (existingSection) existingSection.remove();
-    var section = document.createElement('div');
-    section.className = 'filter-section position-filter-section';
-    section.innerHTML =
-        '<h5 class="filter-section-title">📍 位置フィルター<span class="section-toggle-icon">▼</span></h5>' +
-        '<div class="filter-section-body">' +
-        renderMultiPositionFilter('daily', function() {
-            renderPositionFilterSection();
-            filterAndRender();
-        }) +
-        '</div>';
-    var firstSection = filterContent.querySelector('.filter-section');
-    if (firstSection) firstSection.before(section);
-    else filterContent.prepend(section);
-    setupMultiPositionFilterEvents('daily', function() {
-        renderPositionFilterSection();
+        updateBadgePreview();
         filterAndRender();
     });
 }
@@ -748,75 +633,6 @@ function deselectAllColumns() {
     localStorage.setItem('visibleColumns', JSON.stringify(visibleColumns));
     renderColumnCheckboxes();
     filterAndRender();
-}
-
-function updateFilterBadge() {
-    updateDailyFilterBadge();
-}
-
-// ===================
-// タグ設定モーダル
-// ===================
-
-function renderDailyTagPreview() {
-    var preview = document.getElementById('dailyTagPreview');
-    if (!preview) return;
-
-    var defs = TagEngine.getAll();
-
-    if (!defs || defs.length === 0) {
-        preview.innerHTML = '<span class="daily-tag-preview-empty">設定中のタグはありません</span>';
-        return;
-    }
-
-    preview.innerHTML = defs.map(function(def) {
-        var hasCond = TagEngine.hasActiveConditions(def.id);
-        return '<span class="daily-tag-preview-badge" style="background: ' + def.color +
-            '20; border-color: ' + def.color + '; color: ' + def.color + ';' +
-            (hasCond ? '' : ' opacity:0.5;') + '"' +
-            (hasCond ? '' : ' title="条件未設定"') + '>' +
-            def.icon + ' ' + escapeHtmlTag(def.name) + '</span>';
-    }).join('');
-}
-
-function openDailyTagModal() {
-    var modal = document.getElementById('dailyTagModal');
-    if (!modal) return;
-    modal.classList.add('open');
-}
-
-function closeDailyTagModal() {
-    var modal = document.getElementById('dailyTagModal');
-    if (!modal) return;
-    modal.classList.remove('open');
-    renderDailyTagPreview();
-}
-
-function setupDailyTagModalEvents() {
-    var openBtn = document.getElementById('openDailyTagModal');
-    if (openBtn) openBtn.addEventListener('click', openDailyTagModal);
-
-    var closeBtn = document.getElementById('closeDailyTagModal');
-    if (closeBtn) closeBtn.addEventListener('click', closeDailyTagModal);
-
-    var applyBtn = document.getElementById('applyDailyTagModal');
-    if (applyBtn) applyBtn.addEventListener('click', closeDailyTagModal);
-
-    // オーバーレイ（背景）クリックで閉じる
-    var modal = document.getElementById('dailyTagModal');
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) closeDailyTagModal();
-        });
-    }
-
-    // Escキーで閉じる
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            var m = document.getElementById('dailyTagModal');
-            if (m && m.classList.contains('open')) closeDailyTagModal();
-        }
-    });
 }
 
 // ===================
@@ -927,11 +743,10 @@ async function filterAndRender() {
         dailyTagUIInitialized = true;
     }
 
-    renderPositionFilterSection();
-    renderMachineBadgeSettingsSection();
-
-    // 動的セクション生成後に折りたたみトグルを（再）バインド
-    setupCollapsibleFilterSections();
+    if (!dailyBadgeUIInitialized) {
+        renderBadgeSettings();
+        dailyBadgeUIInitialized = true;
+    }
 
     if (!dailyMachineFilterSelect) initDailyMachineFilter();
     else updateDailyMachineFilterCounts();
@@ -945,9 +760,6 @@ async function filterAndRender() {
         newRow['_matchedTags'] = TagEngine.evaluateAll(row);
         return newRow;
     });
-
-    // 位置フィルター
-    data = applyMultiPositionFilter(data, 'daily', '台番号');
 
     // 機種フィルター
     var selectedMachines = dailyMachineFilterSelect ? dailyMachineFilterSelect.getSelectedValues() : [];
@@ -998,17 +810,20 @@ async function filterAndRender() {
     }
 
     // 機種内バッジ付与（フィルター・ソート後のデータで機種内順位を確定）
-    // 計算ベース: currentFile を含む過去 badgeDays 日間の累積差枚（フィルター後の同機種内）
     if (typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled()) {
         data = MachineBadge.assignBadges(data, currentFile, dataCache, MachineBadge.getTargetColumn());
     }
 
     renderTableWithColumns(data, 'data-table', 'summary', visibleColumns);
     await updateDateNavWithEvents();
-    updateFilterBadge();
     updateDailyTagCountDisplay(data);
     renderSuffixStatsTable(data);
+
+    // プレビュー更新
+    updateNumFilterPreview();
     renderDailyTagPreview();
+    updateColumnPreview();
+    updateBadgePreview();
 }
 
 // ===================
@@ -1093,10 +908,6 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
             var avgRateText = formatMechanicalRate(avgRate);
             var avgRateClass = getMechanicalRateClass(avgRate);
 
-            var positionInfo = '';
-            var positionState = getPositionFilterState('daily');
-            if (positionState.selected.length > 0) positionInfo = ' | 位置: ' + getPositionFilterDisplayText('daily');
-
             var tagInfo = '';
             if (TagEngine.hasAnyActiveConditions()) {
                 var taggedCount = data.filter(function(r) { return r['_matchedTags'] && r['_matchedTags'].length > 0; }).length;
@@ -1109,7 +920,7 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
             }
 
             summaryEl.innerHTML =
-                '表示: ' + data.length + '台' + positionInfo + tagInfo + filterInfo + ' | ' +
+                '表示: ' + data.length + '台' + tagInfo + filterInfo + ' | ' +
                 '総G数: ' + totalGames.toLocaleString() + ' | ' +
                 '総差枚: <span class="' + saClass + '">' + (totalSa >= 0 ? '+' : '') + totalSa.toLocaleString() + '</span> | ' +
                 '機械割: <span class="' + avgRateClass + '">' + avgRateText + '</span> | ' +
@@ -1192,6 +1003,75 @@ function downloadTableAsCSV() {
 }
 
 // ===================
+// モーダルイベント
+// ===================
+
+function setupDailyModalEvents() {
+    // 数値フィルターモーダル
+    bindModalOpen('openNumFilterModal', 'numFilterModal');
+    bindModalClose('closeNumFilterModal', 'numFilterModal');
+    var applyFilterBtn = document.getElementById('applyFilter');
+    if (applyFilterBtn) applyFilterBtn.addEventListener('click', function() {
+        filterAndRender();
+        closeAppModal('numFilterModal');
+    });
+    var resetFilterBtn = document.getElementById('resetFilter');
+    if (resetFilterBtn) resetFilterBtn.addEventListener('click', function() {
+        resetDailyFilterGroups();
+        filterAndRender();
+    });
+
+    // タグモーダル
+    bindModalOpen('openDailyTagModal', 'dailyTagModal');
+    bindModalClose('closeDailyTagModal', 'dailyTagModal');
+    var applyTagBtn = document.getElementById('applyDailyTagModal');
+    if (applyTagBtn) applyTagBtn.addEventListener('click', function() {
+        renderDailyTagPreview();
+        closeAppModal('dailyTagModal');
+    });
+
+    // 表示列モーダル
+    bindModalOpen('openColumnModal', 'columnModal');
+    bindModalClose('closeColumnModal', 'columnModal');
+    var applyColumnBtn = document.getElementById('applyColumnModal');
+    if (applyColumnBtn) applyColumnBtn.addEventListener('click', function() {
+        closeAppModal('columnModal');
+    });
+
+    // バッジ設定モーダル
+    bindModalOpen('openBadgeModal', 'badgeModal');
+    bindModalClose('closeBadgeModal', 'badgeModal');
+    var applyBadgeBtn = document.getElementById('applyBadgeModal');
+    if (applyBadgeBtn) applyBadgeBtn.addEventListener('click', function() {
+        closeAppModal('badgeModal');
+    });
+
+    // 全モーダル共通: 背景クリック・Escで閉じる
+    document.querySelectorAll('.app-modal').forEach(function(modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) modal.classList.remove('open');
+        });
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.app-modal.open').forEach(function(m) {
+                m.classList.remove('open');
+            });
+        }
+    });
+}
+
+function bindModalOpen(btnId, modalId) {
+    var btn = document.getElementById(btnId);
+    if (btn) btn.addEventListener('click', function() { openAppModal(modalId); });
+}
+
+function bindModalClose(btnId, modalId) {
+    var btn = document.getElementById(btnId);
+    if (btn) btn.addEventListener('click', function() { closeAppModal(modalId); });
+}
+
+// ===================
 // イベントリスナー
 // ===================
 
@@ -1229,40 +1109,23 @@ function setupDailyEventListeners() {
         });
     }
 
-    var applyFilterBtn = document.getElementById('applyFilter');
-    if (applyFilterBtn) {
-        applyFilterBtn.addEventListener('click', filterAndRender);
-    }
-
-    var resetFilterBtn = document.getElementById('resetFilter');
-    if (resetFilterBtn) {
-        resetFilterBtn.addEventListener('click', function() {
-            resetDailyFilterGroups();
-            resetPositionFilter('daily');
-            if (dailyMachineFilterSelect) dailyMachineFilterSelect.reset();
-            var showTaggedOnly = document.getElementById('dailyShowTaggedOnly');
-            if (showTaggedOnly) showTaggedOnly.checked = false;
-            filterAndRender();
-        });
-    }
-
     document.getElementById('selectAllColumns') && document.getElementById('selectAllColumns').addEventListener('click', selectAllColumns);
     document.getElementById('deselectAllColumns') && document.getElementById('deselectAllColumns').addEventListener('click', deselectAllColumns);
-    document.getElementById('filterToggle') && document.getElementById('filterToggle').addEventListener('click', toggleFilterPanel);
     document.getElementById('copyTableBtn') && document.getElementById('copyTableBtn').addEventListener('click', copyTableToClipboard);
     document.getElementById('downloadCsvBtn') && document.getElementById('downloadCsvBtn').addEventListener('click', downloadTableAsCSV);
+
+    var showTaggedOnly = document.getElementById('dailyShowTaggedOnly');
+    if (showTaggedOnly) {
+        showTaggedOnly.addEventListener('change', filterAndRender);
+    }
 
     loadDailyFilterGroups();
     renderDailyFilterGroups();
 
-    // 静的セクション（数値フィルター・タグ条件・表示列）にトグルを付与
-    setupCollapsibleFilterSections();
+    setupDailyModalEvents();
 
-    restoreFilterPanelState();
     initDateSelectWithEvents();
     setupSuffixStatsEventListeners();
-    setupDailyTagModalEvents();
-    renderDailyTagPreview();
 }
 
 // ===================
