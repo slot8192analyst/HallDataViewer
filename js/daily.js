@@ -33,6 +33,13 @@ var DAILY_FILTER_OPERATORS = [
 var DAILY_FILTER_STORAGE_KEY = 'dailyFilterGroups';
 
 function loadDailyFilterGroups() {
+    // DailyState 経由で復元済みのため、DailyState から読む
+    if (typeof DailyState !== 'undefined') {
+        var s = DailyState.get();
+        dailyFilterGroups = s.filterGroups || [];
+        return;
+    }
+    // フォールバック: 旧 localStorage キー
     try {
         var raw = localStorage.getItem(DAILY_FILTER_STORAGE_KEY);
         if (raw) {
@@ -47,6 +54,12 @@ function loadDailyFilterGroups() {
 }
 
 function saveDailyFilterGroups() {
+    // DailyState に委譲（DailyState が localStorage + URL に書く）
+    if (typeof DailyState !== 'undefined') {
+        DailyState.setState({ filterGroups: dailyFilterGroups }, { silent: true });
+        return;
+    }
+    // フォールバック
     try {
         localStorage.setItem(DAILY_FILTER_STORAGE_KEY, JSON.stringify(dailyFilterGroups));
     } catch (e) {}
@@ -451,8 +464,23 @@ function initDailyMachineFilter() {
     } else {
         dailyMachineFilterSelect = initMultiSelectMachineFilter(
             'dailyMachineFilterContainer', machineOptions, '全機種',
-            function() { filterAndRender(); }
+            function(selectedValues) {
+                // 機種フィルター変更 → setState 経由で状態保存 + 再描画
+                if (typeof DailyState !== 'undefined') {
+                    DailyState.setState({ selectedMachines: selectedValues });
+                } else {
+                    filterAndRender();
+                }
+            }
         );
+
+        // DailyState に保存済みの機種選択を復元
+        if (typeof DailyState !== 'undefined') {
+            var savedMachines = DailyState.get().selectedMachines;
+            if (savedMachines && savedMachines.length > 0) {
+                dailyMachineFilterSelect.setSelectedValues(savedMachines);
+            }
+        }
     }
 }
 
@@ -595,6 +623,13 @@ function renderColumnCheckboxes() {
     });
 }
 
+function _persistVisibleColumns() {
+    localStorage.setItem('visibleColumns', JSON.stringify(visibleColumns));
+    if (typeof DailyState !== 'undefined') {
+        DailyState.setState({ visibleColumns: visibleColumns }, { silent: true });
+    }
+}
+
 function updateVisibleColumns() {
     var checkedCols = {};
 
@@ -617,12 +652,12 @@ function updateVisibleColumns() {
         renderColumnCheckboxes(); // 最低1列を確実にチェック状態へ反映
     }
 
-    localStorage.setItem('visibleColumns', JSON.stringify(visibleColumns));
+    _persistVisibleColumns();
 }
 
 function selectAllColumns() {
     visibleColumns = [].concat(allColumns);
-    localStorage.setItem('visibleColumns', JSON.stringify(visibleColumns));
+    _persistVisibleColumns();
     renderColumnCheckboxes();
     filterAndRender();
 }
@@ -630,7 +665,7 @@ function selectAllColumns() {
 function deselectAllColumns() {
     var essentialColumns = ['機種名', '台番号'].filter(function(col) { return allColumns.indexOf(col) !== -1; });
     visibleColumns = essentialColumns.length > 0 ? essentialColumns : [allColumns[0]];
-    localStorage.setItem('visibleColumns', JSON.stringify(visibleColumns));
+    _persistVisibleColumns();
     renderColumnCheckboxes();
     filterAndRender();
 }
@@ -724,8 +759,24 @@ function updateDailyTagCountDisplay(data) {
 // ===================
 
 async function filterAndRender() {
+    // ===== 状態を DailyState から一元取得 =====
+    var _s = (typeof DailyState !== 'undefined') ? DailyState.get() : {};
+
     var sortedFiles = sortFilesByDate(CSV_FILES, true);
-    var currentFile = sortedFiles[currentDateIndex];
+
+    // dateFile が状態にあればそこから、なければ currentDateIndex を使う
+    var currentFile;
+    if (_s.dateFile && sortedFiles.indexOf(_s.dateFile) !== -1) {
+        currentFile = _s.dateFile;
+        currentDateIndex = sortedFiles.indexOf(currentFile);
+    } else {
+        currentFile = sortedFiles[currentDateIndex];
+        // 逆方向同期: currentDateIndex → DailyState
+        if (typeof DailyState !== 'undefined' && currentFile) {
+            DailyState.setState({ dateFile: currentFile }, { silent: true });
+        }
+    }
+
     if (!currentFile) return;
 
     var data = await loadCSV(currentFile);
@@ -751,6 +802,11 @@ async function filterAndRender() {
     if (!dailyMachineFilterSelect) initDailyMachineFilter();
     else updateDailyMachineFilterCounts();
 
+    // DailyState から機種フィルター選択を DOM コンポーネントに反映
+    if (typeof DailyState !== 'undefined') {
+        DailyState.syncDom();
+    }
+
     data = [].concat(data);
 
     // 複数タグ判定
@@ -761,26 +817,32 @@ async function filterAndRender() {
         return newRow;
     });
 
-    // 機種フィルター
-    var selectedMachines = dailyMachineFilterSelect ? dailyMachineFilterSelect.getSelectedValues() : [];
+    // 機種フィルター（DailyState から取得）
+    var selectedMachines = _s.selectedMachines && _s.selectedMachines.length > 0
+        ? _s.selectedMachines
+        : (dailyMachineFilterSelect ? dailyMachineFilterSelect.getSelectedValues() : []);
     if (selectedMachines.length > 0) {
         data = data.filter(function(row) { return selectedMachines.indexOf(row['機種名']) !== -1; });
     }
 
-    // 台番号検索
-    var searchTerm = (document.getElementById('search') ? document.getElementById('search').value : '').toLowerCase();
+    // 台番号検索（DailyState から取得、DOM は補完として残す）
+    var searchTerm = (_s.search !== undefined ? _s.search
+        : (document.getElementById('search') ? document.getElementById('search').value : '')).toLowerCase();
     if (searchTerm) {
         data = data.filter(function(row) { return (row['台番号'] || '').toLowerCase().indexOf(searchTerm) !== -1; });
     }
 
-    var sortBy = document.getElementById('sortBy') ? document.getElementById('sortBy').value : '';
+    // ソート（DailyState から取得）
+    var sortBy = (_s.sortBy !== undefined ? _s.sortBy
+        : (document.getElementById('sortBy') ? document.getElementById('sortBy').value : ''));
 
     // 数値フィルター（グループAND/OR方式）
     data = applyDailyFilterGroups(data);
 
-    // タグ付きのみ表示
-    var showTaggedOnly = document.getElementById('dailyShowTaggedOnly');
-    if (showTaggedOnly && showTaggedOnly.checked) {
+    // タグ付きのみ表示（DailyState から取得）
+    var showTaggedOnlyVal = (_s.showTaggedOnly !== undefined ? _s.showTaggedOnly
+        : (document.getElementById('dailyShowTaggedOnly') ? document.getElementById('dailyShowTaggedOnly').checked : false));
+    if (showTaggedOnlyVal) {
         data = data.filter(function(row) { return row['_matchedTags'] && row['_matchedTags'].length > 0; });
     }
 
@@ -1076,32 +1138,66 @@ function bindModalClose(btnId, modalId) {
 // ===================
 
 function setupDailyEventListeners() {
+    // ---- 前日ボタン ----
     document.getElementById('prevDate') && document.getElementById('prevDate').addEventListener('click', function() {
         var sortedFiles = sortFilesByDate(CSV_FILES, true);
         if (currentDateIndex < sortedFiles.length - 1) {
-            currentDateIndex++;
-            initDateSelectWithEvents();
-            filterAndRender();
+            var newFile = sortedFiles[currentDateIndex + 1];
+            if (typeof DailyState !== 'undefined') {
+                DailyState.setState({ dateFile: newFile });
+            } else {
+                currentDateIndex++;
+                initDateSelectWithEvents();
+                filterAndRender();
+            }
         }
     });
 
+    // ---- 翌日ボタン ----
     document.getElementById('nextDate') && document.getElementById('nextDate').addEventListener('click', function() {
+        var sortedFiles = sortFilesByDate(CSV_FILES, true);
         if (currentDateIndex > 0) {
-            currentDateIndex--;
-            initDateSelectWithEvents();
+            var newFile = sortedFiles[currentDateIndex - 1];
+            if (typeof DailyState !== 'undefined') {
+                DailyState.setState({ dateFile: newFile });
+            } else {
+                currentDateIndex--;
+                initDateSelectWithEvents();
+                filterAndRender();
+            }
+        }
+    });
+
+    // ---- 日付セレクト ----
+    document.getElementById('dateSelect') && document.getElementById('dateSelect').addEventListener('change', function(e) {
+        if (typeof DailyState !== 'undefined') {
+            DailyState.setState({ dateFile: e.target.value });
+        } else {
+            var sortedFiles = sortFilesByDate(CSV_FILES, true);
+            currentDateIndex = sortedFiles.indexOf(e.target.value);
             filterAndRender();
         }
     });
 
-    document.getElementById('dateSelect') && document.getElementById('dateSelect').addEventListener('change', function(e) {
-        var sortedFiles = sortFilesByDate(CSV_FILES, true);
-        currentDateIndex = sortedFiles.indexOf(e.target.value);
-        filterAndRender();
+    // ---- 台番号検索 ----
+    document.getElementById('search') && document.getElementById('search').addEventListener('input', function(e) {
+        if (typeof DailyState !== 'undefined') {
+            DailyState.setState({ search: e.target.value });
+        } else {
+            filterAndRender();
+        }
     });
 
-    document.getElementById('search') && document.getElementById('search').addEventListener('input', filterAndRender);
-    document.getElementById('sortBy') && document.getElementById('sortBy').addEventListener('change', filterAndRender);
+    // ---- ソート ----
+    document.getElementById('sortBy') && document.getElementById('sortBy').addEventListener('change', function(e) {
+        if (typeof DailyState !== 'undefined') {
+            DailyState.setState({ sortBy: e.target.value });
+        } else {
+            filterAndRender();
+        }
+    });
 
+    // ---- 数値フィルターグループ追加 ----
     var addGroupBtn = document.getElementById('dailyAddFilterGroup');
     if (addGroupBtn) {
         addGroupBtn.addEventListener('click', function() {
@@ -1114,11 +1210,19 @@ function setupDailyEventListeners() {
     document.getElementById('copyTableBtn') && document.getElementById('copyTableBtn').addEventListener('click', copyTableToClipboard);
     document.getElementById('downloadCsvBtn') && document.getElementById('downloadCsvBtn').addEventListener('click', downloadTableAsCSV);
 
-    var showTaggedOnly = document.getElementById('dailyShowTaggedOnly');
-    if (showTaggedOnly) {
-        showTaggedOnly.addEventListener('change', filterAndRender);
+    // ---- タグ付きのみ ----
+    var showTaggedOnlyEl = document.getElementById('dailyShowTaggedOnly');
+    if (showTaggedOnlyEl) {
+        showTaggedOnlyEl.addEventListener('change', function(e) {
+            if (typeof DailyState !== 'undefined') {
+                DailyState.setState({ showTaggedOnly: e.target.checked });
+            } else {
+                filterAndRender();
+            }
+        });
     }
 
+    // DailyState から filterGroups を読み込む
     loadDailyFilterGroups();
     renderDailyFilterGroups();
 
@@ -1150,13 +1254,25 @@ function toggleSuffixStatsPanel() {
         toggle.classList.remove('open');
         toggle.querySelector('.toggle-icon').textContent = '▼';
     }
-    localStorage.setItem('suffixStatsPanelOpen', suffixStatsPanelOpen);
+
+    // DailyState に保存（フォールバックで旧キーも維持）
+    if (typeof DailyState !== 'undefined') {
+        DailyState.setState({ suffixPanelOpen: suffixStatsPanelOpen }, { silent: true });
+    } else {
+        localStorage.setItem('suffixStatsPanelOpen', suffixStatsPanelOpen);
+    }
 }
 
 function restoreSuffixStatsPanelState() {
-    var saved = localStorage.getItem('suffixStatsPanelOpen');
-    if (saved === 'true') {
-        suffixStatsPanelOpen = false;
+    // DailyState から復元を試みる
+    var shouldOpen = false;
+    if (typeof DailyState !== 'undefined') {
+        shouldOpen = DailyState.get().suffixPanelOpen === true;
+    } else {
+        shouldOpen = localStorage.getItem('suffixStatsPanelOpen') === 'true';
+    }
+    if (shouldOpen) {
+        suffixStatsPanelOpen = false; // toggle が反転させるのでfalseにしておく
         toggleSuffixStatsPanel();
     }
 }
