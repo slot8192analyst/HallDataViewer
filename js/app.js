@@ -63,6 +63,11 @@ function setupTabEventListeners() {
 
 async function init() {
     console.log('アプリケーション初期化開始...');
+
+    // DailyState を最初に初期化（localStorage / URL から状態復元）
+    if (typeof DailyState !== 'undefined') {
+        DailyState.init();
+    }
     
     const success = await loadInitialData();
     
@@ -81,6 +86,11 @@ async function init() {
         const now = new Date();
         calendarYear = now.getFullYear();
         calendarMonth = now.getMonth() + 1;
+    }
+
+    // DailyState にデフォルト日付を設定（URL 指定がなければ最新日）
+    if (typeof DailyState !== 'undefined') {
+        DailyState.applyDefaultDate();
     }
 
     await loadEventData();
