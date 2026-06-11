@@ -134,6 +134,21 @@
                 </div>
                 <div class="app-modal-body">
                     <p class="filter-hint">タグごとに名前・色・条件を自由に設定できます。グループ内はAND、グループ同士はORで判定します</p>
+
+                    <!-- フィルター後の台に一括タグ付け -->
+                    <div class="tag-bulk-apply-section">
+                        <div class="tag-bulk-apply-header">
+                            <span class="tag-bulk-apply-title">📌 現在表示中の台に一括タグ付け</span>
+                            <span class="tag-bulk-apply-hint" id="tagBulkHint">（フィルター後の台に台番号リストとして記録。日付をまたいでも維持されます）</span>
+                        </div>
+                        <div class="tag-bulk-apply-row">
+                            <select id="tagBulkTargetSelect" class="tag-bulk-select">
+                                <option value="">タグを選択...</option>
+                            </select>
+                            <button id="tagBulkApplyBtn" class="btn-apply tag-bulk-btn">✅ <span id="tagBulkCount">0</span>台にタグを付ける</button>
+                        </div>
+                    </div>
+
                     <div id="dailyTagGroupsList"></div>
                 </div>
                 <div class="app-modal-footer">

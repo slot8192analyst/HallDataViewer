@@ -140,6 +140,8 @@ var TagEngine = (function() {
             color: color || PRESET_COLORS[0].value,
             icon: icon || '🏷️',
             groups: [],
+            // 台番号リスト（フィルター後の台に一括付けした場合に保存・永続化される）
+            unitNos: [],
             // タグ判定の基準日モード
             // 'current': 選択中の日のデータで判定（デフォルト）
             // 'date'   : refDateFile で指定した日のデータで判定
@@ -331,13 +333,19 @@ var TagEngine = (function() {
     function evaluateAll(row, dateCache) {
         var matched = [];
         definitions.forEach(function(def) {
+            // 台番号リストに含まれる場合は判定条件にかかわらずマッチ
+            var unitNo = String(row['台番号'] || '');
+            if (def.unitNos && def.unitNos.length > 0 && def.unitNos.indexOf(unitNo) !== -1) {
+                matched.push(def.id);
+                return;
+            }
             var refRow = null;
             // 基準日モードかつ参照ファイル指定あり → dataCache からその日の同台番号行を取得
             if (def.refDateMode === 'date' && def.refDateFile && dateCache && dateCache[def.refDateFile]) {
-                var unitNo = row['台番号'];
-                if (unitNo !== undefined && unitNo !== null) {
+                var unitNo2 = row['台番号'];
+                if (unitNo2 !== undefined && unitNo2 !== null) {
                     refRow = dateCache[def.refDateFile].find(function(r) {
-                        return r['台番号'] === unitNo;
+                        return r['台番号'] === unitNo2;
                     }) || null;
                 }
             }
@@ -516,6 +524,16 @@ var TagEngine = (function() {
         }
 
         html += '<button class="btn-small tag-add-group-btn" data-def-id="' + def.id + '">＋ ORグループを追加</button>';
+
+        // 台番号リスト表示（フィルター後一括タグ付け）
+        if (def.unitNos && def.unitNos.length > 0) {
+            html += '<div class="tag-unit-list-row">';
+            html += '<span class="tag-unit-list-label">📌 台番号リスト (' + def.unitNos.length + '台):</span>';
+            html += '<span class="tag-unit-list-preview">' + def.unitNos.slice(0, 20).join(', ') + (def.unitNos.length > 20 ? ' ...' : '') + '</span>';
+            html += '<button class="btn-small tag-unit-list-clear-btn" data-def-id="' + def.id + '" title="台番号リストをクリア">✕ リストをクリア</button>';
+            html += '</div>';
+        }
+
         html += '</div>';
         html += '</div>';
 
@@ -656,6 +674,22 @@ var TagEngine = (function() {
                 notifyAllChanged();
             });
         });
+
+        // 台番号リストのクリアボタン
+        container.querySelectorAll('.tag-unit-list-clear-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var defId = this.dataset.defId;
+                var def = getDefinition(defId);
+                if (!def) return;
+                if (confirm('「' + def.name + '」の台番号リスト（' + (def.unitNos || []).length + '台）をクリアしますか？')) {
+                    def.unitNos = [];
+                    save();
+                    renderAllUIs();
+                    notifyAllChanged();
+                }
+            });
+        });
     }
 
     // ========== UI登録 ==========
@@ -732,6 +766,32 @@ var TagEngine = (function() {
         registerUI: registerUI,
         renderAllUIs: renderAllUIs,
         notifyAllChanged: notifyAllChanged,
+
+        /**
+         * 台番号リストを指定タグにセットして保存する
+         * @param {string} defId      - タグID
+         * @param {string[]} unitNos  - 台番号の文字列配列
+         */
+        setUnitNos: function(defId, unitNos) {
+            var def = getDefinition(defId);
+            if (!def) return;
+            def.unitNos = (unitNos || []).map(String);
+            save();
+            this.renderAllUIs();
+            this.notifyAllChanged();
+        },
+
+        /**
+         * 指定タグの台番号リストをクリアする
+         */
+        clearUnitNos: function(defId) {
+            var def = getDefinition(defId);
+            if (!def) return;
+            def.unitNos = [];
+            save();
+            this.renderAllUIs();
+            this.notifyAllChanged();
+        },
 
         save: save,
         load: load
