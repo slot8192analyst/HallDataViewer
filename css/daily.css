@@ -864,3 +864,141 @@ th.badge-col-header.badge-filter-active .sort-icon {
     border-color: var(--primary-color, #3d6b9a);
     color: var(--primary-color, #3d6b9a);
 }
+
+/* ===================
+   バッジ順位チェックボックス
+   =================== */
+
+.mb-rank-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.mb-rank-item > span {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+}
+
+.mb-rank-checks {
+    display: flex;
+    gap: 10px;
+}
+
+.mb-rank-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.mb-rank-label input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+}
+
+/* ===================
+   タグ一括付け UI
+   =================== */
+
+.tag-bulk-apply-section {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 14px;
+}
+
+.tag-bulk-apply-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.tag-bulk-apply-title {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.tag-bulk-apply-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.tag-bulk-apply-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.tag-bulk-select {
+    flex: 1;
+    min-width: 140px;
+    padding: 5px 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+}
+
+.tag-bulk-btn {
+    padding: 6px 14px;
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* タグ定義内の台番号リスト表示 */
+.tag-unit-list-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: var(--bg-input);
+    border-top: 1px dashed var(--border-color);
+    flex-wrap: wrap;
+    font-size: var(--font-size-sm);
+}
+
+.tag-unit-list-label {
+    color: var(--text-muted);
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.tag-unit-list-preview {
+    flex: 1;
+    color: var(--text-secondary);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tag-unit-list-clear-btn {
+    flex-shrink: 0;
+    color: var(--error-color, #ef4444);
+    border-color: var(--error-color, #ef4444);
+}
+
+/* タグプレビューの台数バッジ */
+.tag-unit-badge-count {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 10px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 3px;
+    padding: 0 4px;
+    vertical-align: middle;
+}

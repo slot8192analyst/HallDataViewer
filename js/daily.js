@@ -34,6 +34,9 @@ var dailyBadgeCache = {};
 // バッジ存在フィルターステート：「tako」「kubi」の表示を絞ることができる
 var dailyBadgeFilter = { tako: false, kubi: false };
 
+// 現在フィルター後に表示中のデータ（一括タグ付け用）
+var dailyCurrentFilteredData = [];
+
 var DAILY_FILTER_OPERATORS = [
     { value: 'gte', label: '以上' },
     { value: 'lte', label: '以下' },
@@ -377,11 +380,38 @@ function renderDailyTagPreview() {
             '20; border-color: ' + def.color + '; color: ' + def.color + ';' +
             (hasCond ? '' : ' opacity:0.5;') + '"' +
             (hasCond ? '' : ' title="条件未設定"') + '>' +
-            def.icon + ' ' + escapeHtmlTag(def.name) + refBadge + '</span>';
+            def.icon + ' ' + escapeHtmlTag(def.name) + refBadge + (def.unitNos && def.unitNos.length > 0 ? '<span class="tag-unit-badge-count">' + def.unitNos.length + '台</span>' : '') + '</span>';
     }).join('');
 
     preview.innerHTML = html;
     preview.classList.add('active');
+}
+
+/**
+ * タグモーダルの一括タグ付けUIを更新
+ * - セレクトボックスを最新のタグ定義で再構築
+ * - 現在の表示台数を更新
+ */
+function updateTagBulkApplyUI() {
+    var sel = document.getElementById('tagBulkTargetSelect');
+    var cntEl = document.getElementById('tagBulkCount');
+    if (!sel) return;
+
+    // タグ定義をセレクトに反映
+    var defs = TagEngine.getAll();
+    var prevVal = sel.value;
+    sel.innerHTML = '<option value="">\u30bf\u30b0\u3092\u9078\u629e...</option>';
+    defs.forEach(function(def) {
+        var opt = document.createElement('option');
+        opt.value = def.id;
+        opt.textContent = def.icon + ' ' + def.name + (def.unitNos && def.unitNos.length > 0 ? ' (' + def.unitNos.length + '\u53f0)' : '');
+        sel.appendChild(opt);
+    });
+    // 前回選択を復元
+    if (prevVal) sel.value = prevVal;
+
+    // 現在表示台数を更新
+    if (cntEl) cntEl.textContent = dailyCurrentFilteredData.length;
 }
 
 function updateColumnPreview() {
@@ -1056,20 +1086,26 @@ async function filterAndRender() {
         data = applyBadgeCacheToData(data, currentFile);
     }
 
-    // バッジ存在フィルター（🐙あり のみ / 💀あり のみ）
-    if (dailyBadgeFilter.tako) {
+    // バッジ存在フィルター（OR条件: 🐙あり OR 💀あり のいずれかを満たす台のみ）
+    // 順位フィルターも考慮（MachineBadge.getTakoRanks/getKubiRanks）
+    if (dailyBadgeFilter.tako || dailyBadgeFilter.kubi) {
+        var takoRanksSet = (typeof MachineBadge !== 'undefined') ? MachineBadge.getTakoRanks() : [1,2,3];
+        var kubiRanksSet = (typeof MachineBadge !== 'undefined') ? MachineBadge.getKubiRanks() : [1,2,3];
         data = data.filter(function(row) {
-            return row._machineBadge && row._machineBadge.tako !== null;
-        });
-    }
-    if (dailyBadgeFilter.kubi) {
-        data = data.filter(function(row) {
-            return row._machineBadge && row._machineBadge.kubi !== null;
+            var mb = row._machineBadge;
+            if (!mb) return false;
+            // 🐙 OR 💀 のどちらかにバッジあり（かつ表示順位内）なら表示
+            var hasTako = dailyBadgeFilter.tako && mb.tako !== null && takoRanksSet.indexOf(mb.tako) !== -1;
+            var hasKubi = dailyBadgeFilter.kubi && mb.kubi !== null && kubiRanksSet.indexOf(mb.kubi) !== -1;
+            return hasTako || hasKubi;
         });
     }
 
     // 再計算ボタンの状態を更新
     updateBadgeRecalcButton();
+
+    // 現在の表示データを保存（一括タグ付け用）
+    dailyCurrentFilteredData = data;
 
     renderTableWithColumns(data, 'data-table', 'summary', visibleColumns);
     await updateDateNavWithEvents();
@@ -1579,6 +1615,45 @@ function setupDailyModalEvents() {
         renderDailyTagPreview();
         closeAppModal('dailyTagModal');
     });
+
+    // タグモーダルを開いたとき: 一括タグ付けセレクトと台数を更新
+    var openTagModalBtn = document.getElementById('openDailyTagModal');
+    if (openTagModalBtn) {
+        openTagModalBtn.addEventListener('click', function() {
+            updateTagBulkApplyUI();
+        });
+    }
+
+    // 一括タグ付けボタン
+    var tagBulkApplyBtn = document.getElementById('tagBulkApplyBtn');
+    if (tagBulkApplyBtn) {
+        tagBulkApplyBtn.addEventListener('click', function() {
+            var sel = document.getElementById('tagBulkTargetSelect');
+            if (!sel || !sel.value) {
+                alert('タグを選択してください');
+                return;
+            }
+            var defId = sel.value;
+            var unitNos = dailyCurrentFilteredData.map(function(row) {
+                return String(row['台番号'] || '');
+            }).filter(Boolean);
+            if (unitNos.length === 0) {
+                alert('表示中の台がありません');
+                return;
+            }
+            // 既存のuniNosとマージ（重複排除）
+            var def = TagEngine.get(defId);
+            if (!def) return;
+            var existing = def.unitNos || [];
+            var merged = existing.slice();
+            unitNos.forEach(function(u) {
+                if (merged.indexOf(u) === -1) merged.push(u);
+            });
+            TagEngine.setUnitNos(defId, merged);
+            alert('✅ ' + unitNos.length + '台に「' + def.name + '」タグを付けました（合計 ' + merged.length + '台）');
+            updateTagBulkApplyUI();
+        });
+    }
 
     // 表示列モーダル
     bindModalOpen('openColumnModal', 'columnModal');

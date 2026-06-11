@@ -19,6 +19,8 @@ var MachineBadge = (function() {
     var STORAGE_KEY_TARGET    = 'machineBadgeTarget';    // 'diff'=差枚 or 'games'=G数
     var STORAGE_KEY_DAYS      = 'machineBadgeDays';      // 累積日数
     var STORAGE_KEY_BASE      = 'machineBadgeBase';      // 'current'=当日基準 / 'prev'=前日基準
+    var STORAGE_KEY_TAKO_RANKS = 'machineBadgeTakoRanks'; // タコだし表示順位 (例: [1,2,3])
+    var STORAGE_KEY_KUBI_RANKS = 'machineBadgeKubiRanks'; // 死に台表示順位 (例: [1,2,3])
 
     var enabled   = true;       // 常にオン（チェックボックス廃止）
     var target    = 'diff';     // 'diff' | 'games'
@@ -27,6 +29,8 @@ var MachineBadge = (function() {
     var badgeDays = 7;          // 過去何日分累積するか
     var badgeBase = 'current';  // 'current'=当日含む / 'prev'=前日から遡る
     var topN      = 3;          // 上位・下位何位まで
+    var takoRanks = [1, 2, 3];  // タコだし表示する順位リスト（デフォルト全表示）
+    var kubiRanks = [1, 2, 3];  // 死に台表示する順位リスト（デフォルト全表示）
 
     // ========== ストレージ ==========
 
@@ -44,6 +48,12 @@ var MachineBadge = (function() {
 
             var b = localStorage.getItem(STORAGE_KEY_BASE);
             if (b === 'prev' || b === 'current') badgeBase = b;
+
+            // タコだし/死に台の表示順位
+            var tr = localStorage.getItem(STORAGE_KEY_TAKO_RANKS);
+            if (tr) { try { takoRanks = JSON.parse(tr); } catch(e) {} }
+            var kr = localStorage.getItem(STORAGE_KEY_KUBI_RANKS);
+            if (kr) { try { kubiRanks = JSON.parse(kr); } catch(e) {} }
         } catch (e) {}
     }
 
@@ -52,6 +62,8 @@ var MachineBadge = (function() {
             localStorage.setItem(STORAGE_KEY_TARGET, target);
             localStorage.setItem(STORAGE_KEY_DAYS,   badgeDays);
             localStorage.setItem(STORAGE_KEY_BASE,   badgeBase);
+            localStorage.setItem(STORAGE_KEY_TAKO_RANKS, JSON.stringify(takoRanks));
+            localStorage.setItem(STORAGE_KEY_KUBI_RANKS, JSON.stringify(kubiRanks));
         } catch (e) {}
     }
 
@@ -250,11 +262,11 @@ var MachineBadge = (function() {
             : '';
         var baseTip = [daysTip, cumTip].filter(Boolean).join(' / ');
 
-        if (badge.tako !== null && showTako) {
+        if (badge.tako !== null && showTako && takoRanks.indexOf(badge.tako) !== -1) {
             var tip = '🐙タコだし ' + badge.tako + '位（機種内）' + (baseTip ? ' | ' + baseTip : '');
             html += '<span class="mb-tako mb-tako-' + badge.tako + '" title="' + tip + '">🐙' + badge.tako + '</span>';
         }
-        if (badge.kubi !== null && showKubi) {
+        if (badge.kubi !== null && showKubi && kubiRanks.indexOf(badge.kubi) !== -1) {
             var tip2 = '💀 ' + badge.kubi + '位（機種内）' + (baseTip ? ' | ' + baseTip : '');
             html += '<span class="mb-kubi mb-kubi-' + badge.kubi + '" title="' + tip2 + '">💀' + badge.kubi + '</span>';
         }
@@ -266,7 +278,18 @@ var MachineBadge = (function() {
 
     // ========== 設定UI ==========
     // チェックボックス（バッジ表示・タコだし・死に台）は廃止。
-    // 集計期間・基準日・基準列のみ表示する。
+    // 集計期間・基準日・基準列・順位表示のみ表示する。
+
+    function renderRankCheckboxes(idPrefix, kind, ranks) {
+        return [1, 2, 3].map(function(n) {
+            var chkId = idPrefix + 'Rank' + kind + n;
+            var checked = ranks.indexOf(n) !== -1 ? ' checked' : '';
+            return '<label class="mb-rank-label">'
+                + '<input type="checkbox" id="' + chkId + '" value="' + n + '"' + checked + '>'
+                + n + '位'
+                + '</label>';
+        }).join('');
+    }
 
     function renderSettingsHtml(idPrefix) {
         idPrefix = idPrefix || 'mb';
@@ -294,6 +317,14 @@ var MachineBadge = (function() {
             + '<option value="games"' + (target === 'games' ? ' selected' : '') + '>G数</option>'
             + '</select>'
             + '</div>'
+            + '<div class="mb-settings-item mb-rank-item">'
+            + '<span>🐙 表示順位:</span>'
+            + '<div class="mb-rank-checks">' + renderRankCheckboxes(idPrefix, 'Tako', takoRanks) + '</div>'
+            + '</div>'
+            + '<div class="mb-settings-item mb-rank-item">'
+            + '<span>💀 表示順位:</span>'
+            + '<div class="mb-rank-checks">' + renderRankCheckboxes(idPrefix, 'Kubi', kubiRanks) + '</div>'
+            + '</div>'
             + '</div>';
     }
 
@@ -307,6 +338,20 @@ var MachineBadge = (function() {
             if (daysEl)   badgeDays = parseInt(daysEl.value) || 7;
             if (baseEl)   badgeBase = baseEl.value;
             if (targetEl) target    = targetEl.value;
+
+            // タコだし/死に台順位チェックボックスを読み取る
+            takoRanks = [1, 2, 3].filter(function(n) {
+                var el = document.getElementById(idPrefix + 'RankTako' + n);
+                return el ? el.checked : true;
+            });
+            kubiRanks = [1, 2, 3].filter(function(n) {
+                var el = document.getElementById(idPrefix + 'RankKubi' + n);
+                return el ? el.checked : true;
+            });
+            // 一つもチェックなしの場合は全表示にフォールバック
+            if (takoRanks.length === 0) takoRanks = [1, 2, 3];
+            if (kubiRanks.length === 0) kubiRanks = [1, 2, 3];
+
             saveSettings();
             if (onChange) onChange();
         }
@@ -314,6 +359,14 @@ var MachineBadge = (function() {
         if (daysEl)   daysEl.addEventListener('change', update);
         if (baseEl)   baseEl.addEventListener('change', update);
         if (targetEl) targetEl.addEventListener('change', update);
+
+        // 順位チェックボックス
+        [1, 2, 3].forEach(function(n) {
+            var takoEl = document.getElementById(idPrefix + 'RankTako' + n);
+            var kubiEl = document.getElementById(idPrefix + 'RankKubi' + n);
+            if (takoEl) takoEl.addEventListener('change', update);
+            if (kubiEl) kubiEl.addEventListener('change', update);
+        });
     }
 
     // ========== ゲッター ==========
@@ -325,6 +378,8 @@ var MachineBadge = (function() {
     function getTopN()        { return topN;      }
     function getBadgeDays()   { return badgeDays; }
     function getBadgeBase()   { return badgeBase; }
+    function getTakoRanks()   { return takoRanks.slice(); }
+    function getKubiRanks()   { return kubiRanks.slice(); }
 
     function getTargetColumn() {
         return target === 'games' ? 'G数' : '差枚';
@@ -351,6 +406,8 @@ var MachineBadge = (function() {
         isShowKubi:             isShowKubi,
         getTopN:                getTopN,
         getBadgeDays:           getBadgeDays,
-        getBadgeBase:           getBadgeBase
+        getBadgeBase:           getBadgeBase,
+        getTakoRanks:           getTakoRanks,
+        getKubiRanks:           getKubiRanks
     };
 })();
