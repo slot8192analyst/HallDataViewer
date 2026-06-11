@@ -24,11 +24,15 @@ var DAILY_FILTER_COLUMNS = [
     { value: 'BB', label: 'BB', unit: '回', type: 'int' },
     { value: 'RB', label: 'RB', unit: '回', type: 'int' },
     { value: 'ART', label: 'ART', unit: '回', type: 'int' },
-    { value: '台番号末尾', label: '台番号末尾', unit: '', type: 'suffix' },
-    // バッジ系（2パス目のみ評価）
-    { value: '_mb_tako', label: '🐙タコだし順位', unit: '位以内', type: 'int', isBadge: true },
-    { value: '_mb_kubi', label: '💀死に台順位',   unit: '位以内', type: 'int', isBadge: true }
+    { value: '台番号末尾', label: '台番号末尾', unit: '', type: 'suffix' }
 ];
+
+// バッジキャッシュ：一度計算したバッジをフィルター変更で再計算しないためのキャッシュ
+// 構造: { [dateFile]: { [unitNo]: { tako, kubi, cumVal, windowDays, baseMode } } }
+var dailyBadgeCache = {};
+
+// バッジ存在フィルターステート：「tako」「kubi」の表示を絞ることができる
+var dailyBadgeFilter = { tako: false, kubi: false };
 
 var DAILY_FILTER_OPERATORS = [
     { value: 'gte', label: '以上' },
@@ -260,13 +264,6 @@ function renderDailyFilterGroups() {
 }
 
 function getRowValueForFilter(row, column) {
-    // バッジ列（2パス目専用）
-    if (column === '_mb_tako') {
-        return (row._machineBadge && row._machineBadge.tako) ? row._machineBadge.tako : null;
-    }
-    if (column === '_mb_kubi') {
-        return (row._machineBadge && row._machineBadge.kubi) ? row._machineBadge.kubi : null;
-    }
     if (column === '台番号末尾') {
         var numOnly = (row['台番号'] || '').replace(/\D/g, '');
         if (numOnly.length === 0) return null;
@@ -301,11 +298,7 @@ function evaluateDailyFilterCondition(row, cond) {
     }
 }
 
-function applyDailyFilterGroups(data, includeBadgeCols) {
-    // includeBadgeCols=false → バッジ列(_mb_*)を含む条件はスキップ（1パス目）
-    // includeBadgeCols=true  → バッジ列のみの条件を適用（2パス目）
-    var badgeColVals = ['_mb_tako', '_mb_kubi'];
-
+function applyDailyFilterGroups(data) {
     var activeGroups = dailyFilterGroups.filter(function(group) {
         return group.conditions.some(function(c) {
             return c.value !== '' && c.value !== null && c.value !== undefined;
@@ -314,23 +307,8 @@ function applyDailyFilterGroups(data, includeBadgeCols) {
 
     if (activeGroups.length === 0) return data;
 
-    // 各グループをモードに応じてフィルタリング
-    var effectiveGroups = activeGroups.map(function(group) {
-        var effectiveConds = group.conditions.filter(function(c) {
-            var isBadge = badgeColVals.indexOf(c.column) !== -1;
-            if (includeBadgeCols) {
-                return isBadge && c.value !== '' && c.value !== null && c.value !== undefined;
-            } else {
-                return !isBadge && c.value !== '' && c.value !== null && c.value !== undefined;
-            }
-        });
-        return { conditions: effectiveConds };
-    }).filter(function(g) { return g.conditions.length > 0; });
-
-    if (effectiveGroups.length === 0) return data;
-
     return data.filter(function(row) {
-        return effectiveGroups.some(function(group) {
+        return activeGroups.some(function(group) {
             return group.conditions.every(function(cond) {
                 return evaluateDailyFilterCondition(row, cond);
             });
@@ -586,6 +564,50 @@ function initColumnSelector() {
 // 機種内バッジ設定（モーダル内）
 // ===================
 
+/**
+ * 指定日（またはカレントファイル）のバッジを計算してキャッシュに保存する。
+ * filterAndRender は呼ばず、キャッシュだけを更新する。
+ * 戻り値: 更新したキャッシュのキー（currentFile）
+ */
+function recalcBadgeCache(fileOverride) {
+    if (typeof MachineBadge === 'undefined' || !MachineBadge.isEnabled()) return;
+    var sortedFiles = sortFilesByDate(CSV_FILES, true);
+    var _s = (typeof DailyState !== 'undefined') ? DailyState.get() : {};
+    var targetFile = fileOverride
+        || (_s.dateFile && sortedFiles.indexOf(_s.dateFile) !== -1 ? _s.dateFile : null)
+        || sortedFiles[currentDateIndex];
+    if (!targetFile || !dataCache || !dataCache[targetFile]) return;
+
+    // フィルターなし・全台データでバッジを計算
+    var rawData = dataCache[targetFile].map(function(r) { return Object.assign({}, r); });
+    rawData = addMechanicalRateToData(rawData);
+    var badged = MachineBadge.assignBadges(rawData, targetFile, dataCache, MachineBadge.getTargetColumn());
+
+    // キャッシュに台番号をキーとして保存
+    var cache = {};
+    badged.forEach(function(row) {
+        if (row['台番号'] !== undefined && row['台番号'] !== null) {
+            cache[String(row['台番号'])] = row['_machineBadge'] || { tako: null, kubi: null };
+        }
+    });
+    dailyBadgeCache[targetFile] = cache;
+    return targetFile;
+}
+
+/**
+ * バッジキャッシュをキャッシュされた値から row に合成する。
+ * キャッシュがなければ _machineBadge は付与しない（表示なし）。
+ */
+function applyBadgeCacheToData(data, dateFile) {
+    var cache = dailyBadgeCache[dateFile];
+    return data.map(function(row) {
+        if (!cache) return row; // キャッシュ未計算 → バッジなし
+        var unitKey = String(row['台番号']);
+        var badgeInfo = cache[unitKey] || { tako: null, kubi: null };
+        return Object.assign({}, row, { _machineBadge: badgeInfo });
+    });
+}
+
 function renderBadgeSettings() {
     var container = document.getElementById('badgeSettingsContainer');
     if (!container) return;
@@ -593,10 +615,38 @@ function renderBadgeSettings() {
 
     container.innerHTML = MachineBadge.renderSettingsHtml('dailyMb');
 
+    // 設定変更時はプレビューのみ更新（自動再計算しない）
     MachineBadge.setupSettingsEvents('dailyMb', function() {
         updateBadgePreview();
-        filterAndRender();
+        // キャッシュを破棄して「再計算が必要」状態を示す
+        var sortedFiles = sortFilesByDate(CSV_FILES, true);
+        var _s = (typeof DailyState !== 'undefined') ? DailyState.get() : {};
+        var cf = (_s.dateFile && sortedFiles.indexOf(_s.dateFile) !== -1 ? _s.dateFile : null)
+                 || sortedFiles[currentDateIndex];
+        if (cf) delete dailyBadgeCache[cf];
+        updateBadgeRecalcButton();
     });
+}
+
+/** 再計算ボタンの状態（ラベル）を更新する */
+function updateBadgeRecalcButton() {
+    var btn = document.getElementById('badgeRecalcBtn');
+    if (!btn) return;
+    var sortedFiles = sortFilesByDate(CSV_FILES, true);
+    var _s = (typeof DailyState !== 'undefined') ? DailyState.get() : {};
+    var cf = (_s.dateFile && sortedFiles.indexOf(_s.dateFile) !== -1 ? _s.dateFile : null)
+             || sortedFiles[currentDateIndex];
+    var hasCached = !!(cf && dailyBadgeCache[cf]);
+    btn.textContent = hasCached ? '🔄 再計算' : '▶ バッジを計算';
+    btn.classList.toggle('badge-needs-calc', !hasCached);
+}
+
+/** バッジフィルター（🐙あり／💀あり）のチェックボックス状態をDOMに反映 */
+function syncBadgeFilterCheckboxes() {
+    var tako = document.getElementById('badgeFilterTako');
+    var kubi = document.getElementById('badgeFilterKubi');
+    if (tako) tako.checked = dailyBadgeFilter.tako;
+    if (kubi) kubi.checked = dailyBadgeFilter.kubi;
 }
 
 // ===================
@@ -956,7 +1006,7 @@ async function filterAndRender() {
         : (document.getElementById('sortBy') ? document.getElementById('sortBy').value : ''));
 
     // 数値フィルター 1パス目：バッジ列を除いた通常列のみ
-    data = applyDailyFilterGroups(data, false);
+    data = applyDailyFilterGroups(data);
 
     // タグ付きのみ表示（DailyState から取得）
     var showTaggedOnlyVal = (_s.showTaggedOnly !== undefined ? _s.showTaggedOnly
@@ -988,7 +1038,6 @@ async function filterAndRender() {
             case 'machine_desc': data = sortByMachineThenUnit(data, '機種名', '台番号', false, true); break;
             case 'unit_asc':  data = sortByUnitNumber(data, '台番号', true);  break;
             case 'unit_desc': data = sortByUnitNumber(data, '台番号', false); break;
-            // 列ヘッダクリック由来（BB / RB / ART）
             case 'bb_desc': data.sort(function(a, b) { return (parseInt(String(b['BB']).replace(/,/g, '')) || 0) - (parseInt(String(a['BB']).replace(/,/g, '')) || 0); }); break;
             case 'bb_asc':  data.sort(function(a, b) { return (parseInt(String(a['BB']).replace(/,/g, '')) || 0) - (parseInt(String(b['BB']).replace(/,/g, '')) || 0); }); break;
             case 'rb_desc': data.sort(function(a, b) { return (parseInt(String(b['RB']).replace(/,/g, '')) || 0) - (parseInt(String(a['RB']).replace(/,/g, '')) || 0); }); break;
@@ -998,15 +1047,29 @@ async function filterAndRender() {
         }
     }
 
-    // 機種内バッジ付与（1パス目フィルター・ソート後で機種内順位を確定）
-    // ※ここでバッジを計算するから順位がフィルター済みの同機種内で確定する
+    // ── バッジ合成（キャッシュから読む。キャッシュ未計算なら初回のみ計算）──
     if (typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled()) {
-        data = MachineBadge.assignBadges(data, currentFile, dataCache, MachineBadge.getTargetColumn());
+        if (!dailyBadgeCache[currentFile]) {
+            // 初回表示（その日を初めて開いたとき）は自動計算してキャッシュ
+            recalcBadgeCache(currentFile);
+        }
+        data = applyBadgeCacheToData(data, currentFile);
     }
 
-    // 数値フィルター 2パス目：バッジ列（_mb_tako/_mb_kubi）のみ
-    // バッジ付与後でないと順位値が存在しないため、ここで改めて絞る
-    data = applyDailyFilterGroups(data, true);
+    // バッジ存在フィルター（🐙あり のみ / 💀あり のみ）
+    if (dailyBadgeFilter.tako) {
+        data = data.filter(function(row) {
+            return row._machineBadge && row._machineBadge.tako !== null;
+        });
+    }
+    if (dailyBadgeFilter.kubi) {
+        data = data.filter(function(row) {
+            return row._machineBadge && row._machineBadge.kubi !== null;
+        });
+    }
+
+    // 再計算ボタンの状態を更新
+    updateBadgeRecalcButton();
 
     renderTableWithColumns(data, 'data-table', 'summary', visibleColumns);
     await updateDateNavWithEvents();
@@ -1524,6 +1587,8 @@ function setupDailyEventListeners() {
         var sortedFiles = sortFilesByDate(CSV_FILES, true);
         if (currentDateIndex < sortedFiles.length - 1) {
             var newFile = sortedFiles[currentDateIndex + 1];
+            // 日付変更時はバッジキャッシュをクリア（新しい日付で必要なら再計算させる）
+            delete dailyBadgeCache[newFile];
             if (typeof DailyState !== 'undefined') {
                 DailyState.setState({ dateFile: newFile });
             } else {
@@ -1539,6 +1604,8 @@ function setupDailyEventListeners() {
         var sortedFiles = sortFilesByDate(CSV_FILES, true);
         if (currentDateIndex > 0) {
             var newFile = sortedFiles[currentDateIndex - 1];
+            // 日付変更時はバッジキャッシュをクリア
+            delete dailyBadgeCache[newFile];
             if (typeof DailyState !== 'undefined') {
                 DailyState.setState({ dateFile: newFile });
             } else {
@@ -1551,6 +1618,8 @@ function setupDailyEventListeners() {
 
     // ---- 日付セレクト ----
     document.getElementById('dateSelect') && document.getElementById('dateSelect').addEventListener('change', function(e) {
+        // 日付変更時はバッジキャッシュをクリア
+        delete dailyBadgeCache[e.target.value];
         if (typeof DailyState !== 'undefined') {
             DailyState.setState({ dateFile: e.target.value });
         } else {
@@ -1600,6 +1669,34 @@ function setupDailyEventListeners() {
             } else {
                 filterAndRender();
             }
+        });
+    }
+
+    // ---- バッジ再計算ボタン ----
+    var badgeRecalcBtn = document.getElementById('badgeRecalcBtn');
+    if (badgeRecalcBtn) {
+        badgeRecalcBtn.addEventListener('click', function() {
+            recalcBadgeCache(); // カレントファイルのキャッシュを更新
+            updateBadgeRecalcButton();
+            filterAndRender(); // バッジを反映して再描画
+        });
+    }
+
+    // ---- バッジ存在フィルター: 🐙タコだしあり のみ ----
+    var badgeFilterTakoEl = document.getElementById('badgeFilterTako');
+    if (badgeFilterTakoEl) {
+        badgeFilterTakoEl.addEventListener('change', function(e) {
+            dailyBadgeFilter.tako = e.target.checked;
+            filterAndRender();
+        });
+    }
+
+    // ---- バッジ存在フィルター: 💀死に台あり のみ ----
+    var badgeFilterKubiEl = document.getElementById('badgeFilterKubi');
+    if (badgeFilterKubiEl) {
+        badgeFilterKubiEl.addEventListener('change', function(e) {
+            dailyBadgeFilter.kubi = e.target.checked;
+            filterAndRender();
         });
     }
 

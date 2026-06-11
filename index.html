@@ -176,6 +176,22 @@
                 <div class="app-modal-body">
                     <p class="filter-hint">その日を含む直近N日間の累積差枚（またはG数）で機種内順位を付けます。フィルター後の同機種内での順位。バッジ列を非表示にしたい場合は「表示列」で「機種内順位」のチェックを外してください。</p>
                     <div id="badgeSettingsContainer"></div>
+
+                    <!-- バッジ再計算ボタン -->
+                    <div class="badge-recalc-row">
+                        <button id="badgeRecalcBtn" class="btn-apply badge-needs-calc">▶ バッジを計算</button>
+                        <span class="badge-recalc-hint">設定変更後は再計算が必要です。フィルターを変更してもバッジは再計算されません。</span>
+                    </div>
+
+                    <!-- バッジ存在フィルター -->
+                    <div class="badge-filter-row">
+                        <label class="badge-filter-label">
+                            <input type="checkbox" id="badgeFilterTako"> 🐙 タコだしバッジあり のみ表示
+                        </label>
+                        <label class="badge-filter-label">
+                            <input type="checkbox" id="badgeFilterKubi"> 💀 死に台バッジあり のみ表示
+                        </label>
+                    </div>
                 </div>
                 <div class="app-modal-footer">
                     <button class="modal-btn primary" id="applyBadgeModal">閉じる</button>
