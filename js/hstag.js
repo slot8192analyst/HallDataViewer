@@ -630,6 +630,28 @@ var TagEngine = (function() {
         hasAnyActiveConditions: hasAnyActiveConditions,
         getColumnValue: getColumnValue,
 
+        /**
+         * 指定タグの全グループ（条件）をクリアする
+         */
+        clearConditions: function(defId) {
+            var def = getDefinition(defId);
+            if (!def) return;
+            def.groups = [];
+            save();
+            this.notifyAllChanged();
+        },
+
+        /**
+         * 全タグの条件をすべてクリアする
+         */
+        clearAll: function() {
+            definitions.forEach(function(def) {
+                def.groups = [];
+            });
+            save();
+            this.notifyAllChanged();
+        },
+
         registerUI: registerUI,
         renderAllUIs: renderAllUIs,
         notifyAllChanged: notifyAllChanged,

@@ -8,6 +8,10 @@ var dailyMachineFilterSelect = null;
 var dailyTagUIInitialized = false;
 var dailyBadgeUIInitialized = false;
 
+// 列ヘッダクリックソート用状態
+var dailySortColumn = null;   // 現在ソート中の列名
+var dailySortDir    = null;   // 'asc' | 'desc'
+
 // ===================
 // 数値フィルター（グループAND/OR方式）
 // ===================
@@ -755,6 +759,51 @@ function updateDailyTagCountDisplay(data) {
 }
 
 // ===================
+// テーブル スケルトン / スピナー
+// ===================
+
+/**
+ * データがキャッシュにない（月跨ぎ等）ときにスケルトン行を表示する。
+ * @param {string} tableId - テーブルの id
+ * @param {number} rows    - スケルトン行数
+ * @param {number} cols    - 列数
+ */
+function showTableSkeleton(tableId, rows, cols) {
+    var table = document.getElementById(tableId);
+    if (!table) return;
+    var tbody = table.querySelector('tbody');
+    var wrapper = table.closest('.table-wrapper');
+    if (wrapper) wrapper.classList.add('table-loading-overlay', 'is-loading');
+
+    rows = rows || 12;
+    cols = cols || (visibleColumns.length || 6);
+
+    var skeletonRows = '';
+    for (var r = 0; r < rows; r++) {
+        var cells = '';
+        for (var c = 0; c < cols; c++) {
+            var w = 40 + Math.floor(Math.random() * 40);
+            cells += '<td><span class="skeleton-cell" style="width:' + w + '%"></span></td>';
+        }
+        skeletonRows += '<tr>' + cells + '</tr>';
+    }
+    tbody.innerHTML = skeletonRows;
+    tbody.classList.add('skeleton-tbody');
+}
+
+/**
+ * スケルトンを解除してテーブルを通常状態に戻す。
+ */
+function hideTableSkeleton(tableId) {
+    var table = document.getElementById(tableId);
+    if (!table) return;
+    var tbody = table.querySelector('tbody');
+    var wrapper = table.closest('.table-wrapper');
+    if (wrapper) wrapper.classList.remove('is-loading');
+    if (tbody) tbody.classList.remove('skeleton-tbody');
+}
+
+// ===================
 // メインフィルター＆描画
 // ===================
 
@@ -779,7 +828,26 @@ async function filterAndRender() {
 
     if (!currentFile) return;
 
+    // キャッシュ未ロードなら スケルトン表示 → 月別JSONを取得
+    var isCached = !!(dataCache && dataCache[currentFile]);
+    if (!isCached) {
+        showTableSkeleton('data-table', 14, visibleColumns.length || 6);
+        // 対象の月別JSONを特定してロード
+        var dateKey = getDateKeyFromFilename(currentFile);
+        if (dateKey) {
+            var ym = dateKey.substring(0, 7).replace('_', '_'); // "2025_06" 形式
+            var monthFile = 'data/' + ym + '.json';
+            try {
+                await loadMonthlyJSON(monthFile);
+            } catch(e) {}
+        }
+    }
+
     var data = await loadCSV(currentFile);
+
+    // スケルトン解除
+    if (!isCached) hideTableSkeleton('data-table');
+
     if (!data) {
         document.getElementById('summary').innerHTML = 'データがありません';
         return;
@@ -860,14 +928,22 @@ async function filterAndRender() {
                 return ka - kb;
             }); break;
             case 'sa_desc': data.sort(function(a, b) { return (parseInt(String(b['差枚']).replace(/,/g, '')) || 0) - (parseInt(String(a['差枚']).replace(/,/g, '')) || 0); }); break;
-            case 'sa_asc': data.sort(function(a, b) { return (parseInt(String(a['差枚']).replace(/,/g, '')) || 0) - (parseInt(String(b['差枚']).replace(/,/g, '')) || 0); }); break;
+            case 'sa_asc':  data.sort(function(a, b) { return (parseInt(String(a['差枚']).replace(/,/g, '')) || 0) - (parseInt(String(b['差枚']).replace(/,/g, '')) || 0); }); break;
             case 'game_desc': data.sort(function(a, b) { return (parseInt(String(b['G数']).replace(/,/g, '')) || 0) - (parseInt(String(a['G数']).replace(/,/g, '')) || 0); }); break;
+            case 'game_asc':  data.sort(function(a, b) { return (parseInt(String(a['G数']).replace(/,/g, '')) || 0) - (parseInt(String(b['G数']).replace(/,/g, '')) || 0); }); break;
             case 'rate_desc': data.sort(function(a, b) { return (b['機械割'] || -Infinity) - (a['機械割'] || -Infinity); }); break;
-            case 'rate_asc': data.sort(function(a, b) { return (a['機械割'] || Infinity) - (b['機械割'] || Infinity); }); break;
-            case 'machine_asc': data = sortByMachineThenUnit(data, '機種名', '台番号', true, true); break;
+            case 'rate_asc':  data.sort(function(a, b) { return (a['機械割'] || Infinity)  - (b['機械割'] || Infinity); }); break;
+            case 'machine_asc':  data = sortByMachineThenUnit(data, '機種名', '台番号', true, true);  break;
             case 'machine_desc': data = sortByMachineThenUnit(data, '機種名', '台番号', false, true); break;
-            case 'unit_asc': data = sortByUnitNumber(data, '台番号', true); break;
+            case 'unit_asc':  data = sortByUnitNumber(data, '台番号', true);  break;
             case 'unit_desc': data = sortByUnitNumber(data, '台番号', false); break;
+            // 列ヘッダクリック由来（BB / RB / ART）
+            case 'bb_desc': data.sort(function(a, b) { return (parseInt(String(b['BB']).replace(/,/g, '')) || 0) - (parseInt(String(a['BB']).replace(/,/g, '')) || 0); }); break;
+            case 'bb_asc':  data.sort(function(a, b) { return (parseInt(String(a['BB']).replace(/,/g, '')) || 0) - (parseInt(String(b['BB']).replace(/,/g, '')) || 0); }); break;
+            case 'rb_desc': data.sort(function(a, b) { return (parseInt(String(b['RB']).replace(/,/g, '')) || 0) - (parseInt(String(a['RB']).replace(/,/g, '')) || 0); }); break;
+            case 'rb_asc':  data.sort(function(a, b) { return (parseInt(String(a['RB']).replace(/,/g, '')) || 0) - (parseInt(String(b['RB']).replace(/,/g, '')) || 0); }); break;
+            case 'art_desc': data.sort(function(a, b) { return (parseInt(String(b['ART']).replace(/,/g, '')) || 0) - (parseInt(String(a['ART']).replace(/,/g, '')) || 0); }); break;
+            case 'art_asc':  data.sort(function(a, b) { return (parseInt(String(a['ART']).replace(/,/g, '')) || 0) - (parseInt(String(b['ART']).replace(/,/g, '')) || 0); }); break;
         }
     }
 
@@ -886,11 +962,219 @@ async function filterAndRender() {
     renderDailyTagPreview();
     updateColumnPreview();
     updateBadgePreview();
+
+    // アクティブフィルター チップバー更新
+    renderActiveFilterChips();
+}
+
+// ===================
+// アクティブフィルター チップバー
+// ===================
+
+/**
+ * 現在適用中のフィルター／ソートをチップ（バッジ）として描画する。
+ * 各チップの × ボタンを押すと個別に解除できる。
+ */
+function renderActiveFilterChips() {
+    var bar = document.getElementById('activeFilterBar');
+    if (!bar) return;
+
+    var _s = (typeof DailyState !== 'undefined') ? DailyState.get() : {};
+    var chips = [];
+
+    // ---- 台番号検索 ----
+    var searchVal = _s.search || '';
+    if (searchVal) {
+        chips.push({
+            type: 'chip-search',
+            label: '台番号: ' + searchVal,
+            remove: function() {
+                var el = document.getElementById('search');
+                if (el) el.value = '';
+                DailyState.setState({ search: '' });
+            }
+        });
+    }
+
+    // ---- 機種フィルター ----
+    var machines = _s.selectedMachines || [];
+    if (machines.length > 0) {
+        var machineLabel = machines.length <= 2
+            ? machines.join('・')
+            : machines[0] + ' 他' + (machines.length - 1) + '機種';
+        chips.push({
+            type: 'chip-machine',
+            label: '機種: ' + machineLabel,
+            remove: function() {
+                if (dailyMachineFilterSelect) dailyMachineFilterSelect.reset();
+                DailyState.setState({ selectedMachines: [] });
+            }
+        });
+    }
+
+    // ---- 数値フィルター ----
+    var filterCount = getActiveDailyFilterCount();
+    if (filterCount > 0) {
+        var numLabels = [];
+        dailyFilterGroups.forEach(function(group) {
+            group.conditions.forEach(function(c) {
+                if (c.value === '' || c.value === null || c.value === undefined) return;
+                var colInfo = DAILY_FILTER_COLUMNS.find(function(col) { return col.value === c.column; });
+                var opInfo  = DAILY_FILTER_OPERATORS.find(function(op) { return op.value === c.operator; });
+                var colLabel = colInfo ? colInfo.label : c.column;
+                var opLabel  = opInfo  ? opInfo.label  : c.operator;
+                var unit     = (colInfo && colInfo.unit && c.column !== '台番号末尾') ? colInfo.unit : '';
+                numLabels.push(colLabel + ' ' + opLabel + ' ' + c.value + unit);
+            });
+        });
+        chips.push({
+            type: 'chip-numfilter',
+            label: '🔢 ' + numLabels.slice(0, 2).join(' / ') + (numLabels.length > 2 ? ' …' : ''),
+            remove: function() {
+                resetDailyFilterGroups();
+                filterAndRender();
+            }
+        });
+    }
+
+    // ---- タグ ----
+    if (typeof TagEngine !== 'undefined') {
+        var tagDefs = TagEngine.getAll ? TagEngine.getAll() : [];
+        tagDefs.forEach(function(def) {
+            if (!TagEngine.hasActiveConditions(def.id)) return;
+            chips.push({
+                type: 'chip-tag',
+                label: def.icon + ' ' + def.name,
+                color: def.color,
+                remove: function() {
+                    TagEngine.clearConditions(def.id);
+                    renderDailyTagPreview();
+                    filterAndRender();
+                }
+            });
+        });
+    }
+
+    // ---- タグ付きのみ ----
+    if (_s.showTaggedOnly) {
+        chips.push({
+            type: 'chip-taggedonly',
+            label: 'タグ付きのみ',
+            remove: function() {
+                var el = document.getElementById('dailyShowTaggedOnly');
+                if (el) el.checked = false;
+                DailyState.setState({ showTaggedOnly: false });
+            }
+        });
+    }
+
+    // ---- ソート ----
+    var sortVal = _s.sortBy || '';
+    if (sortVal) {
+        var sortLabels = {
+            'sa_desc': '差枚 ↓', 'sa_asc': '差枚 ↑',
+            'game_desc': 'G数 ↓', 'game_asc': 'G数 ↑',
+            'rate_desc': '機械割 ↓', 'rate_asc': '機械割 ↑',
+            'machine_asc': '機種名 あ→わ', 'machine_desc': '機種名 わ→あ',
+            'unit_asc': '台番号 ↑', 'unit_desc': '台番号 ↓',
+            'mb_tako_asc': '🐙タコだし順位 ↑', 'mb_kubi_asc': '💀死に台順位 ↑',
+            'bb_desc': 'BB ↓', 'bb_asc': 'BB ↑',
+            'rb_desc': 'RB ↓',  'rb_asc': 'RB ↑',
+            'art_desc': 'ART ↓', 'art_asc': 'ART ↑'
+        };
+        var sortLabel = sortLabels[sortVal] || sortVal;
+        chips.push({
+            type: 'chip-sort',
+            label: '並替: ' + sortLabel,
+            remove: function() {
+                var el = document.getElementById('sortBy');
+                if (el) el.value = '';
+                DailyState.setState({ sortBy: '' });
+                dailySortColumn = null;
+                dailySortDir    = null;
+            }
+        });
+    }
+
+    // ---- 描画 ----
+    if (chips.length === 0) {
+        bar.innerHTML = '';
+        bar.classList.remove('has-chips');
+        return;
+    }
+
+    var html = chips.map(function(chip, i) {
+        var inlineStyle = chip.color
+            ? ' style="background:' + chip.color + '20; border-color:' + chip.color + '; color:' + chip.color + ';"'
+            : '';
+        return '<span class="filter-chip ' + chip.type + '"' + inlineStyle + ' data-chip-index="' + i + '">'
+            + '<span class="filter-chip-label">' + escapeHtmlTag(chip.label) + '</span>'
+            + '<button class="filter-chip-remove" data-chip-index="' + i + '" title="解除">×</button>'
+            + '</span>';
+    }).join('') + '<button class="filter-chip-clear-all" id="clearAllChips">✕ すべて解除</button>';
+
+    bar.innerHTML = html;
+    bar.classList.add('has-chips');
+
+    // イベント委譲で × クリックを処理
+    bar.querySelectorAll('.filter-chip-remove').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var idx = parseInt(this.dataset.chipIndex);
+            if (chips[idx] && chips[idx].remove) chips[idx].remove();
+        });
+    });
+
+    var clearAll = document.getElementById('clearAllChips');
+    if (clearAll) {
+        clearAll.addEventListener('click', function() {
+            // 検索
+            var el = document.getElementById('search');
+            if (el) el.value = '';
+            // 機種
+            if (dailyMachineFilterSelect) dailyMachineFilterSelect.reset();
+            // 数値フィルター
+            resetDailyFilterGroups();
+            // タグ
+            if (typeof TagEngine !== 'undefined' && TagEngine.clearAll) {
+                TagEngine.clearAll();
+            }
+            // タグ付きのみ
+            var tagEl = document.getElementById('dailyShowTaggedOnly');
+            if (tagEl) tagEl.checked = false;
+            // ソート
+            var sortEl = document.getElementById('sortBy');
+            if (sortEl) sortEl.value = '';
+            dailySortColumn = null;
+            dailySortDir    = null;
+            // 状態リセット → 再描画
+            DailyState.setState({
+                search: '',
+                selectedMachines: [],
+                filterGroups: [],
+                showTaggedOnly: false,
+                sortBy: ''
+            });
+            renderDailyTagPreview();
+        });
+    }
 }
 
 // ===================
 // テーブル描画
 // ===================
+
+// ソート可能な列と対応する sortBy キーのマッピング
+var SORTABLE_COLUMNS = {
+    '差枚':   { asc: 'sa_asc',      desc: 'sa_desc' },
+    'G数':    { asc: 'game_asc',    desc: 'game_desc' },
+    '機械割': { asc: 'rate_asc',    desc: 'rate_desc' },
+    'BB':     { asc: 'bb_asc',      desc: 'bb_desc' },
+    'RB':     { asc: 'rb_asc',      desc: 'rb_desc' },
+    'ART':    { asc: 'art_asc',     desc: 'art_desc' },
+    '機種名': { asc: 'machine_asc', desc: 'machine_desc' },
+    '台番号': { asc: 'unit_asc',    desc: 'unit_desc' }
+};
 
 function renderTableWithColumns(data, tableId, summaryId, columns) {
     var table = document.getElementById(tableId);
@@ -900,7 +1184,48 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
     var tbody = table.querySelector('tbody');
     var displayColumns = columns.length > 0 ? columns : allColumns;
 
-    thead.innerHTML = '<tr>' + displayColumns.map(function(h) { return '<th>' + h + '</th>'; }).join('') + '</tr>';
+    // ---- ヘッダ描画（ソート可能列にインジケーター付与） ----
+    thead.innerHTML = '<tr>' + displayColumns.map(function(h) {
+        var sortKeys = SORTABLE_COLUMNS[h];
+        if (!sortKeys) return '<th>' + h + '</th>';
+        var isSorting = (dailySortColumn === h);
+        var dirClass = isSorting ? (dailySortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '';
+        var icon = isSorting ? (dailySortDir === 'asc' ? '▲' : '▼') : '⇅';
+        return '<th class="sortable' + dirClass + '" data-col="' + h + '">'
+            + h
+            + '<span class="sort-icon">' + icon + '</span>'
+            + '</th>';
+    }).join('') + '</tr>';
+
+    // ヘッダクリックでソート切り替え
+    thead.querySelectorAll('th.sortable').forEach(function(th) {
+        th.addEventListener('click', function() {
+            var col = this.dataset.col;
+            var keys = SORTABLE_COLUMNS[col];
+            if (!keys) return;
+
+            var newDir;
+            if (dailySortColumn === col) {
+                // 同じ列: asc → desc → 解除
+                if (dailySortDir === 'asc')       newDir = 'desc';
+                else if (dailySortDir === 'desc') newDir = null;
+                else                              newDir = 'asc';
+            } else {
+                newDir = 'desc'; // 初回クリックは降順
+            }
+
+            dailySortColumn = newDir ? col : null;
+            dailySortDir    = newDir;
+
+            var sortByVal = newDir ? keys[newDir] : '';
+
+            // select との連動
+            var sortEl = document.getElementById('sortBy');
+            if (sortEl) sortEl.value = sortByVal;
+
+            DailyState.setState({ sortBy: sortByVal });
+        });
+    });
 
     var tagDefs = TagEngine.getAll();
 
