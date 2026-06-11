@@ -270,8 +270,9 @@ var MachineBadge = (function() {
 
     function renderSettingsHtml(idPrefix) {
         idPrefix = idPrefix || 'mb';
-        var daysOpts = [3, 5, 7, 10, 14].map(function(d) {
-            return '<option value="' + d + '"' + (badgeDays === d ? ' selected' : '') + '>' + d + '日</option>';
+        var daysOpts = [1, 3, 5, 7, 10, 14].map(function(d) {
+            var label = d === 1 ? '前日（1日）' : d + '日';
+            return '<option value="' + d + '"' + (badgeDays === d ? ' selected' : '') + '>' + label + '</option>';
         }).join('');
 
         return '<div class="mb-settings">'

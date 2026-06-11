@@ -12,7 +12,6 @@
     <link rel="stylesheet" href="css/trend.css">
     <link rel="stylesheet" href="css/calendar.css">
     <link rel="stylesheet" href="css/compare.css">
-    <link rel="stylesheet" href="css/tagmatch.css">
     <link rel="stylesheet" href="css/island.css">
     <link rel="stylesheet" href="css/machinebadge.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -39,7 +38,6 @@
         <button class="tab-btn" data-tab="trend">データトレンド</button>
         <button class="tab-btn" data-tab="calendar">カレンダー</button>
         <button class="tab-btn" data-tab="island">ヒートマップ</button>
-        <button class="tab-btn" data-tab="tagmatch">タグマッチング</button>
     </div>
 
     <!-- =================== -->
@@ -67,8 +65,6 @@
                 <option value="machine_desc">機種名 わ→あ</option>
                 <option value="unit_asc">台番号 ↑</option>
                 <option value="unit_desc">台番号 ↓</option>
-                <option value="mb_tako_asc">🐙タコだし順位 ↑</option>
-                <option value="mb_kubi_asc">💀死に台順位 ↑</option>
             </select>
         </div>
 
@@ -724,74 +720,6 @@
         </div>
     </div>
 
-    <!-- =================== -->
-    <!-- タグマッチングタブ   -->
-    <!-- =================== -->
-    <div id="tagmatch" class="tab-content">
-        <div class="tagmatch-header">
-            <h2>🏷️ タグマッチング</h2>
-            <p class="tagmatch-description">条件グループを組み合わせて対象台を抽出します（グループ内: AND / グループ間: OR）</p>
-        </div>
-
-        <!-- 機種フィルター -->
-        <div class="controls" style="margin-bottom: 15px;">
-            <div class="control-group">
-                <label>機種:</label>
-                <div id="tmMachineFilterContainer"></div>
-            </div>
-        </div>
-
-        <!-- 条件グループ設定 -->
-        <div class="tagmatch-rules-panel">
-            <div class="tagmatch-rules-header">
-                <h4>📋 マッチング条件</h4>
-                <div class="tagmatch-rules-actions">
-                    <button class="btn-small" id="tmAddGroup">＋ 条件グループを追加</button>
-                    <button class="btn-reset" id="tmClearRules">全てクリア</button>
-                </div>
-            </div>
-
-            <div class="filter-hint" style="margin-bottom:10px;">グループ内の条件はAND（すべて満たす）、グループ同士はOR（いずれか満たす）で判定します</div>
-
-            <div id="tmRulesList" class="tagmatch-rules-list">
-                <div class="tagmatch-rules-empty">条件グループを追加してマッチングを開始してください</div>
-            </div>
-
-            <button class="btn-apply tagmatch-execute-btn" id="tmExecute">🔍 マッチング実行</button>
-        </div>
-
-        <!-- 結果サマリー -->
-        <div class="tagmatch-summary" id="tmSummary" style="display:none;">
-            <div class="tagmatch-summary-cards" id="tmSummaryCards"></div>
-        </div>
-
-        <!-- 結果テーブル -->
-        <div id="tmResultSection" style="display:none;">
-            <div class="table-actions">
-                <button class="btn-copy" id="tmCopyBtn" title="結果をコピー">📋 全列コピー</button>
-                <button class="btn-copy" id="tmCopySimpleBtn" title="台番号・機種名のみコピー">📋 台番号・機種名</button>
-                <button class="btn-download" id="tmDownloadBtn" title="CSVダウンロード">💾 CSV</button>
-                <div class="control-group" style="margin-left:auto;">
-                    <label>並び替え:</label>
-                    <select id="tmSortBy">
-                        <option value="match_desc">マッチ数 多い順</option>
-                        <option value="unit_asc">台番号 ↑</option>
-                        <option value="unit_desc">台番号 ↓</option>
-                        <option value="machine_asc">機種名 あ→わ</option>
-                    </select>
-                </div>
-            </div>
-            <div class="table-wrapper">
-                <table class="tagmatch-result-table" id="tmResultTable">
-                    <thead></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-
-
-    </div><!-- /#tagmatch -->
-
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/data.js"></script>
@@ -804,7 +732,6 @@
     <script src="js/trend.js"></script>
     <script src="js/compare.js"></script>
     <script src="js/calendar.js"></script>
-    <script src="js/tagmatch.js"></script>
     <script src="js/island.js"></script>
     <script src="js/app.js"></script>
 </body>
