@@ -1,0 +1,109 @@
+/* ===================
+   theme.css — ページ全体カラーテーマ
+   ここを変えるだけで全体の色味が変わります
+
+   ダークテーマ（デフォルト）: 黒ベース
+   ライトテーマ: [data-theme="light"] で上書き
+   =================== */
+
+/* ===================
+   ダークテーマ（黒ベース）
+   =================== */
+:root {
+    /* ━━━ メインカラー ━━━
+       紺（#4a4a8a）から落ち着いたスレートブルーに変更。
+       背景が純黒寄りになるため主張を抑えた青みで調和させる。
+    */
+    --primary-color: #3d6b9a;
+    --primary-hover: #4d7baa;
+    --primary-light: #5d8bba;
+    --primary-dark:  #2d5b8a;
+
+    /* ━━━ 背景色 ━━━
+       旧: 紺寄り（#1a1a2e / #222244 / #16213e）
+       新: 純黒寄りのグレー階調に統一
+         base    → ページ背景（最も暗い）
+         elevated→ 行・パネル（1段明るい）
+         surface → セクション背景
+         card    → カード・サマリー
+         input   → フォーム入力欄
+    */
+    --bg-base:     #0d0d0d;
+    --bg-elevated: #181818;
+    --bg-surface:  #1e1e1e;
+    --bg-card:     #141414;
+    --bg-input:    #252525;
+
+    /* ━━━ テキスト ━━━ */
+    --text-primary:   #e8e8e8;
+    --text-secondary: #a0a0a0;
+    --text-muted:     #707070;
+    --text-disabled:  #484848;
+
+    /* ━━━ ボーダー ━━━
+       純黒背景に合わせて白系の薄いラインに変更
+    */
+    --border-color: #2e2e2e;
+    --border-light: #3a3a3a;
+    --border-focus: #4d7baa;
+
+    /* ━━━ アクセントカラー（変更なし） ━━━ */
+    --color-success: #4ade80;
+    --color-danger:  #f87171;
+    --color-info:    #60a5fa;
+    --color-warning: #fbbf24;
+    --color-purple:  #a855f7;
+    --color-pink:    #ec4899;
+
+    /* ━━━ ホール固有カラー ━━━ */
+    --hall-accent: #fbbf24;
+
+    /* ━━━ テーブル ━━━ */
+    --table-header-bg: var(--bg-card);
+    --table-row-even:  var(--bg-elevated);
+    --table-row-odd:   var(--bg-base);
+
+    /* ━━━ シャドウ ━━━
+       純黒背景のため影は薄く・広く
+    */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.6);
+}
+
+/* ===================
+   ライトテーマ上書き
+   =================== */
+[data-theme="light"] {
+    --primary-color: #4a6fa5;
+    --primary-hover: #5a7fb5;
+    --primary-light: #6a8fc5;
+    --primary-dark:  #3a5f95;
+
+    --bg-base:     #f5f5f5;
+    --bg-elevated: #ffffff;
+    --bg-surface:  #fafafa;
+    --bg-card:     #ffffff;
+    --bg-input:    #f0f0f0;
+
+    --text-primary:   #222;
+    --text-secondary: #555;
+    --text-muted:     #888;
+    --text-disabled:  #bbb;
+
+    --border-color: #ddd;
+    --border-light: #e8e8e8;
+    --border-focus: #4a6fa5;
+
+    --color-success: #16a34a;
+    --color-danger:  #dc2626;
+    --color-info:    #2563eb;
+
+    --table-header-bg: #ebebeb;
+    --table-row-even:  #f8f8f8;
+    --table-row-odd:   #ffffff;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
