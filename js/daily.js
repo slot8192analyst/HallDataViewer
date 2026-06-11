@@ -24,7 +24,10 @@ var DAILY_FILTER_COLUMNS = [
     { value: 'BB', label: 'BB', unit: '回', type: 'int' },
     { value: 'RB', label: 'RB', unit: '回', type: 'int' },
     { value: 'ART', label: 'ART', unit: '回', type: 'int' },
-    { value: '台番号末尾', label: '台番号末尾', unit: '', type: 'suffix' }
+    { value: '台番号末尾', label: '台番号末尾', unit: '', type: 'suffix' },
+    // バッジ系（2パス目のみ評価）
+    { value: '_mb_tako', label: '🐙タコだし順位', unit: '位以内', type: 'int', isBadge: true },
+    { value: '_mb_kubi', label: '💀死に台順位',   unit: '位以内', type: 'int', isBadge: true }
 ];
 
 var DAILY_FILTER_OPERATORS = [
@@ -257,6 +260,13 @@ function renderDailyFilterGroups() {
 }
 
 function getRowValueForFilter(row, column) {
+    // バッジ列（2パス目専用）
+    if (column === '_mb_tako') {
+        return (row._machineBadge && row._machineBadge.tako) ? row._machineBadge.tako : null;
+    }
+    if (column === '_mb_kubi') {
+        return (row._machineBadge && row._machineBadge.kubi) ? row._machineBadge.kubi : null;
+    }
     if (column === '台番号末尾') {
         var numOnly = (row['台番号'] || '').replace(/\D/g, '');
         if (numOnly.length === 0) return null;
@@ -291,7 +301,11 @@ function evaluateDailyFilterCondition(row, cond) {
     }
 }
 
-function applyDailyFilterGroups(data) {
+function applyDailyFilterGroups(data, includeBadgeCols) {
+    // includeBadgeCols=false → バッジ列(_mb_*)を含む条件はスキップ（1パス目）
+    // includeBadgeCols=true  → バッジ列のみの条件を適用（2パス目）
+    var badgeColVals = ['_mb_tako', '_mb_kubi'];
+
     var activeGroups = dailyFilterGroups.filter(function(group) {
         return group.conditions.some(function(c) {
             return c.value !== '' && c.value !== null && c.value !== undefined;
@@ -300,8 +314,23 @@ function applyDailyFilterGroups(data) {
 
     if (activeGroups.length === 0) return data;
 
+    // 各グループをモードに応じてフィルタリング
+    var effectiveGroups = activeGroups.map(function(group) {
+        var effectiveConds = group.conditions.filter(function(c) {
+            var isBadge = badgeColVals.indexOf(c.column) !== -1;
+            if (includeBadgeCols) {
+                return isBadge && c.value !== '' && c.value !== null && c.value !== undefined;
+            } else {
+                return !isBadge && c.value !== '' && c.value !== null && c.value !== undefined;
+            }
+        });
+        return { conditions: effectiveConds };
+    }).filter(function(g) { return g.conditions.length > 0; });
+
+    if (effectiveGroups.length === 0) return data;
+
     return data.filter(function(row) {
-        return activeGroups.some(function(group) {
+        return effectiveGroups.some(function(group) {
             return group.conditions.every(function(cond) {
                 return evaluateDailyFilterCondition(row, cond);
             });
@@ -360,11 +389,17 @@ function renderDailyTagPreview() {
 
     var html = defs.map(function(def) {
         var hasCond = TagEngine.hasActiveConditions(def.id);
+        var refBadge = '';
+        if (def.refDateMode === 'date' && def.refDateFile) {
+            var m = def.refDateFile.match(/(\d{4})_(\d{2})_(\d{2})\.csv$/);
+            var dateLabel = m ? (m[1] + '/' + m[2] + '/' + m[3]) : def.refDateFile;
+            refBadge = '<span class="tag-ref-date-badge" title="この日のデータで判定">📅' + dateLabel + '</span>';
+        }
         return '<span class="daily-tag-preview-badge" style="background: ' + def.color +
             '20; border-color: ' + def.color + '; color: ' + def.color + ';' +
             (hasCond ? '' : ' opacity:0.5;') + '"' +
             (hasCond ? '' : ' title="条件未設定"') + '>' +
-            def.icon + ' ' + escapeHtmlTag(def.name) + '</span>';
+            def.icon + ' ' + escapeHtmlTag(def.name) + refBadge + '</span>';
     }).join('');
 
     preview.innerHTML = html;
@@ -843,6 +878,22 @@ async function filterAndRender() {
         }
     }
 
+    // タグ基準日ファイルが未キャッシュなら事前ロード
+    if (typeof TagEngine !== 'undefined') {
+        var tagDefs = TagEngine.getAll();
+        for (var ti = 0; ti < tagDefs.length; ti++) {
+            var td = tagDefs[ti];
+            if (td.refDateMode === 'date' && td.refDateFile && !(dataCache && dataCache[td.refDateFile])) {
+                var refDateKey = getDateKeyFromFilename(td.refDateFile);
+                if (refDateKey) {
+                    var refYm = refDateKey.substring(0, 7);
+                    try { await loadMonthlyJSON('data/' + refYm + '.json'); } catch(e) {}
+                }
+                try { await loadCSV(td.refDateFile); } catch(e) {}
+            }
+        }
+    }
+
     var data = await loadCSV(currentFile);
 
     // スケルトン解除
@@ -877,11 +928,11 @@ async function filterAndRender() {
 
     data = [].concat(data);
 
-    // 複数タグ判定
+    // 複数タグ判定（基準日モード対応: dataCache を渡して基準日行を引けるようにする）
     var tagDefs = TagEngine.getAll();
     data = data.map(function(row) {
         var newRow = Object.assign({}, row);
-        newRow['_matchedTags'] = TagEngine.evaluateAll(row);
+        newRow['_matchedTags'] = TagEngine.evaluateAll(row, dataCache);
         return newRow;
     });
 
@@ -904,8 +955,8 @@ async function filterAndRender() {
     var sortBy = (_s.sortBy !== undefined ? _s.sortBy
         : (document.getElementById('sortBy') ? document.getElementById('sortBy').value : ''));
 
-    // 数値フィルター（グループAND/OR方式）
-    data = applyDailyFilterGroups(data);
+    // 数値フィルター 1パス目：バッジ列を除いた通常列のみ
+    data = applyDailyFilterGroups(data, false);
 
     // タグ付きのみ表示（DailyState から取得）
     var showTaggedOnlyVal = (_s.showTaggedOnly !== undefined ? _s.showTaggedOnly
@@ -947,10 +998,15 @@ async function filterAndRender() {
         }
     }
 
-    // 機種内バッジ付与（フィルター・ソート後のデータで機種内順位を確定）
+    // 機種内バッジ付与（1パス目フィルター・ソート後で機種内順位を確定）
+    // ※ここでバッジを計算するから順位がフィルター済みの同機種内で確定する
     if (typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled()) {
         data = MachineBadge.assignBadges(data, currentFile, dataCache, MachineBadge.getTargetColumn());
     }
+
+    // 数値フィルター 2パス目：バッジ列（_mb_tako/_mb_kubi）のみ
+    // バッジ付与後でないと順位値が存在しないため、ここで改めて絞る
+    data = applyDailyFilterGroups(data, true);
 
     renderTableWithColumns(data, 'data-table', 'summary', visibleColumns);
     await updateDateNavWithEvents();

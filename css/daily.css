@@ -709,3 +709,52 @@ select option {
         padding: 3px 8px 3px 8px;
     }
 }
+
+/* ===================
+   タグ基準日 UI
+   =================== */
+
+/* タグ定義ブロック内の基準日行 */
+.tag-ref-date-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px 6px 14px;
+    background: var(--bg-elevated);
+    border-top: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.tag-ref-date-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.tag-ref-mode-select,
+.tag-ref-file-select {
+    font-size: var(--font-size-sm);
+    padding: 4px 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.tag-ref-file-select {
+    flex: 1;
+    min-width: 120px;
+}
+
+/* プレビューバッジに付く基準日サブラベル */
+.tag-ref-date-badge {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 10px;
+    opacity: 0.85;
+    background: rgba(0,0,0,0.25);
+    border-radius: 3px;
+    padding: 0 4px;
+    vertical-align: middle;
+}
