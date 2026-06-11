@@ -839,3 +839,28 @@ button#badgeRecalcBtn:not(.badge-needs-calc) {
 .badge-filter-label:hover {
     color: var(--text-primary);
 }
+
+/* ===================
+   機種内順位ヘッダ クリックフィルター
+   =================== */
+
+/* バッジフィルター有効中の機種内順位ヘッダ */
+th.badge-col-header {
+    cursor: pointer;
+}
+
+th.badge-col-header.badge-filter-active {
+    background: var(--primary-color);
+    color: #fff;
+}
+
+th.badge-col-header.badge-filter-active .sort-icon {
+    color: #fff;
+}
+
+/* バッジフィルターチップ */
+.chip-badge-filter {
+    background: var(--primary-color, #3d6b9a)20;
+    border-color: var(--primary-color, #3d6b9a);
+    color: var(--primary-color, #3d6b9a);
+}

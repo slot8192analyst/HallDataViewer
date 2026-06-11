@@ -1196,7 +1196,6 @@ function renderActiveFilterChips() {
             'rate_desc': '機械割 ↓', 'rate_asc': '機械割 ↑',
             'machine_asc': '機種名 あ→わ', 'machine_desc': '機種名 わ→あ',
             'unit_asc': '台番号 ↑', 'unit_desc': '台番号 ↓',
-            'mb_tako_asc': '🐙タコだし順位 ↑', 'mb_kubi_asc': '💀死に台順位 ↑',
             'bb_desc': 'BB ↓', 'bb_asc': 'BB ↑',
             'rb_desc': 'RB ↓',  'rb_asc': 'RB ↑',
             'art_desc': 'ART ↓', 'art_asc': 'ART ↑'
@@ -1211,6 +1210,23 @@ function renderActiveFilterChips() {
                 DailyState.setState({ sortBy: '' });
                 dailySortColumn = null;
                 dailySortDir    = null;
+            }
+        });
+    }
+
+    // ---- バッジフィルターチップ ----
+    if (dailyBadgeFilter.tako || dailyBadgeFilter.kubi) {
+        var badgeChipLabel = (dailyBadgeFilter.tako && dailyBadgeFilter.kubi)
+            ? '🐙💀 バッジあり のみ'
+            : (dailyBadgeFilter.tako ? '🐙 タコだしあり のみ' : '💀 死に台あり のみ');
+        chips.push({
+            type: 'chip-badge-filter',
+            label: badgeChipLabel,
+            remove: function() {
+                dailyBadgeFilter.tako = false;
+                dailyBadgeFilter.kubi = false;
+                syncBadgeFilterCheckboxes();
+                filterAndRender();
             }
         });
     }
@@ -1303,8 +1319,18 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
     var tbody = table.querySelector('tbody');
     var displayColumns = columns.length > 0 ? columns : allColumns;
 
-    // ---- ヘッダ描画（ソート可能列にインジケーター付与） ----
+    // ---- ヘッダ描画（ソート可能列にインジケーター付与・機種内順位はフィルタートグル） ----
     thead.innerHTML = '<tr>' + displayColumns.map(function(h) {
+        if (h === '機種内順位') {
+            // バッジフィルター状態を反映したクリッカブルヘッダ
+            var isFiltering = (dailyBadgeFilter.tako || dailyBadgeFilter.kubi);
+            var filterClass = isFiltering ? ' badge-filter-active' : '';
+            var icon = isFiltering ? '🔽' : '⇅';
+            return '<th class="sortable badge-col-header' + filterClass + '" data-col="' + h + '">'
+                + h
+                + '<span class="sort-icon">' + icon + '</span>'
+                + '</th>';
+        }
         var sortKeys = SORTABLE_COLUMNS[h];
         if (!sortKeys) return '<th>' + h + '</th>';
         var isSorting = (dailySortColumn === h);
@@ -1316,10 +1342,28 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
             + '</th>';
     }).join('') + '</tr>';
 
-    // ヘッダクリックでソート切り替え
+    // ヘッダクリックでソート切り替え（機種内順位はバッジフィルタートグル）
     thead.querySelectorAll('th.sortable').forEach(function(th) {
         th.addEventListener('click', function() {
             var col = this.dataset.col;
+
+            // 機種内順位列: バッジ存在フィルターをトグル（🐙💀両方まとめて）
+            if (col === '機種内順位') {
+                var isFiltering = (dailyBadgeFilter.tako || dailyBadgeFilter.kubi);
+                if (isFiltering) {
+                    // OFF（解除）
+                    dailyBadgeFilter.tako = false;
+                    dailyBadgeFilter.kubi = false;
+                } else {
+                    // ON（両方バッジあり台のみを表示）
+                    dailyBadgeFilter.tako = true;
+                    dailyBadgeFilter.kubi = true;
+                }
+                syncBadgeFilterCheckboxes();
+                filterAndRender();
+                return;
+            }
+
             var keys = SORTABLE_COLUMNS[col];
             if (!keys) return;
 
