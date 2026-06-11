@@ -621,9 +621,9 @@
 }
 
 .trend-mc-pager {
-    background: #2a2a3e;
-    color: #ccc;
-    border: 1px solid #444;
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-light);
     border-radius: 6px;
     padding: 5px 12px;
     cursor: pointer;
@@ -632,8 +632,8 @@
     transition: background 0.15s, color 0.15s;
 }
 .trend-mc-pager:hover:not(:disabled) {
-    background: #3a3a5e;
-    color: #fff;
+    background: var(--bg-surface);
+    color: var(--text-primary);
 }
 .trend-mc-pager:disabled {
     opacity: 0.35;
@@ -647,9 +647,9 @@
 }
 
 .trend-mc-page-btn {
-    background: #2a2a3e;
-    color: #ccc;
-    border: 1px solid #444;
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-light);
     border-radius: 5px;
     padding: 4px 10px;
     cursor: pointer;
@@ -658,19 +658,19 @@
     transition: background 0.15s, color 0.15s;
 }
 .trend-mc-page-btn:hover {
-    background: #3a3a5e;
-    color: #fff;
+    background: var(--bg-surface);
+    color: var(--text-primary);
 }
 .trend-mc-page-btn.active {
-    background: #4f6ef7;
+    background: var(--primary-color);
     color: #fff;
-    border-color: #4f6ef7;
+    border-color: var(--primary-color);
     font-weight: bold;
 }
 
 .trend-mc-page-info {
     font-size: 12px;
-    color: #888;
+    color: var(--text-muted);
     margin-left: 4px;
 }
 
@@ -683,7 +683,7 @@
 }
 
 .trend-mc-card {
-    background: #1a1a2e;
+    background: var(--bg-card);
     border: 2px solid var(--mc-color, #4ade80);
     border-radius: 10px;
     padding: 14px 16px;
@@ -704,7 +704,7 @@
 .trend-mc-units {
     font-size: 11px;
     font-weight: normal;
-    color: #888;
+    color: var(--text-muted);
 }
 
 .trend-mc-total {
@@ -713,12 +713,12 @@
     margin: 4px 0 2px;
 }
 
-.trend-mc-total.plus { color: #4ade80; }
-.trend-mc-total.minus { color: #f87171; }
+.trend-mc-total.plus { color: var(--color-success); }
+.trend-mc-total.minus { color: var(--color-danger); }
 
 .trend-mc-label {
     font-size: 10px;
-    color: #888;
+    color: var(--text-muted);
     margin-bottom: 10px;
 }
 
@@ -736,20 +736,20 @@
 
 .trend-mc-stat-label {
     font-size: 10px;
-    color: #888;
+    color: var(--text-muted);
 }
 
 .trend-mc-stat-val {
     font-size: 13px;
     font-weight: 600;
-    color: #ddd;
+    color: var(--text-primary);
 }
 
-.trend-mc-stat-val.plus { color: #4ade80; }
-.trend-mc-stat-val.minus { color: #f87171; }
+.trend-mc-stat-val.plus { color: var(--color-success); }
+.trend-mc-stat-val.minus { color: var(--color-danger); }
 
 .trend-mc-nodata {
-    color: #666;
+    color: var(--text-disabled);
     font-size: 12px;
     padding: 8px 0;
 }
