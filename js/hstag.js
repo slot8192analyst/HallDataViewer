@@ -139,7 +139,12 @@ var TagEngine = (function() {
             name: name || '新しいタグ',
             color: color || PRESET_COLORS[0].value,
             icon: icon || '🏷️',
-            groups: []
+            groups: [],
+            // タグ判定の基準日モード
+            // 'current': 選択中の日のデータで判定（デフォルト）
+            // 'date'   : refDateFile で指定した日のデータで判定
+            refDateMode: 'current',
+            refDateFile: ''
         };
         definitions.push(def);
         save();
@@ -165,6 +170,8 @@ var TagEngine = (function() {
         if (updates.name !== undefined) def.name = updates.name;
         if (updates.color !== undefined) def.color = updates.color;
         if (updates.icon !== undefined) def.icon = updates.icon;
+        if (updates.refDateMode !== undefined) def.refDateMode = updates.refDateMode;
+        if (updates.refDateFile !== undefined) def.refDateFile = updates.refDateFile;
         save();
     }
 
@@ -290,17 +297,23 @@ var TagEngine = (function() {
 
     /**
      * 特定タグ定義で行を評価
+     * @param {string} defId
+     * @param {object} row       - 現在選択日の行データ
+     * @param {object} [refRow]  - 基準日モードの場合の参照行データ（省略時はrowを使用）
      */
-    function evaluate(defId, row) {
+    function evaluate(defId, row, refRow) {
         var def = getDefinition(defId);
         if (!def || def.groups.length === 0) return false;
+
+        // 条件評価に使う行データ（基準日モードなら refRow、なければ row）
+        var evalRow = (def.refDateMode === 'date' && refRow) ? refRow : row;
 
         for (var g = 0; g < def.groups.length; g++) {
             var conditions = def.groups[g].conditions;
             if (conditions.length === 0) continue;
             var groupPass = true;
             for (var c = 0; c < conditions.length; c++) {
-                if (!evaluateCondition(row, conditions[c])) {
+                if (!evaluateCondition(evalRow, conditions[c])) {
                     groupPass = false;
                     break;
                 }
@@ -312,11 +325,23 @@ var TagEngine = (function() {
 
     /**
      * 全タグ定義で行を評価し、マッチしたタグIDの配列を返す
+     * @param {object} row         - 現在選択日の行データ（台番号で参照行を引く）
+     * @param {object} [dateCache] - dataCache（基準日モードで参照行を探す）
      */
-    function evaluateAll(row) {
+    function evaluateAll(row, dateCache) {
         var matched = [];
         definitions.forEach(function(def) {
-            if (evaluate(def.id, row)) {
+            var refRow = null;
+            // 基準日モードかつ参照ファイル指定あり → dataCache からその日の同台番号行を取得
+            if (def.refDateMode === 'date' && def.refDateFile && dateCache && dateCache[def.refDateFile]) {
+                var unitNo = row['台番号'];
+                if (unitNo !== undefined && unitNo !== null) {
+                    refRow = dateCache[def.refDateFile].find(function(r) {
+                        return r['台番号'] === unitNo;
+                    }) || null;
+                }
+            }
+            if (evaluate(def.id, row, refRow)) {
                 matched.push(def.id);
             }
         });
@@ -411,6 +436,36 @@ var TagEngine = (function() {
         html += '</div>';
         html += '<button class="tag-def-remove-btn" data-def-id="' + def.id + '" title="タグを削除">🗑️</button>';
         html += '</div>';
+
+        // ── 基準日設定 ──────────────────────────────────────────
+        var refMode = def.refDateMode || 'current';
+        var refFile = def.refDateFile || '';
+
+        // CSV_FILES から日付降順リストを生成（グローバル変数）
+        var fileList = (typeof CSV_FILES !== 'undefined' && typeof sortFilesByDate === 'function')
+            ? sortFilesByDate(CSV_FILES, true)   // 新しい順
+            : (typeof CSV_FILES !== 'undefined' ? CSV_FILES.slice() : []);
+
+        html += '<div class="tag-ref-date-row">';
+        html += '<span class="tag-ref-date-label">📅 判定基準日:</span>';
+        html += '<select class="tag-ref-mode-select" data-def-id="' + def.id + '">';
+        html += '<option value="current"' + (refMode === 'current' ? ' selected' : '') + '>選択中の日（通常）</option>';
+        html += '<option value="date"'    + (refMode === 'date'    ? ' selected' : '') + '>日付を指定</option>';
+        html += '</select>';
+
+        // 日付指定モードのときだけ日付選択セレクトを表示
+        var dateSelectStyle = refMode === 'date' ? '' : ' style="display:none"';
+        html += '<select class="tag-ref-file-select" data-def-id="' + def.id + '"' + dateSelectStyle + '>';
+        html += '<option value="">-- 日付を選択 --</option>';
+        fileList.forEach(function(f) {
+            // ファイル名から表示用日付文字列を生成 (data/2026_06_09.csv → 2026/06/09)
+            var m = f.match(/(\d{4})_(\d{2})_(\d{2})\.csv$/);
+            var label = m ? (m[1] + '/' + m[2] + '/' + m[3]) : f;
+            html += '<option value="' + f + '"' + (refFile === f ? ' selected' : '') + '>' + label + '</option>';
+        });
+        html += '</select>';
+        html += '</div>';
+        // ─────────────────────────────────────────────────────────
 
         html += '<div class="tag-def-body">';
 
@@ -578,6 +633,28 @@ var TagEngine = (function() {
             if (el.tagName === 'INPUT') {
                 el.addEventListener('input', handler);
             }
+        });
+
+        // 基準日モード切り替え
+        container.querySelectorAll('.tag-ref-mode-select').forEach(function(sel) {
+            sel.addEventListener('change', function() {
+                var defId = this.dataset.defId;
+                var mode = this.value;
+                updateDefinition(defId, { refDateMode: mode });
+                // 日付セレクトの表示/非表示を切り替え
+                var block = this.closest('.tag-def-block');
+                var fileSelect = block ? block.querySelector('.tag-ref-file-select') : null;
+                if (fileSelect) fileSelect.style.display = (mode === 'date') ? '' : 'none';
+                notifyAllChanged();
+            });
+        });
+
+        // 基準日ファイル選択
+        container.querySelectorAll('.tag-ref-file-select').forEach(function(sel) {
+            sel.addEventListener('change', function() {
+                updateDefinition(this.dataset.defId, { refDateFile: this.value });
+                notifyAllChanged();
+            });
         });
     }
 
