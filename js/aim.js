@@ -841,33 +841,6 @@ var AimSheet = (function() {
         });
     }
 
-    // ========== ローカル エクスポート / インポート ==========
-
-    function exportJSON() {
-        var data = Object.assign({ version: 6, exportedAt: new Date().toISOString(), author: author }, pickPersist());
-        var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url; a.download = 'aim_sheet_settings.json';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
-    }
-
-    function importJSON(file) {
-        if (!file) return;
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                var p = JSON.parse(e.target.result);
-                applyPersist(p);
-                if (p.author) { author = p.author; saveAuthor(); syncAuthorInput(); }
-                rebuildVisible(); saveState(); renderBoard();
-                alert('設定を読み込みました。');
-            } catch (err) { alert('読み込みに失敗しました（JSON形式が不正です）。'); }
-        };
-        reader.readAsText(file);
-    }
-
     // ========== モーダル開閉 ==========
 
     function open() {
@@ -923,7 +896,6 @@ var AimSheet = (function() {
         bind('aimResetBtn', resetPlacement);
         bind('aimHiddenToggle', toggleHiddenPanel);
         bind('aimRank3Toggle', toggleRank3);
-        bind('aimExportJsonBtn', exportJSON);
         bind('aimCloudSaveBtn', cloudSave);
 
         // 作成者入力
