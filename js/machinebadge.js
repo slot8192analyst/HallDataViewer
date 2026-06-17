@@ -156,7 +156,7 @@ var MachineBadge = (function() {
      *
      * 戻り値: 各行に _machineBadge: { tako, kubi, cumVal, windowDays } を付与したデータ
      */
-    function assignBadges(data, currentFile, dataCacheRef, targetCol) {
+        function assignBadges(data, currentFile, dataCacheRef, targetCol) {
         if (!enabled || !data || data.length === 0) return data;
         var col = targetCol || getTargetColumn();
 
@@ -178,13 +178,36 @@ var MachineBadge = (function() {
             });
         });
 
-        // --- 機種ごとにランク計算 ---
+        // --- 機種ごとに台数別ロジックでランク計算 ---
+        //   3台以上 : 機種内で 🐙💀 を通常どおり順位付け
+        //   2台      : 💀（死に台）1位のみ付与（🐙 は付けない）
+        //   1台      : 「1台設置機種」をすべてまとめた横断グループで順位付け
         var allRanks = {};
+        var singleUnitItems = []; // 1台設置機種の台を集約
+
         Object.keys(machineGroups).forEach(function(machine) {
             var items = machineGroups[machine];
-            var ranks = calcRanksFromItems(items);
-            Object.assign(allRanks, ranks);
+
+            if (items.length >= 3) {
+                // 通常: 機種内ランク
+                Object.assign(allRanks, calcRanksFromItems(items));
+            } else if (items.length === 2) {
+                // 2台: 💀のみ。calcRanksFromItems の結果から tako を除去
+                var ranks2 = calcRanksFromItems(items);
+                Object.keys(ranks2).forEach(function(k) {
+                    ranks2[k].tako = null;
+                });
+                Object.assign(allRanks, ranks2);
+            } else {
+                // 1台: 横断グループへ集約（後でまとめて順位付け）
+                singleUnitItems = singleUnitItems.concat(items);
+            }
         });
+
+        // --- 1台設置機種の横断グループでランク計算 ---
+        if (singleUnitItems.length > 0) {
+            Object.assign(allRanks, calcRanksFromItems(singleUnitItems));
+        }
 
         // --- 行に付与（累積値・期間情報も一緒に保存） ---
         return data.map(function(row) {

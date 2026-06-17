@@ -5,7 +5,7 @@
 > コードを編集する前にこのファイルだけを読めば、「どのファイルに何が書いてあるか」「どこを直せばよいか」が分かることを目指す。
 > AI / 人間どちらも対象読者。**機能を追加・変更したらこのファイルも更新すること。**
 
-最終更新: 2026-06-17
+最終更新: 2026-06-17（機種プリセット拡張・機種フィルターUI簡素化・バッジ台数別ロジック追加）
 
 ---
 
@@ -125,12 +125,12 @@ webapp/
 | ファイル | 行数目安 | 役割 | 主な公開関数 / オブジェクト |
 |----------|---------|------|------------------------------|
 | **config.js** | ~80 | サイト設定。**編集の入口**（ホール名・テーマ・色・機種プリセット） | `SITE_CONFIG` |
-| **utils.js** | ~2300 | 共通基盤。**最重要・最大**。データストア定義、日付処理、ソート、テーブル描画、CSV/コピー、検索付きセレクト、イベント/位置データ処理 | `HallData`, `sortFilesByDate`, `formatDate`, `parseDateFromFilename`, `renderTable`, `convertToCSV`, `copyToClipboard`, `downloadAsCSV`, `initMultiSelectMachineFilter`, `loadEventData`, `getEventsForDate`, `loadPositionData`, `getPositionTags` |
+| **utils.js** | ~2300 | 共通基盤。**最重要・最大**。データストア定義、日付処理、ソート、テーブル描画、CSV/コピー、検索付きセレクト、イベント/位置データ処理。機種フィルター部品 `initMultiSelectMachineFilter` を生成（プリセット選択＋適用ボタンのみ。ユーザープリセット保存💾・管理⚙️ボタンは廃止） | `HallData`, `sortFilesByDate`, `formatDate`, `parseDateFromFilename`, `renderTable`, `convertToCSV`, `copyToClipboard`, `downloadAsCSV`, `initMultiSelectMachineFilter`, `loadEventData`, `getEventsForDate`, `loadPositionData`, `getPositionTags` |
 | **data.js** | ~450 | データ読み込み・キャッシュ・ローディング進捗・日付/機種セレクタ生成 | `loadInitialData`, `loadRemainingDataInBackground`, `loadMonthlyJSON`, `loadCSV`, `populateDateSelectors`, `populateMachineFilters`, `updateDateNav` |
 | **chart.js** | ~190 | Chart.js ラッパ。トレンドグラフ描画 | `renderTrendChart`, `CHART_COLORS` |
-| **preset.js** | ~270 | 機種フィルタープリセット（固定＋ユーザー定義）管理 | `MachinePreset`（IIFE） |
+| **preset.js** | ~270 | 機種フィルタープリセット（固定＋ユーザー定義）管理。判定方式は partial / exact / exclude。除外は `excludeKeywords`（部分一致）と `excludeMachines`（完全一致）の2系統。台数フィルタは `minCount`（下限）/ `maxCount`（上限）で、**選択中の日の設置台数**で判定（`resolve` の第3引数 `machineOptions` の `count` を参照） | `MachinePreset`（IIFE） |
 | **hstag.js** | ~850 | **汎用タグ判定エンジン**。条件（差枚/G数/機械割…）でAND/ORグループ判定。日別・比較・タグマッチで共用 | `TagEngine`（IIFE） |
-| **machinebadge.js** | ~410 | 機種内順位バッジ（🐙タコだし／💀死に台）。直近N日累積で順位付け | `MachineBadge`（IIFE） |
+| **machinebadge.js** | ~410 | 機種内順位バッジ（🐙タコだし／💀死に台）。直近N日累積で順位付け。**設置台数別ロジック**: 3台以上=機種内で順位付け、2台=💀のみ1位付与（🐙なし）、1台設置機種=全機種横断で1グループにまとめて順位付け（トレンドタブは対象外） | `MachineBadge`（IIFE） |
 | **daily-state.js** | ~330 | **日別タブの状態管理**。localStorage + URL と双方向同期。`setState`で再描画をバッチ | `DailyState`（`get/setState/init/applyDefaultDate`） |
 | **daily.js** | ~2100 | **日別データタブ**本体。テーブル描画、数値フィルター、タグ、表示列、バッジ、末尾統計、一括タグ付け | `filterAndRender`, `setupDailyEventListeners`, `initDailyMachineFilter`, `dailyFilterGroups` |
 | **trend.js** | ~1200 | **データトレンドタブ**。期間集計（台別/機種別）、グラフ、3段キャッシュ最適化 | `loadTrendData`, `setupTrendEventListeners`, `initTrendMachineFilter`, `trendCache`, `activeTrendFilters` |
@@ -181,9 +181,25 @@ webapp/
 - 定義は `localStorage('customTagDefinitions')` に保存
 - 日別・比較・タグマッチの各タブが同じエンジンを共用
 
+### 機種フィルタープリセット（`preset.js` / `MachinePreset`）
+- 日別・比較・トレンドの各タブ共通の機種フィルター部品（`utils.js` の `initMultiSelectMachineFilter`）から、プリセット選択 → 適用で利用
+- 固定プリセットは `config.js` の `SITE_CONFIG.machinePresets` で定義
+- 判定方式 `matchMode`: `partial`（部分一致）/ `exact`（`machines` 完全一致）/ `exclude`（除外方式）
+- 除外方式の補助: `excludeKeywords`（部分一致除外）/ `excludeMachines`（完全一致除外）
+- 台数で絞る: `minCount`（下限）/ `maxCount`（上限）。**選択中の日**の設置台数で判定
+- 現状の固定プリセット（OGIYA磐田店）: 主力AT機種(6台以上) / ジャグ・ハナ・沖スロ / サブAT機種(3〜5台) / バラエティ(2台以下) / アクロス系
+  - 主力/サブ/バラエティは `exclude` + `excludeMachines`（非AT機種を完全一致除外）+ 台数レンジで定義
+  - 非AT機種リストは `config.js` 上部の `NON_AT_MACHINES` 定数に集約
+- ユーザープリセットの保存・管理UI（💾⚙️）は廃止済み。`MachinePreset.add/remove/rename/updateMachines` のロジックは後方互換のため残置（未使用）
+
 ### 機種内バッジ（`machinebadge.js` / `MachineBadge`）
 - その日を含む**直近N日間の累積差枚（or G数）**で同一機種内の順位を算出
 - 🐙=上位（タコだし）、💀=下位（死に台）。表示順位 `[1,2,3]` をカスタム可
+- **設置台数別ロジック**（日別タブ `assignBadges`）:
+  - 3台以上 … 機種内で 🐙💀 を通常どおり順位付け
+  - 2台 … 💀（死に台）1位のみ付与。🐙 は付けない（2台同値ならバッジなし）
+  - 1台 … 単独では比較不可のため、「1台設置の機種」をすべてまとめた**横断グループ**で 🐙💀 を順位付け
+  - トレンドタブ（`assignBadgesForTrend`）はこのロジック非対象（選択期間合計での機種内順位のまま）
 - 設定は `localStorage`。設定変更後は**手動で再計算ボタン**が必要（フィルター変更では再計算しない）
 
 ### 状態の永続化
@@ -211,6 +227,10 @@ webapp/
 | やりたいこと | 触るファイル |
 |--------------|--------------|
 | ホール名・テーマ色・機種プリセットを変える | `js/config.js`（`SITE_CONFIG`） |
+| 機種フィルターのプリセット内容を変える | `js/config.js`（`SITE_CONFIG.machinePresets` / `NON_AT_MACHINES`） |
+| プリセットの判定ロジック（台数上限・完全一致除外など） | `js/preset.js`（`MachinePreset.resolve` / `resolveExclude`） |
+| 機種フィルターUIのボタン構成・見た目 | `js/utils.js`（`initMultiSelectMachineFilter`）+ `css/components.css`（`.preset-row` 等） |
+| バッジの台数別ロジック | `js/machinebadge.js`（`assignBadges`） |
 | テーブルの列・並び・見た目（日別） | `js/daily.js` + `css/daily.css` / `css/components.css` |
 | 日付ソートや日付フォーマット | `js/utils.js`（`sortFilesByDate` / `formatDate`） |
 | 新しい月データを追加 | `data/` に JSON 配置 → `files.json` を更新 |
@@ -231,6 +251,9 @@ webapp/
 - `tagmatch.js` のロジックは存在するが、`index.html` に対応タブボタンが無い（無効化中の可能性）。
 - `prompt.txt` のファイル一覧は古い。正は本 `ARCHITECTURE.md`。
 - 全データを文字列で保持しているため、数値比較・ソート時は各所でパースしている。
+- - 機種フィルターの💾保存・⚙️管理ボタンは廃止したが、`preset.js` の `add/remove/rename/updateMachines` と `components.css` の `.preset-save-btn` `.preset-manage-btn` `.preset-manage-panel` 系スタイルは未使用のまま残置している（復活させたくなったとき用）。
+- プリセットの `exact` / `excludeMachines` はデータの `機種名` と**完全一致**が前提。表記ゆれ（全角スペース・波ダッシュ・ハイフン種別など）があるとマッチしないため、機種追加時は実データと突き合わせて都度修正する運用。
+- バッジの台数別ロジックは日別タブ（`assignBadges`）のみ。トレンド（`assignBadgesForTrend`）は従来の機種内順位のまま二系統が併存している。
 
 ---
 
