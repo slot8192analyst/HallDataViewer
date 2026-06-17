@@ -305,49 +305,55 @@
     {
       "startDate": "2026_03_13",
       "endDate": "2026_04_19",
-      "machines": ["ネオアイムジャグラー"],
+      "machines": ["アイム"],
       "color": "#3b82f6"
     },
     {
       "startDate": "2026_04_20",
       "endDate": "2026_04_26",
-      "machines": ["マイジャグラーV"],
+      "machines": ["マイジャグ"],
       "color": "#3b82f6"
     },
     {
       "startDate": "2026_04_27",
       "endDate": "2026_05_03",
-      "machines": ["ファンキージャグラー2"],
+      "machines": ["ファンキー"],
       "color": "#3b82f6"
     },
     {
       "startDate": "2026_05_04",
       "endDate": "2026_05_10",
-      "machines": ["ゴーゴージャグラー3"],
+      "machines": ["ゴージャグ"],
       "color": "#3b82f6"
     },
     {
       "startDate": "2026_05_18",
       "endDate": "2026_05_24",
-      "machines": ["ジャグラーガールズ・カバネリ海門"],
+      "machines": ["ガールズ・海門"],
       "color": "#3b82f6"
     },
     {
       "startDate": "2026_05_25",
       "endDate": "2026_05_31",
-      "machines": ["ネオアイムEX"],
+      "machines": ["アイムEX"],
       "color": "#3b82f6"
     },
     {
       "startDate": "2026_06_01",
       "endDate": "2026_06_07",
-      "machines": ["ゴーゴージャグラー3"],
+      "machines": ["ゴージャグ"],
       "color": "#3b82f6"
     },
     {
       "startDate": "2026_06_08",
       "endDate": "2026_06_14",
-      "machines": ["ファンキージャグラー2,カバネリ海門"],
+      "machines": ["ファンキー,海門"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_06_15",
+      "endDate": "2026_06_21",
+      "machines": ["マイジャグ,GOD"],
       "color": "#3b82f6"
     }
  ],
