@@ -947,10 +947,7 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
                     '<div class="preset-row">' +
                         '<select class="preset-select"><option value="">プリセット選択...</option></select>' +
                         '<button type="button" class="multi-select-btn preset-apply-btn" title="適用">適用</button>' +
-                        '<button type="button" class="multi-select-btn preset-save-btn" title="現在の選択を保存">💾</button>' +
-                        '<button type="button" class="multi-select-btn preset-manage-btn" title="管理">⚙</button>' +
                     '</div>' +
-                    '<div class="preset-manage-panel" style="display:none;"></div>' +
                 '</div>' +
             '</div>' +
             '<div class="multi-select-options"></div>' +
@@ -970,14 +967,10 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
     // プリセットUI要素
     var presetSelect = container.querySelector('.preset-select');
     var presetApplyBtn = container.querySelector('.preset-apply-btn');
-    var presetSaveBtn = container.querySelector('.preset-save-btn');
-    var presetManageBtn = container.querySelector('.preset-manage-btn');
-    var presetManagePanel = container.querySelector('.preset-manage-panel');
 
     var selectedValues = new Set();
     var isOpen = false;
     var currentOptions = options;
-    var managePanelOpen = false;
 
     // ========== プリセット機能 ==========
 
@@ -1053,122 +1046,6 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
         if (onChange) onChange(getSelectedValues());
 
         showCopyToast('「' + preset.name + '」を適用: ' + matched.length + '機種');
-    }
-
-    function saveCurrentAsPreset() {
-        if (selectedValues.size === 0) {
-            showCopyToast('機種を選択してから保存してください', true);
-            return;
-        }
-        if (typeof MachinePreset === 'undefined') return;
-
-        var name = prompt('プリセット名を入力してください:');
-        if (!name || name.trim() === '') return;
-
-        name = name.trim();
-        var machines = Array.from(selectedValues);
-
-        var created = MachinePreset.add(name, machines);
-        if (created) {
-            populatePresetSelect();
-            presetSelect.value = created.id;
-            showCopyToast('「' + name + '」を保存しました (' + machines.length + '機種)');
-        }
-    }
-
-    function toggleManagePanel() {
-        managePanelOpen = !managePanelOpen;
-        presetManagePanel.style.display = managePanelOpen ? 'block' : 'none';
-
-        if (managePanelOpen) {
-            renderManagePanel();
-        }
-    }
-
-    function renderManagePanel() {
-        if (!presetManagePanel) return;
-        if (typeof MachinePreset === 'undefined') {
-            presetManagePanel.innerHTML = '<div class="preset-manage-empty">プリセット機能が利用できません</div>';
-            return;
-        }
-    
-        var allPresets = MachinePreset.getAll();
-        var users = allPresets.filter(function(p) { return p.type === 'user'; });
-        var available = getAvailableMachineNames();
-    
-        if (users.length === 0) {
-            presetManagePanel.innerHTML =
-                '<div class="preset-manage-empty">保存済みのプリセットはありません</div>';
-            return;
-        }
-    
-        var html = '<div class="preset-manage-title">⭐ マイプリセット管理</div>';
-        html += '<div class="preset-manage-list">';
-    
-        users.forEach(function(p) {
-            var matchCount = MachinePreset.resolve(p, available, currentOptions).length;
-            var totalCount = (p.machines || []).length;
-        
-            html += '<div class="preset-manage-item" data-id="' + p.id + '">';
-            html += '  <div class="preset-manage-info">';
-            html += '    <span class="preset-manage-name">' + escapeHtmlPreset(p.name) + '</span>';
-            html += '    <span class="preset-manage-meta">' + matchCount + '/' + totalCount + '機種が該当</span>';
-            html += '  </div>';
-            html += '  <div class="preset-manage-actions">';
-            html += '    <button class="preset-action-btn preset-update-btn" data-id="' + p.id + '" title="現在の選択で上書き">🔄</button>';
-            html += '    <button class="preset-action-btn preset-rename-btn" data-id="' + p.id + '" title="名前変更">✏️</button>';
-            html += '    <button class="preset-action-btn preset-delete-btn" data-id="' + p.id + '" title="削除">🗑️</button>';
-            html += '  </div>';
-            html += '</div>';
-        });
-    
-        html += '</div>';
-        presetManagePanel.innerHTML = html;
-    
-        // 以下のイベントリスナー部分は変更なし
-        presetManagePanel.querySelectorAll('.preset-update-btn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                var id = this.dataset.id;
-                if (selectedValues.size === 0) {
-                    showCopyToast('機種を選択してから上書きしてください', true);
-                    return;
-                }
-                if (confirm('現在の選択内容で上書きしますか？')) {
-                    MachinePreset.updateMachines(id, Array.from(selectedValues));
-                    populatePresetSelect();
-                    renderManagePanel();
-                    showCopyToast('プリセットを更新しました');
-                }
-            });
-        });
-    
-        presetManagePanel.querySelectorAll('.preset-rename-btn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                var id = this.dataset.id;
-                var newName = prompt('新しいプリセット名:');
-                if (newName && newName.trim()) {
-                    MachinePreset.rename(id, newName.trim());
-                    populatePresetSelect();
-                    renderManagePanel();
-                    showCopyToast('名前を変更しました');
-                }
-            });
-        });
-    
-        presetManagePanel.querySelectorAll('.preset-delete-btn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                var id = this.dataset.id;
-                if (confirm('このプリセットを削除しますか？')) {
-                    MachinePreset.remove(id);
-                    populatePresetSelect();
-                    renderManagePanel();
-                    showCopyToast('プリセットを削除しました');
-                }
-            });
-        });
     }
 
     // ========== 機種リスト描画 ==========
@@ -1277,8 +1154,6 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
         isOpen = false;
         dropdown.classList.remove('open');
         display.classList.remove('open');
-        managePanelOpen = false;
-        if (presetManagePanel) presetManagePanel.style.display = 'none';
     }
 
     function selectAll() {
@@ -1406,18 +1281,6 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
             applyPreset();
         });
     }
-    if (presetSaveBtn) {
-        presetSaveBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            saveCurrentAsPreset();
-        });
-    }
-    if (presetManageBtn) {
-        presetManageBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            toggleManagePanel();
-        });
-    }
 
     document.addEventListener('click', function(e) {
         if (!container.contains(e.target) && isOpen) {
@@ -1498,6 +1361,7 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
         open: openDropdown
     };
 }
+
 
 // ===================
 // 機種ごとの台数を取得

@@ -1685,23 +1685,14 @@ td:has(.position-tags) {
     }
 
     /* プリセット */
-    .preset-row {
-        flex-wrap: wrap;
-    }
-
     .preset-row .preset-select {
-        flex: 1 1 100%;
-        margin-bottom: 4px;
-    }
-
-    .preset-row .preset-apply-btn {
         flex: 1;
     }
 
-    .preset-row .preset-save-btn,
-    .preset-row .preset-manage-btn {
-        min-width: 36px;
+    .preset-row .preset-apply-btn {
+        flex: 0 0 auto;
     }
+
 
     .preset-manage-panel {
         max-height: 160px;

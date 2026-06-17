@@ -39,7 +39,9 @@ var MachinePreset = (function() {
                     keywords: p.keywords || [],
                     machines: p.machines || [],
                     excludeKeywords: p.excludeKeywords || [],
+                    excludeMachines: p.excludeMachines || [],   // 完全一致で除外
                     minCount: p.minCount || 0,
+                    maxCount: p.maxCount || 0,                   // 台数上限
                     type: 'builtin'
                 };
             });
@@ -104,11 +106,14 @@ var MachinePreset = (function() {
             matched = resolveInclude(preset, nameList);
         }
 
-        // minCount フィルター
-        if (preset.minCount && preset.minCount > 0) {
-            var minCount = preset.minCount;
+        // minCount / maxCount フィルター（選択中の日の台数で判定）
+        if ((preset.minCount && preset.minCount > 0) ||
+            (preset.maxCount && preset.maxCount > 0)) {
+            var minC = preset.minCount || 0;
+            var maxC = preset.maxCount || Infinity;
             matched = matched.filter(function(name) {
-                return (countMap[name] || 0) >= minCount;
+                var c = countMap[name] || 0;
+                return c >= minC && c <= maxC;
             });
         }
 
@@ -153,6 +158,7 @@ var MachinePreset = (function() {
      */
     function resolveExclude(preset, nameList) {
         var excludeKws = preset.excludeKeywords || [];
+        var excludeMachines = preset.excludeMachines || [];   // 完全一致除外リスト
 
         // ベースとなる機種リストを決定
         var baseList;
@@ -167,9 +173,16 @@ var MachinePreset = (function() {
             baseList = nameList.slice();
         }
 
-        if (excludeKws.length === 0) return baseList;
+        // 完全一致除外（excludeMachines）
+        if (excludeMachines.length > 0) {
+            var exactSet = new Set(excludeMachines);
+            baseList = baseList.filter(function(name) {
+                return !exactSet.has(name);
+            });
+        }
 
-        // excludeKeywordsで除外
+        // 部分一致除外（excludeKeywords）
+        if (excludeKws.length === 0) return baseList;
         return baseList.filter(function(name) {
             var mLower = name.toLowerCase();
             return !excludeKws.some(function(ekw) {
@@ -193,7 +206,9 @@ var MachinePreset = (function() {
             keywords: [],
             machines: machines.slice(),
             excludeKeywords: [],
+            excludeMachines: [],
             minCount: 0,
+            maxCount: 0,
             type: 'user'
         };
 
