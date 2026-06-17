@@ -1827,6 +1827,11 @@ function setupDailyEventListeners() {
 
     initDateSelectWithEvents();
     setupSuffixStatsEventListeners();
+
+     // 狙い台作成ページのイベント登録（AimSheet）
+    if (typeof AimSheet !== 'undefined') {
+        AimSheet.setupEvents();
+    }
 }
 
 // ===================
