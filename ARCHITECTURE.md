@@ -5,7 +5,7 @@
 > コードを編集する前にこのファイルだけを読めば、「どのファイルに何が書いてあるか」「どこを直せばよいか」が分かることを目指す。
 > AI / 人間どちらも対象読者。**機能を追加・変更したらこのファイルも更新すること。**
 
-最終更新: 2026-06-18（日別比較タブを削除／データトレンドタブを「解析」へ改称・ファイル名 trend→analysis にリネーム／タブを横幅均等割り付けに変更）
+最終更新: 2026-06-18（実態に合わせて全面更新：タブは「日別データ／解析／カレンダー／ヒートマップ」の4種に確定。日別比較タブ（compare.js/compare.css）は廃止済みでファイルも存在しない。データトレンドは「解析」へ改称し `analysis.js`/`analysis.css` にリネーム済み（内部関数名は `loadTrendData` 等 trend 由来のまま）。狙い台シート機能 `aim.js`/`aim.css` を新規追加。`tagmatch.js`/`tagmatch.css` はファイルは残るが `index.html` 未読み込みで無効。各ファイル行数も最新化）
 
 ---
 
@@ -15,7 +15,7 @@
 |------|------|
 | 種別 | 完全な**静的サイト**（ビルド不要・フロントはサーバー不要、ブラウザだけで動作） |
 | 言語 | バニラ JavaScript (ES5寄り / モジュールバンドラなし) + HTML + CSS |
-| 外部ライブラリ | [Chart.js](https://cdn.jsdelivr.net/npm/chart.js)（トレンドグラフ）、[html2canvas](https://cdn.jsdelivr.net/npm/html2canvas@1.4.1)（狙い台シートの画像出力）。いずれも CDN 読み込み |
+| 外部ライブラリ | [Chart.js](https://cdn.jsdelivr.net/npm/chart.js)（解析タブ・カレンダーのグラフ）、[html2canvas](https://cdn.jsdelivr.net/npm/html2canvas@1.4.1)（狙い台シートの画像出力）。いずれも CDN 読み込み |
 | データ | `data/YYYY_MM.json`（月別の台データ）を `fetch` で読み込み。**実データはすべて JSON**（CSVファイルは存在しない） |
 | 状態保存 | `localStorage` + URLクエリパラメータ（タグ・フィルター・選択日など）。狙い台シートは追加で **Cloudflare D1**（作成者ごとに端末間共有） |
 | バックエンド | 基本は不要（静的サイト）。狙い台シートの共有のみ **Cloudflare Workers + D1**（`/api/aim`）を利用 |
@@ -26,8 +26,8 @@
 2. `js/config.js` でホール名・テーマを設定
 3. `js/app.js` の `init()` が起動 → `files.json` を見て最新2か月分のJSONを先読み
 4. 残りの月は**バックグラウンドで遅延ロード**（`loadRemainingDataInBackground`）
-5. タブ（日別 / 比較 / トレンド / カレンダー / ヒートマップ）を切り替えて閲覧
-6. 日別タブからは「狙い台作成」モーダルを開き、💀凹み台を区分けして1枚画像出力・クラウド共有ができる
+5. タブ（**日別データ / 解析 / カレンダー / ヒートマップ** の4つ）を切り替えて閲覧
+6. 日別タブからは「狙い台作成」モーダルを開き、💀凹み台を区分けして1枚画像出力・クラウド共有ができる（`aim.js`）
 
 ---
 
@@ -46,8 +46,9 @@ webapp/
 │   ├── theme.css               … CSS変数（色）。テーマ切替の起点
 │   ├── style.css               … 全体レイアウト・タブ・ローディング
 │   ├── components.css          … 共通部品（テーブル/モーダル/ボタン/トースト）最大
-│   ├── daily.css / trend.css / compare.css / calendar.css / island.css
-│   ├── machinebadge.css / tagmatch.css
+│   ├── daily.css / analysis.css / calendar.css / island.css
+│   ├── machinebadge.css / aim.css
+│   └── tagmatch.css            … （※index.htmlで未読み込み・無効）
 │
 ├── data/
 │   ├── YYYY_MM.json            … ★本体データ。月単位。{ "YYYY_MM_DD": [ {台レコード}, ... ] }
@@ -58,8 +59,9 @@ webapp/
 ├── js/                         … アプリ本体（§4で各ファイル詳述）
 │   ├── config.js  utils.js  data.js  chart.js
 │   ├── preset.js  hstag.js  machinebadge.js
-│   ├── daily-state.js  daily.js  trend.js  compare.js
-│   ├── calendar.js  island.js  tagmatch.js  app.js
+│   ├── daily-state.js  daily.js  aim.js  analysis.js
+│   ├── calendar.js  island.js  app.js
+│   └── tagmatch.js             … （※index.htmlで未読み込み・無効）
 │
 └── converter/
     └── convert_csv_to_json.py  … HTML/CSV → 月別JSON 変換スクリプト（更新時に使う）
@@ -114,7 +116,9 @@ webapp/
 ## 4. JavaScript モジュール詳細
 
 読み込み順序（`index.html` 末尾）＝依存関係の順序：
-`config → utils → data → chart → preset → hstag → machinebadge → daily-state → daily → trend → compare → calendar → island → app`
+`config → utils → data → chart → preset → hstag → machinebadge → daily-state → daily → aim → analysis → calendar → island → app`
+
+> `tagmatch.js` は `index.html` から読み込まれていない（タブUIも無いため事実上無効）。`compare.js` / `trend.js` は存在しない（廃止／改称済み）。
 
 ### グローバル名前空間
 - `window.HallData`（`utils.js` で定義）… データストアと各タブ状態の集約オブジェクト
@@ -126,21 +130,21 @@ webapp/
 
 | ファイル | 行数目安 | 役割 | 主な公開関数 / オブジェクト |
 |----------|---------|------|------------------------------|
-| **config.js** | ~80 | サイト設定。**編集の入口**（ホール名・テーマ・色・機種プリセット） | `SITE_CONFIG` |
-| **utils.js** | ~2300 | 共通基盤。**最重要・最大**。データストア定義、日付処理、ソート、テーブル描画、CSV/コピー、検索付きセレクト、イベント/位置データ処理。機種フィルター部品 `initMultiSelectMachineFilter` を生成（プリセット選択＋適用ボタンのみ。ユーザープリセット保存💾・管理⚙️ボタンは廃止） | `HallData`, `sortFilesByDate`, `formatDate`, `parseDateFromFilename`, `renderTable`, `convertToCSV`, `copyToClipboard`, `downloadAsCSV`, `initMultiSelectMachineFilter`, `loadEventData`, `getEventsForDate`, `loadPositionData`, `getPositionTags` |
+| **config.js** | ~157 | サイト設定。**編集の入口**（ホール名・テーマ・色・機種プリセット）。非AT機種リスト `NON_AT_MACHINES` を冒頭に定義 | `SITE_CONFIG`, `NON_AT_MACHINES` |
+| **utils.js** | ~2200 | 共通基盤。**最重要・最大**。データストア定義、日付処理、ソート、テーブル描画、CSV/コピー、検索付きセレクト、イベント/位置データ処理。機種フィルター部品 `initMultiSelectMachineFilter` を生成（プリセット選択＋適用ボタンのみ。ユーザープリセット保存💾・管理⚙️ボタンは廃止） | `HallData`, `sortFilesByDate`, `formatDate`, `parseDateFromFilename`, `renderTable`, `convertToCSV`, `copyToClipboard`, `downloadAsCSV`, `initMultiSelectMachineFilter`, `loadEventData`, `getEventsForDate`, `loadPositionData`, `getPositionTags` |
 | **data.js** | ~450 | データ読み込み・キャッシュ・ローディング進捗・日付/機種セレクタ生成 | `loadInitialData`, `loadRemainingDataInBackground`, `loadMonthlyJSON`, `loadCSV`, `populateDateSelectors`, `populateMachineFilters`, `updateDateNav` |
-| **chart.js** | ~190 | Chart.js ラッパ。トレンドグラフ描画 | `renderTrendChart`, `CHART_COLORS` |
-| **preset.js** | ~270 | 機種フィルタープリセット（固定＋ユーザー定義）管理。判定方式は partial / exact / exclude。除外は `excludeKeywords`（部分一致）と `excludeMachines`（完全一致）の2系統。台数フィルタは `minCount`（下限）/ `maxCount`（上限）で、**選択中の日の設置台数**で判定（`resolve` の第3引数 `machineOptions` の `count` を参照） | `MachinePreset`（IIFE） |
-| **hstag.js** | ~850 | **汎用タグ判定エンジン**。条件（差枚/G数/機械割…）でAND/ORグループ判定。日別・比較・タグマッチで共用 | `TagEngine`（IIFE） |
-| **machinebadge.js** | ~410 | 機種内順位バッジ（🐙タコだし／💀死に台）。直近N日累積で順位付け。**設置台数別ロジック**: 3台以上=機種内で順位付け、2台=💀のみ1位付与（🐙なし）、1台設置機種=全機種横断で1グループにまとめて順位付け（トレンドタブは対象外） | `MachineBadge`（IIFE） |
-| **daily-state.js** | ~330 | **日別タブの状態管理**。localStorage + URL と双方向同期。`setState`で再描画をバッチ | `DailyState`（`get/setState/init/applyDefaultDate`） |
-| **daily.js** | ~2100 | **日別データタブ**本体。テーブル描画、数値フィルター、タグ、表示列、バッジ、末尾統計、一括タグ付け | `filterAndRender`, `setupDailyEventListeners`, `initDailyMachineFilter`, `dailyFilterGroups` |
-| **trend.js** | ~1200 | **データトレンドタブ**。期間集計（台別/機種別）、グラフ、3段キャッシュ最適化 | `loadTrendData`, `setupTrendEventListeners`, `initTrendMachineFilter`, `trendCache`, `activeTrendFilters` |
-| **compare.js** | ~1700 | **日別比較タブ**。基準日 vs 複数比較日、差分計算、タグ分析 | `initCompareTab`, `renderCompare`, `setupCompareEventListeners` |
-| **calendar.js** | ~880 | **カレンダータブ**。月間集計、イベント表示、累積差枚推移グラフ、日別タブへ遷移 | `renderCalendar`, `setupCalendarEventListeners`, `navigateToDailyData` |
-| **island.js** | ~690 | **ヒートマップ（島図）タブ**。`island-config.json`でレイアウト描画、表示モード切替 | `IslandMap`（`init/render`） |
-| **tagmatch.js** | ~1070 | タグマッチングタブ（※`index.html`にUIタブは現状未掲出。ロジックは存在） | `TagMatch`（IIFE） |
-| **app.js** | ~140 | **エントリポイント**。`init()`で全初期化、タブ切替イベント、各タブの遅延初期化 | `init`, `setupTabEventListeners`, `setupFilterPanelToggle` |
+| **chart.js** | ~190 | Chart.js ラッパ。解析タブ・カレンダーのトレンドグラフ描画 | `renderTrendChart`, `CHART_COLORS` |
+| **preset.js** | ~282 | 機種フィルタープリセット（固定＋ユーザー定義）管理。判定方式は partial / exact / exclude。除外は `excludeKeywords`（部分一致）と `excludeMachines`（完全一致）の2系統。台数フィルタは `minCount`（下限）/ `maxCount`（上限）で、**選択中の日の設置台数**で判定（`resolve` の第3引数 `machineOptions` の `count` を参照） | `MachinePreset`（IIFE） |
+| **hstag.js** | ~849 | **汎用タグ判定エンジン**。条件（差枚/G数/機械割…）でAND/ORグループ判定。日別タブ等で共用 | `TagEngine`（IIFE） |
+| **machinebadge.js** | ~436 | 機種内順位バッジ（🐙タコだし／💀死に台）。直近N日累積で順位付け。**設置台数別ロジック**: 3台以上=機種内で順位付け、2台=💀のみ1位付与（🐙なし）、1台設置機種=全機種横断で1グループにまとめて順位付け（解析タブは対象外） | `MachineBadge`（IIFE） |
+| **daily-state.js** | ~327 | **日別タブの状態管理**。localStorage + URL と双方向同期。`setState`で再描画をバッチ | `DailyState`（`get/setState/init/applyDefaultDate`） |
+| **daily.js** | ~2092 | **日別データタブ**本体。テーブル描画、数値フィルター、タグ、表示列、バッジ、末尾統計、一括タグ付け、狙い台モーダル起動 | `filterAndRender`, `setupDailyEventListeners`, `initDailyMachineFilter`, `dailyFilterGroups` |
+| **aim.js** | ~971 | **狙い台シート（AimSheet）**。日別タブのモーダルから起動。PC=HTML5 Drag&Drop／スマホ=長押しドラッグ＋タップメニューで凹み台を「最優先／優先／その他」ゾーンに区分け。💀🥇💀🥈💀🥉表記、機種除外（プリセット一括）、html2canvasで1枚画像出力。保存は localStorage（自動）＋**Cloudflare D1**（作成者ごとに upsert・他人のシート読込／削除）。Worker URL は `AIM_API_URL` 定数 | `AimSheet`（IIFE） |
+| **analysis.js** | ~1218 | **解析タブ**（旧データトレンド。ファイル名のみ analysis に改称、内部の関数・変数名は trend 由来のまま）。期間集計（台別/機種別、合計/平均）、Chart.jsグラフ、3段キャッシュ最適化 | `loadTrendData`, `setupTrendEventListeners`, `initTrendMachineFilter`, `trendCache`, `activeTrendFilters` |
+| **calendar.js** | ~885 | **カレンダータブ**。月間集計、イベント表示、累積差枚推移グラフ、日別タブへ遷移 | `renderCalendar`, `setupCalendarEventListeners`, `navigateToDailyData` |
+| **island.js** | ~688 | **ヒートマップ（島図）タブ**。`island-config.json`でレイアウト描画、表示モード切替 | `IslandMap`（`init/render`） |
+| **app.js** | ~130 | **エントリポイント**。`init()`で全初期化、タブ切替イベント（daily/analysis/calendar/island）、各タブの遅延初期化 | `init`, `setupTabEventListeners`, `setupFilterPanelToggle`, `populateMachineFilters` |
+| **tagmatch.js** | ~1067 | タグマッチングタブのロジック（※`index.html` から読み込まれておらず無効。`app.js` 内に `setupTagMatchEventListeners` 呼び出しの分岐だけ残る） | `TagMatch`（IIFE） |
 
 ---
 
@@ -152,12 +156,12 @@ webapp/
 | `style.css` | 全体レイアウト、`<h1>`、`.tabs`、ローディング画面 |
 | `components.css` | **共通部品（最大）**: テーブル `.table-wrapper`、モーダル `.app-modal`、ボタン、トースト、検索セレクト、チップ |
 | `daily.css` | 日別タブ固有（フィルターバー、各モーダル） |
-| `trend.css` | トレンドタブ（グラフ、固定列テーブル、機種サマリーカード） |
-| `compare.css` | 比較タブ（日付セレクタ、サマリーカード、分析） |
+| `analysis.css` | 解析タブ（グラフ、固定列テーブル、機種サマリーカード）。旧 trend.css |
 | `calendar.css` | カレンダー（グリッド、凡例、月間推移グラフ） |
 | `island.css` | 島図（マップ、ヒートマップセル、台詳細モーダル） |
 | `machinebadge.css` | 機種内バッジの見た目 |
-| `tagmatch.css` | タグマッチタブ |
+| `aim.css` | 狙い台シート（ゾーンボード、チップ、画像出力レイアウト、クラウド操作UI） |
+| `tagmatch.css` | タグマッチタブ（※index.html未読み込み・無効） |
 
 `config.js` の `customColors` は実行時に CSS変数へ上書き注入される（`theme.css`の変数が初期値）。
 
@@ -165,13 +169,16 @@ webapp/
 
 ## 6. タブ別 機能マップ
 
-| タブ | HTML id | 主担当JS | できること |
+実装されている表示タブは **4つ**（`data-tab` = `daily` / `analysis` / `calendar` / `island`）。タブは横幅均等割り付け。
+
+| タブ表示名 | HTML id (`data-tab`) | 主担当JS | できること |
 |------|---------|----------|-----------|
-| 日別データ | `#daily` | daily.js / daily-state.js | 1日分の全台テーブル。検索・ソート・数値フィルター・タグ・表示列・機種内バッジ・台番号末尾統計・CSV/コピー |
-| 日別比較 | `#compare` | compare.js | 基準日と複数比較日を横並び比較、差分、タグ分析 |
-| データトレンド | `trend.js` `#trend` | 期間内の推移（台別/機種別、合計/平均）、Chart.jsグラフ |
-| カレンダー | `#calendar` | calendar.js | 月カレンダーに日別サマリー＋イベント、月間累積差枚推移グラフ |
-| ヒートマップ | `#island` | island.js | フロア島図上に差枚/機械割/G数/タグを色分け表示 |
+| 日別データ | `daily` | daily.js / daily-state.js / aim.js | 1日分の全台テーブル。検索・ソート・数値フィルター・タグ・表示列・機種内バッジ・台番号末尾統計・CSV/コピー。「狙い台作成」モーダル（aim.js） |
+| 解析 | `analysis` | analysis.js | 期間内の推移（台別/機種別、合計/平均）、Chart.jsグラフ。旧「データトレンド」 |
+| カレンダー | `calendar` | calendar.js | 月カレンダーに日別サマリー＋イベント、月間累積差枚推移グラフ |
+| ヒートマップ | `island` | island.js | フロア島図上に差枚/機械割/G数/タグを色分け表示 |
+
+> 廃止/無効: 日別比較タブ（compare.js）は廃止済み。タグマッチタブ（tagmatch.js）はロジックのみ残存しUIタブ無し。
 
 ---
 
@@ -181,10 +188,10 @@ webapp/
 - ユーザーが「差枚≧1000 かつ G数≧5000」のような**条件グループ**を定義
 - グループ内＝AND、グループ同士＝OR で台を判定
 - 定義は `localStorage('customTagDefinitions')` に保存
-- 日別・比較・タグマッチの各タブが同じエンジンを共用
+- 主に日別タブで利用（旧・比較／タグマッチ用の共用エンジンだったが、それらのタブは廃止/無効）
 
 ### 機種フィルタープリセット（`preset.js` / `MachinePreset`）
-- 日別・比較・トレンドの各タブ共通の機種フィルター部品（`utils.js` の `initMultiSelectMachineFilter`）から、プリセット選択 → 適用で利用
+- 日別・解析の各タブ共通の機種フィルター部品（`utils.js` の `initMultiSelectMachineFilter`）から、プリセット選択 → 適用で利用。狙い台シート（`aim.js`）の機種除外でも同じプリセット定義を参照
 - 固定プリセットは `config.js` の `SITE_CONFIG.machinePresets` で定義
 - 判定方式 `matchMode`: `partial`（部分一致）/ `exact`（`machines` 完全一致）/ `exclude`（除外方式）
 - 除外方式の補助: `excludeKeywords`（部分一致除外）/ `excludeMachines`（完全一致除外）
@@ -201,16 +208,22 @@ webapp/
   - 3台以上 … 機種内で 🐙💀 を通常どおり順位付け
   - 2台 … 💀（死に台）1位のみ付与。🐙 は付けない（2台同値ならバッジなし）
   - 1台 … 単独では比較不可のため、「1台設置の機種」をすべてまとめた**横断グループ**で 🐙💀 を順位付け
-  - トレンドタブ（`assignBadgesForTrend`）はこのロジック非対象（選択期間合計での機種内順位のまま）
+  - 解析タブ（`assignBadgesForTrend`）はこのロジック非対象（選択期間合計での機種内順位のまま）
 - 設定は `localStorage`。設定変更後は**手動で再計算ボタン**が必要（フィルター変更では再計算しない）
+
+### 狙い台シート（`aim.js` / `AimSheet`）
+- 日別タブの「狙い台作成」モーダルから起動。凹み台（💀）を「最優先 / 優先 / その他」の3ゾーンに区分けし、1枚画像（html2canvas）として出力
+- 操作: PC=HTML5 Drag&Drop、スマホ=長押しドラッグ＋タップメニューの両対応。3位（💀🥉）の表示/非表示トグル、機種除外（プリセット一括可）
+- 保存: `localStorage('aimSheetState')` に自動保存。加えて **Cloudflare Workers + D1**（`AIM_API_URL` = `/api/aim`）に作成者名（`localStorage('aimSheetAuthor')`）ごとに upsert 保存。他人のシートの読込・削除も可能
 
 ### 状態の永続化
 - **日別タブ**: `DailyState`（`daily-state.js`）が `localStorage('dailyTabState')` とURLクエリに保存。URL共有で同じビューを再現可能
 - **タグ定義 / プリセット / バッジ設定 / 表示列**: それぞれ専用の `localStorage` キー
+- **狙い台シート**: `localStorage('aimSheetState')` + 作成者名 `localStorage('aimSheetAuthor')` + Cloudflare D1
 
 ### パフォーマンス最適化
 - 起動時は**最新2か月のみ**ロードし即表示 → 残りはバックグラウンドで並列ロード（`data.js`、同時3並列）
-- トレンドタブは3段キャッシュ（`trendCache`: rawData → aggregated → finalResults）で再計算を回避
+- 解析タブは3段キャッシュ（`trendCache`: rawData → aggregated → finalResults）で再計算を回避
 
 ---
 
@@ -236,7 +249,8 @@ webapp/
 | テーブルの列・並び・見た目（日別） | `js/daily.js` + `css/daily.css` / `css/components.css` |
 | 日付ソートや日付フォーマット | `js/utils.js`（`sortFilesByDate` / `formatDate`） |
 | 新しい月データを追加 | `data/` に JSON 配置 → `files.json` を更新 |
-| トレンドのグラフ表示 | `js/chart.js` + `js/trend.js` |
+| 解析タブのグラフ表示 | `js/chart.js` + `js/analysis.js` |
+| 狙い台シートの振る舞い（ゾーン・画像出力・クラウド保存） | `js/aim.js`（`AimSheet`）+ `css/aim.css`。Worker URL は `AIM_API_URL` |
 | タグの判定条件・UI | `js/hstag.js`（`TagEngine`） |
 | バッジ（🐙💀）のロジック | `js/machinebadge.js` |
 | 島図のレイアウト | `data/island-config.json` + `js/island.js` |
@@ -250,12 +264,15 @@ webapp/
 
 - `dataCache` のキーは `data/YYYY_MM_DD.csv` という**疑似CSVファイル名**（実体はJSON）。`loadCSV()` は実際にはキャッシュ参照のみ。
 - グローバル変数（`CSV_FILES` 等）と `HallData.store` が**二重管理**。`syncToStore/syncFromStore` で都度同期している。
-- `tagmatch.js` のロジックは存在するが、`index.html` に対応タブボタンが無い（無効化中の可能性）。
+- `tagmatch.js` / `tagmatch.css` はファイルとしては残るが、`index.html` から読み込まれておらずタブUIも無い（事実上無効）。`app.js` に `setupTagMatchEventListeners` 呼び出しの分岐だけが残るが、その `data-tab="tagmatch"` ボタンは HTML に無いため通常は到達しない。
+- `compare.js` / `compare.css` / `trend.js` / `trend.css` は**存在しない**（日別比較タブは廃止、トレンドは解析タブに改称し `analysis` にリネーム済み）。
+- 解析タブ（`analysis.js`）は**ファイル名のみ改称**されており、内部の関数・変数名（`loadTrendData` / `setupTrendEventListeners` / `trendCache` / `activeTrendFilters` など）は依然 trend 由来の名前のまま。検索時は注意。
 - `prompt.txt` のファイル一覧は古い。正は本 `ARCHITECTURE.md`。
 - 全データを文字列で保持しているため、数値比較・ソート時は各所でパースしている。
-- - 機種フィルターの💾保存・⚙️管理ボタンは廃止したが、`preset.js` の `add/remove/rename/updateMachines` と `components.css` の `.preset-save-btn` `.preset-manage-btn` `.preset-manage-panel` 系スタイルは未使用のまま残置している（復活させたくなったとき用）。
+- 機種フィルターの💾保存・⚙️管理ボタンは廃止したが、`preset.js` の `add/remove/rename/updateMachines` と `components.css` の `.preset-save-btn` `.preset-manage-btn` `.preset-manage-panel` 系スタイルは未使用のまま残置している（復活させたくなったとき用）。
 - プリセットの `exact` / `excludeMachines` はデータの `機種名` と**完全一致**が前提。表記ゆれ（全角スペース・波ダッシュ・ハイフン種別など）があるとマッチしないため、機種追加時は実データと突き合わせて都度修正する運用。
-- バッジの台数別ロジックは日別タブ（`assignBadges`）のみ。トレンド（`assignBadgesForTrend`）は従来の機種内順位のまま二系統が併存している。
+- バッジの台数別ロジックは日別タブ（`assignBadges`）のみ。解析タブ（`assignBadgesForTrend`）は従来の機種内順位のまま二系統が併存している。
+- 狙い台シートのクラウド保存は `aim.js` 冗頭の `AIM_API_URL` にハードコードされた Cloudflare Worker URL に依存。Worker/D1 未デプロイ時は localStorage 保存のみ動作し、クラウド操作は失敗する。
 
 ---
 
@@ -268,3 +285,9 @@ webapp/
 >
 > 例:「機種プリセットを増やしたい」
 > → 読ませるファイル: `ARCHITECTURE.md` + `js/config.js`（+ `js/preset.js`）
+>
+> 例:「狙い台シートのゾーンや画像レイアウトを変えたい」
+> → 読ませるファイル: `ARCHITECTURE.md` + `js/aim.js`（+ `css/aim.css`）
+>
+> 例:「解析タブの集計ロジック/グラフを変えたい」
+> → 読ませるファイル: `ARCHITECTURE.md` + `js/analysis.js`（+ `js/chart.js`）
