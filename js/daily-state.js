@@ -19,6 +19,10 @@
 //
 // ※ filterGroups は既存の dailyFilterGroups 変数と二重管理にならないよう
 //    setState 側で dailyFilterGroups へ書き戻す処理を含める。
+//
+// ※ dateFile は内部では疑似ファイル名 "data/YYYY_MM_DD.csv" 形式で保持するが、
+//    URL に書き出すときだけ末尾の .csv を削って "data/YYYY_MM_DD" にする。
+//    読み込むときは .csv が無ければ補完して内部キー形式に戻す。
 
 (function(global) {
     'use strict';
@@ -64,6 +68,18 @@
         return target;
     }
 
+    // dateFile: 内部キー（.csv 付き疑似ファイル名）→ URL 表記（.csv なし）
+    function stripDateFileExt(val) {
+        if (typeof val !== 'string') return val;
+        return val.replace(/\.csv$/, '');
+    }
+
+    // dateFile: URL 表記（.csv なし）→ 内部キー（.csv 付き疑似ファイル名）
+    function restoreDateFileExt(val) {
+        if (typeof val !== 'string' || val === '') return val;
+        return /\.csv$/.test(val) ? val : val + '.csv';
+    }
+
     // ----------------
     // localStorage
     // ----------------
@@ -96,6 +112,17 @@
 
         URL_KEYS.forEach(function(key) {
             var val = state[key];
+
+            // dateFile は URL に出すときだけ .csv を削る
+            if (key === 'dateFile') {
+                if (val === null || val === undefined || val === DEFAULT_STATE.dateFile) {
+                    params.delete(key);
+                } else {
+                    params.set(key, stripDateFileExt(val));
+                }
+                return;
+            }
+
             if (val === null || val === undefined || val === DEFAULT_STATE[key]) {
                 params.delete(key);
             } else if (Array.isArray(val)) {
@@ -128,7 +155,8 @@
         var params = new URLSearchParams(window.location.search);
         var patch = {};
 
-        if (params.has('dateFile'))         patch.dateFile = params.get('dateFile');
+        // dateFile は URL では .csv なし。内部キー形式（.csv 付き）に復元する
+        if (params.has('dateFile'))         patch.dateFile = restoreDateFileExt(params.get('dateFile'));
         if (params.has('search'))           patch.search = params.get('search');
         if (params.has('sortBy'))           patch.sortBy = params.get('sortBy');
         if (params.has('showTaggedOnly'))   patch.showTaggedOnly = params.get('showTaggedOnly') === '1';
