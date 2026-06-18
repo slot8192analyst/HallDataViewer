@@ -9,9 +9,8 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/daily.css">
-    <link rel="stylesheet" href="css/trend.css">
+    <link rel="stylesheet" href="css/analysis.css">
     <link rel="stylesheet" href="css/calendar.css">
-    <link rel="stylesheet" href="css/compare.css">
     <link rel="stylesheet" href="css/island.css">
     <link rel="stylesheet" href="css/machinebadge.css">
     <link rel="stylesheet" href="css/aim.css">
@@ -36,8 +35,7 @@
     <!-- タブ -->
     <div class="tabs">
         <button class="tab-btn active" data-tab="daily">日別データ</button>
-        <button class="tab-btn" data-tab="compare">日別比較</button>
-        <button class="tab-btn" data-tab="trend">データトレンド</button>
+        <button class="tab-btn" data-tab="analysis">解析</button>
         <button class="tab-btn" data-tab="calendar">カレンダー</button>
         <button class="tab-btn" data-tab="island">ヒートマップ</button>
     </div>
@@ -301,195 +299,9 @@
     </div>
 
     <!-- =================== -->
-    <!-- 日別比較タブ         -->
+    <!-- 解析タブ   -->
     <!-- =================== -->
-    <div id="compare" class="tab-content">
-        <div class="compare-header">
-            <h2>📅 日別データ比較</h2>
-            <p class="compare-description">基準日のデータを複数の比較日と並べて比較します</p>
-        </div>
-
-        <div class="compare-date-selectors">
-            <div class="compare-date-section compare-date-base">
-                <div class="compare-date-section-label">📌 基準日（今回）</div>
-                <div class="compare-date-group">
-                    <select id="compareDateBase"></select>
-                    <span class="compare-date-info" id="compareDateBaseInfo"></span>
-                </div>
-            </div>
-            <div class="compare-date-section compare-date-targets">
-                <div class="compare-date-section-label-row">
-                    <span class="compare-date-section-label">🔄 比較日</span>
-                    <button id="addCompareDate" class="btn-small">＋ 日付を追加</button>
-                </div>
-                <div id="compareDateList" class="compare-date-list">
-                </div>
-            </div>
-        </div>
-
-        <div class="compare-controls">
-            <div class="control-group">
-                <label>比較項目:</label>
-                <select id="compareDataColumn">
-                    <option value="差枚">差枚</option>
-                    <option value="G数">G数</option>
-                    <option value="BB">BB回数</option>
-                    <option value="RB">RB回数</option>
-                    <option value="ART">ART回数</option>
-                    <option value="機械割">機械割</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label>機種:</label>
-                <div id="compareMachineFilterContainer"></div>
-            </div>
-            <div class="control-group">
-                <label>並び替え:</label>
-                <select id="compareSortBy">
-                    <option value="diff_desc">差分 多い順</option>
-                    <option value="diff_asc">差分 少ない順</option>
-                    <option value="base_desc">基準日 多い順</option>
-                    <option value="base_asc">基準日 少ない順</option>
-                    <option value="unit_asc">台番号 ↑</option>
-                    <option value="unit_desc">台番号 ↓</option>
-                    <option value="machine_asc">機種名 あ→わ</option>
-                </select>
-            </div>
-            <button id="loadCompare" class="btn-apply">比較実行</button>
-        </div>
-
-        <!-- フィルターパネル -->
-        <div class="filter-panel collapsible">
-            <div class="filter-panel-header" id="compareFilterToggle">
-                <h4>🔍 フィルター設定</h4>
-                <span class="toggle-icon">▼</span>
-            </div>
-            <div class="filter-panel-content" id="compareFilterContent">
-                <div class="filter-section">
-                    <h5>数値フィルター</h5>
-                    <div class="filter-row">
-                        <div class="filter-item">
-                            <label>差分</label>
-                            <select id="compareDiffFilterType">
-                                <option value="">--</option>
-                                <option value="gte">以上</option>
-                                <option value="lte">以下</option>
-                            </select>
-                            <input type="number" id="compareDiffFilterValue" placeholder="値">
-                        </div>
-                        <div class="filter-item">
-                            <label>表示</label>
-                            <select id="compareShowFilter">
-                                <option value="">全て</option>
-                                <option value="improved">改善のみ（基準日 > 比較日1）</option>
-                                <option value="declined">悪化のみ（基準日 < 比較日1）</option>
-                                <option value="both">全日データあり</option>
-                            </select>
-                        </div>
-                        <div class="filter-item">
-                            <label>台番号末尾</label>
-                            <select id="compareUnitSuffixFilter">
-                                <option value="">全て</option>
-                                <option value="0">0</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                                <option value="9">9</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="filter-buttons">
-                        <button class="btn-reset" id="resetCompareFilter">リセット</button>
-                    </div>
-                </div>
-
-                <div class="filter-section">
-                    <h5>🏷️ タグ条件</h5>
-                    <p class="filter-hint">タグごとに名前・色・条件を自由に設定できます。グループ内はAND、グループ同士はORで判定します</p>
-                    <div id="tagGroupsList"></div>
-                    <div class="tag-display-row">
-                        <label class="column-checkbox-item">
-                            <input type="checkbox" id="showTaggedOnly">
-                            <span>タグ付きのみ表示</span>
-                        </label>
-                        <label class="column-checkbox-item">
-                            <input type="checkbox" id="showTagBothDays">
-                            <span>全日タグ付きのみ</span>
-                        </label>
-                        <span class="tag-count-display" id="tagCountDisplay"></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="compare-summary-cards" id="compareSummary"></div>
-
-        <div class="compare-analysis-container collapsible" id="compareAnalysisContainer">
-            <div class="compare-analysis-header" id="compareAnalysisToggle">
-                <h4>🏷️ タグ分析</h4>
-                <div class="analysis-header-right">
-                    <div class="analysis-controls" onclick="event.stopPropagation();">
-                        <div class="control-group">
-                            <label>タグ:</label>
-                            <select id="analysisTagSelect">
-                                <option value="">タグを選択...</option>
-                            </select>
-                        </div>
-                        <div class="control-group">
-                            <label>表示:</label>
-                            <select id="analysisViewMode">
-                                <option value="overall">全体</option>
-                                <option value="machine">機種別</option>
-                            </select>
-                        </div>
-                        <button class="btn-copy btn-analysis-action" id="copyAnalysisBtn" title="分析データをコピー">📋</button>
-                        <button class="btn-download btn-analysis-action" id="downloadAnalysisCsvBtn" title="分析CSVダウンロード">💾</button>
-                    </div>
-                    <span class="toggle-icon">▼</span>
-                </div>
-            </div>
-            <div class="compare-analysis-content" id="compareAnalysisContent">
-                <div class="analysis-summary" id="analysisSummary"></div>
-                <div class="analysis-tables" id="analysisTables"></div>
-            </div>
-        </div>
-
-        <div class="table-actions">
-            <button class="btn-copy" id="copyCompareTableBtn" title="テーブルをクリップボードにコピー">📋 コピー</button>
-            <button class="btn-download" id="downloadCompareCsvBtn" title="CSVファイルをダウンロード">💾 CSV</button>
-            <div class="compare-col-select-wrapper">
-                <button class="btn-col-select" id="compareColSelectBtn" title="表示列を選択">📋 表示列</button>
-                <div class="compare-col-dropdown" id="compareColDropdown">
-                    <div class="compare-col-dropdown-header">
-                        <span>表示列の選択</span>
-                        <div class="compare-col-dropdown-actions">
-                            <button class="btn-small" id="compareSelectAllCols">全選択</button>
-                            <button class="btn-small" id="compareDeselectAllCols">全解除</button>
-                        </div>
-                    </div>
-                    <div class="compare-col-dropdown-list" id="compareColumnCheckboxes">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="table-wrapper">
-            <table id="compare-table">
-                <thead></thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- =================== -->
-    <!-- データトレンドタブ   -->
-    <!-- =================== -->
-    <div id="trend" class="tab-content">
+    <div id="analysis" class="tab-content">
         <div class="controls">
             <div class="control-group">
                 <label>表示期間:</label>
@@ -800,8 +612,7 @@
     <script src="js/daily-state.js"></script>
     <script src="js/daily.js"></script>
     <script src="js/aim.js"></script>
-    <script src="js/trend.js"></script>
-    <script src="js/compare.js"></script>
+    <script src="js/analysis.js"></script>
     <script src="js/calendar.js"></script>
     <script src="js/island.js"></script>
     <script src="js/app.js"></script>

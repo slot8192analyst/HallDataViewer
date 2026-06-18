@@ -577,6 +577,12 @@ tr:nth-child(odd) {
         padding: 8px 10px;
     }
 
+    .tabs .tab-btn {
+    flex: 1 1 0;
+    text-align: center;
+    white-space: nowrap;
+}
+
     .controls input,
     .controls select {
         padding: 8px;

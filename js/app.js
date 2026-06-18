@@ -24,7 +24,6 @@ function setupFilterPanelToggle(toggleId, contentId) {
     });
 }
 
-var compareTabInitialized = false;
 var tagmatchTabInitialized = false;
 
 function setupTabEventListeners() {
@@ -39,13 +38,8 @@ function setupTabEventListeners() {
 
             if (tabName === 'calendar') {
                 renderCalendar();
-            } else if (tabName === 'trend') {
+            } else if (tabName === 'analysis') {
                 loadTrendData();
-            } else if (tabName === 'compare') {
-                if (!compareTabInitialized) {
-                    initCompareTab();
-                    compareTabInitialized = true;
-                }
             } else if (tabName === 'tagmatch') {
                 if (!tagmatchTabInitialized) {
                     setupTagMatchEventListeners();
@@ -101,7 +95,6 @@ async function init() {
     setupTabEventListeners();
     setupDailyEventListeners();
     setupTrendEventListeners();
-    setupCompareEventListeners();
     document.getElementById('trendViewMode')?.addEventListener('change', function() {
         var machineValueTypeGroup = document.getElementById('machineValueTypeGroup');
         if (machineValueTypeGroup) {
@@ -111,7 +104,6 @@ async function init() {
     setupCalendarEventListeners();
 
     setupFilterPanelToggle('trendFilterToggle', 'trendFilterContent');
-    setupFilterPanelToggle('compareFilterToggle', 'compareFilterContent');
 
     updateLoadingProgress(100, 100, '表示準備中...');
     
