@@ -4,7 +4,7 @@
 // PC: HTML5 Drag&Drop / スマホ: 長押しドラッグ＋タップメニュー の両対応。
 // 凹みは 💀🥇💀🥈💀🥉 表記。3位は表示/非表示トグル。機種除外（プリセット一括可）。
 // 画像はリスト形式で html2canvas 出力。
-// 保存: localStorage（自動）＋ Cloudflare D1（作成者ごとに upsert / 他人のシート読込）。
+// 保存: localStorage（自動）＋ Cloudflare D1（作成者ごとに upsert / 他人のシート読込・削除）。
 // ===================
 
 var AimSheet = (function() {
@@ -158,6 +158,38 @@ var AimSheet = (function() {
         });
     }
 
+    function cloudDelete() {
+        var sel = document.getElementById('aimCloudList');
+        if (!sel || !sel.value) {
+            alert('削除するシートをセレクトから選んでください。');
+            return;
+        }
+        var targetAuthor = sel.value;
+        if (!confirm('「' + targetAuthor + '」さんのシートをクラウドから削除します。\nこの操作は取り消せません。よろしいですか?')) {
+            return;
+        }
+        var btn = document.getElementById('aimCloudDeleteBtn');
+        if (btn) { btn.disabled = true; btn.textContent = '削除中...'; }
+
+        fetch(AIM_API_URL + '?author=' + encodeURIComponent(targetAuthor), { method: 'DELETE' })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            if (res && res.ok) {
+                toast('🗑️ ' + targetAuthor + ' さんのシートを削除しました');
+                sel.value = '';
+                refreshCloudList();
+            } else {
+                alert('削除に失敗しました: ' + (res && res.error ? res.error : '不明なエラー'));
+            }
+        })
+        .catch(function(err) {
+            alert('削除に失敗しました（通信エラー）: ' + err);
+        })
+        .finally(function() {
+            if (btn) { btn.disabled = false; btn.textContent = '🗑️ 選択シートを削除'; }
+        });
+    }
+
     function refreshCloudList() {
         var sel = document.getElementById('aimCloudList');
         if (!sel) return;
@@ -179,7 +211,6 @@ var AimSheet = (function() {
         if (typeof showCopyToast === 'function') { showCopyToast(msg); return; }
         var meta = document.getElementById('aimMeta');
         if (meta) {
-            var old = meta.textContent;
             meta.textContent = msg;
             setTimeout(function() { updateMeta(); }, 2000);
         }
@@ -897,6 +928,7 @@ var AimSheet = (function() {
         bind('aimHiddenToggle', toggleHiddenPanel);
         bind('aimRank3Toggle', toggleRank3);
         bind('aimCloudSaveBtn', cloudSave);
+        bind('aimCloudDeleteBtn', cloudDelete);
 
         // 作成者入力
         var authorInput = document.getElementById('aimAuthorInput');
@@ -914,16 +946,6 @@ var AimSheet = (function() {
                 if (this.value) cloudLoad(this.value);
             });
         }
-
-        var importInput = document.getElementById('aimImportJsonInput');
-        if (importInput) {
-            importInput.addEventListener('change', function(e) {
-                if (e.target.files && e.target.files[0]) importJSON(e.target.files[0]);
-                e.target.value = '';
-            });
-        }
-        var importBtn = document.getElementById('aimImportJsonBtn');
-        if (importBtn && importInput) importBtn.addEventListener('click', function() { importInput.click(); });
 
         var modal = document.getElementById('aimModal');
         if (modal) modal.addEventListener('click', function(e) { if (e.target === modal) close(); });
