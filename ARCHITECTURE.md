@@ -262,7 +262,7 @@ webapp/
 
 ## 10. 既知の注意点 / 技術的負債
 
-- `dataCache` のキーは `data/YYYY_MM_DD.csv` という**疑似CSVファイル名**（実体はJSON）。`loadCSV()` は実際にはキャッシュ参照のみ。
+- `dataCache` のキーは `data/YYYY_MM_DD.csv` という**疑似CSVファイル名**（実体はJSON）。`loadCSV()` は実際にはキャッシュ参照のみ。「dateFile はURL表記では .csv を省く（daily-state.js の stripDateFileExt/restoreDateFileExt で変換、内部キーは従来どおり .csv 付き）
 - グローバル変数（`CSV_FILES` 等）と `HallData.store` が**二重管理**。`syncToStore/syncFromStore` で都度同期している。
 - `tagmatch.js` / `tagmatch.css` はファイルとしては残るが、`index.html` から読み込まれておらずタブUIも無い（事実上無効）。`app.js` に `setupTagMatchEventListeners` 呼び出しの分岐だけが残るが、その `data-tab="tagmatch"` ボタンは HTML に無いため通常は到達しない。
 - `compare.js` / `compare.css` / `trend.js` / `trend.css` は**存在しない**（日別比較タブは廃止、トレンドは解析タブに改称し `analysis` にリネーム済み）。
