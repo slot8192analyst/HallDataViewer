@@ -50,6 +50,12 @@ function setupTabEventListeners() {
                 if (typeof IslandMap !== 'undefined' && typeof IslandMap.init === 'function') {
                     IslandMap.init();
                 }
+            } else if (tabName === 'memo') {
+                // メモタブの初期化
+                if (typeof SeatMemo !== 'undefined') {
+                    SeatMemo.setupEvents(); // 内部で初回のみ登録
+                    SeatMemo.init();
+                }
             }
         });
     });

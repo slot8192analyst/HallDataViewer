@@ -8,6 +8,8 @@ var dailyMachineFilterSelect = null;
 var dailyTagUIInitialized = false;
 var dailyBadgeUIInitialized = false;
 
+var dailyCurrentFile = null; // ★メモ機能: メモ列描画で参照する現在表示中のファイル
+
 // 列ヘッダクリックソート用状態
 var dailySortColumn = null;   // 現在ソート中の列名
 var dailySortDir    = null;   // 'asc' | 'desc'
@@ -569,6 +571,11 @@ function initColumnSelector() {
         allColumns.push('機種内順位');
     }
 
+    // ★メモ機能: メモ列を表示列の選択肢に追加
+    if (allColumns.indexOf('メモ') === -1) {
+        allColumns.push('メモ');
+    }
+
     var savedColumns = localStorage.getItem('visibleColumns');
     if (savedColumns) {
         try {
@@ -942,6 +949,8 @@ async function filterAndRender() {
     }
 
     if (!currentFile) return;
+
+    dailyCurrentFile = currentFile; // ★メモ機能: メモ列描画で参照する現在ファイルを保持
 
     // キャッシュ未ロードなら スケルトン表示 → 月別JSONを取得
     var isCached = !!(dataCache && dataCache[currentFile]);
@@ -1428,9 +1437,28 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
 
     var tagDefs = TagEngine.getAll();
 
+    // ★メモ機能: メモ列を出すために、現在表示中ファイルの日付キーとメモを事前に取得
+    var memoDateKey = '';
+    var memoForDate = {};
+    if (typeof SeatMemo !== 'undefined' && dailyCurrentFile) {
+        memoDateKey = (typeof getDateKeyFromFilename === 'function')
+            ? (getDateKeyFromFilename(dailyCurrentFile) || '') : '';
+        memoForDate = SeatMemo.getForDate(memoDateKey);
+    }
+
     tbody.innerHTML = data.map(function(row) {
         return '<tr>' + displayColumns.map(function(h) {
             var val = row[h];
+
+            // ★メモ機能: メモ列の1セル要約描画
+            if (h === 'メモ') {
+                var memoBadges = '';
+                if (typeof SeatMemo !== 'undefined') {
+                    var memo = memoForDate[String(row['台番号'])];
+                    memoBadges = SeatMemo.badgeHtml(memo);
+                }
+                return '<td class="memo-col-cell">' + (memoBadges || '<span class="text-muted">-</span>') + '</td>';
+            }
 
             if (h === '機種内順位') {
                 if (typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled()) {
