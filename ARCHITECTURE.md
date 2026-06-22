@@ -5,7 +5,7 @@
 > コードを編集する前にこのファイルだけを読めば、「どのファイルに何が書いてあるか」「どこを直せばよいか」が分かることを目指す。
 > AI / 人間どちらも対象読者。**機能を追加・変更したらこのファイルも更新すること。**
 
-最終更新: 2026-06-18（実態に合わせて全面更新：タブは「日別データ／解析／カレンダー／ヒートマップ」の4種に確定。日別比較タブ（compare.js/compare.css）は廃止済みでファイルも存在しない。データトレンドは「解析」へ改称し `analysis.js`/`analysis.css` にリネーム済み（内部関数名は `loadTrendData` 等 trend 由来のまま）。狙い台シート機能 `aim.js`/`aim.css` を新規追加。`tagmatch.js`/`tagmatch.css` はファイルは残るが `index.html` 未読み込みで無効。各ファイル行数も最新化）
+最終更新: 2026-06-22（ナビゲーション構造を全面刷新：従来のタブUIを廃止し、URLハッシュベースのルーター（js/router.js）＋ターミナル（ホーム）ページ起点の画面遷移に移行。各タブのHTMLは index.html から partials/*.html へ分割し、初回表示時に fetch して挿入する遅延ロード方式に変更。状態保持（DailyState・各エンジン・常駐JS）は従来どおりで、ページ間移動でフィルター等は維持される。2026-06-18: タブは4種に確定、compare 廃止、trend→analysis 改称、aim 追加 等）
 
 ---
 
@@ -22,12 +22,13 @@
 | データ変換 | `converter/convert_csv_to_json.py`（HTML/CSV → 月別JSON、Python） |
 
 ### 動作の流れ（ざっくり）
-1. ブラウザで `index.html` を開く
+1. ブラウザで `index.html` を開く（http配信が必須。`file://` ではパーシャルの fetch が失敗する）
 2. `js/config.js` でホール名・テーマを設定
-3. `js/app.js` の `init()` が起動 → `files.json` を見て最新2か月分のJSONを先読み
+3. `js/app.js` の `init()` が起動 → `files.json` を見て最新2か月分のJSONを先読み → 最後に `Router.start()` を呼ぶ
 4. 残りの月は**バックグラウンドで遅延ロード**（`loadRemainingDataInBackground`）
-5. タブ（**日別データ / 解析 / カレンダー / ヒートマップ** の4つ）を切り替えて閲覧
-6. 日別タブからは「狙い台作成」モーダルを開き、💀凹み台を区分けして1枚画像出力・クラウド共有ができる（`aim.js`）
+5. 起動直後は**ホーム（ターミナル）ページ**を表示。ホームのカード（または各ページの「← ホーム」ボタン）で画面遷移する。遷移はURLハッシュ（`#daily` 等）で表現され、リロードしても同じページが開く
+6. 各ページのHTMLは初回アクセス時に `partials/*.html` から fetch されて挿入される（2回目以降はDOMを残したまま表示切替。状態も維持）
+7. 日別ページからは「狙い台作成」モーダルを開き、💀凹み台を区分けして1枚画像出力・クラウド共有ができる（`aim.js`）
 
 ---
 
@@ -35,7 +36,7 @@
 
 ```
 webapp/
-├── index.html                  … 全タブのHTML骨格（UIの正）。要素IDの一覧はここ
+├── index.html                  … ガワ（ローディング・ホーム・各ページの空コンテナ）。各ページ実体は partials/ にある
 ├── files.json                  … 読み込む月別JSONのリスト（新しい月→古い月の順）
 ├── events.json                 … イベント/取材/新台情報（カレンダー・日付セレクタで使用）
 ├── prompt.txt / README.md      … メモ書き
@@ -60,8 +61,15 @@ webapp/
 │   ├── config.js  utils.js  data.js  chart.js
 │   ├── preset.js  hstag.js  machinebadge.js
 │   ├── daily-state.js  daily.js  aim.js  analysis.js
-│   ├── calendar.js  island.js  app.js
+│   ├── calendar.js  island.js  router.js  app.js
 │   └── tagmatch.js             … （※index.htmlで未読み込み・無効）
+│
+├── partials/                   … 各ページのHTML断片（初回アクセス時に router.js が fetch して挿入）
+│   ├── daily.html              … 日別データページの中身（外側の #daily ラッパーは含めない）
+│   ├── memo.html               … メモページの中身
+│   ├── analysis.html           … 解析ページの中身
+│   ├── calendar.html           … カレンダーページの中身
+│   └── island.html             … ヒートマップ（島図）ページの中身
 │
 └── converter/
     └── convert_csv_to_json.py  … HTML/CSV → 月別JSON 変換スクリプト（更新時に使う）
@@ -116,9 +124,10 @@ webapp/
 ## 4. JavaScript モジュール詳細
 
 読み込み順序（`index.html` 末尾）＝依存関係の順序：
-`config → utils → data → chart → preset → hstag → machinebadge → daily-state → daily → aim → analysis → calendar → island → app`
+`config → utils → data → chart → preset → hstag → machinebadge → daily-state → daily → aim → analysis → calendar → island → router → app`
 
 > `tagmatch.js` は `index.html` から読み込まれていない（タブUIも無いため事実上無効）。`compare.js` / `trend.js` は存在しない（廃止／改称済み）。
+> `router.js` は全ページJSの後・`app.js` の直前に読み込む。`app.js` の `init()` 末尾で `Router.start()` を呼ぶことで初期表示が確定する。
 
 ### グローバル名前空間
 - `window.HallData`（`utils.js` で定義）… データストアと各タブ状態の集約オブジェクト
@@ -138,13 +147,13 @@ webapp/
 | **hstag.js** | ~849 | **汎用タグ判定エンジン**。条件（差枚/G数/機械割…）でAND/ORグループ判定。日別タブ等で共用 | `TagEngine`（IIFE） |
 | **machinebadge.js** | ~436 | 機種内順位バッジ（🐙タコだし／💀死に台）。直近N日累積で順位付け。**設置台数別ロジック**: 3台以上=機種内で順位付け、2台=💀のみ1位付与（🐙なし）、1台設置機種=全機種横断で1グループにまとめて順位付け（解析タブは対象外） | `MachineBadge`（IIFE） |
 | **daily-state.js** | ~327 | **日別タブの状態管理**。localStorage + URL と双方向同期。`setState`で再描画をバッチ | `DailyState`（`get/setState/init/applyDefaultDate`） |
-| **daily.js** | ~2092 | **日別データタブ**本体。テーブル描画、数値フィルター、タグ、表示列、バッジ、末尾統計、一括タグ付け、狙い台モーダル起動 | `filterAndRender`, `setupDailyEventListeners`, `initDailyMachineFilter`, `dailyFilterGroups` |
+| **daily.js** | ~2100 | **日別データページ**本体。テーブル描画、数値フィルター、タグ、表示列、バッジ、末尾統計、一括タグ付け、狙い台モーダル起動。初期化（`setupDailyEventListeners`+`filterAndRender`）は router の daily.init からページ初回表示時に呼ばれる。`initDailyMachineFilter` は対象コンテナ未挿入時は早期 return | `filterAndRender`, `setupDailyEventListeners`, `initDailyMachineFilter`, `dailyFilterGroups` |
 | **aim.js** | ~971 | **狙い台シート（AimSheet）**。日別タブのモーダルから起動。PC=HTML5 Drag&Drop／スマホ=長押しドラッグ＋タップメニューで凹み台を「最優先／優先／その他」ゾーンに区分け。💀🥇💀🥈💀🥉表記、機種除外（プリセット一括）、html2canvasで1枚画像出力。保存は localStorage（自動）＋**Cloudflare D1**（作成者ごとに upsert・他人のシート読込／削除）。Worker URL は `AIM_API_URL` 定数 | `AimSheet`（IIFE） |
 | **analysis.js** | ~1218 | **解析タブ**（旧データトレンド。ファイル名のみ analysis に改称、内部の関数・変数名は trend 由来のまま）。期間集計（台別/機種別、合計/平均）、Chart.jsグラフ、3段キャッシュ最適化 | `loadTrendData`, `setupTrendEventListeners`, `initTrendMachineFilter`, `trendCache`, `activeTrendFilters` |
 | **calendar.js** | ~885 | **カレンダータブ**。月間集計、イベント表示、累積差枚推移グラフ、日別タブへ遷移 | `renderCalendar`, `setupCalendarEventListeners`, `navigateToDailyData` |
 | **island.js** | ~688 | **ヒートマップ（島図）タブ**。`island-config.json`でレイアウト描画、表示モード切替 | `IslandMap`（`init/render`） |
-| **app.js** | ~130 | **エントリポイント**。`init()`で全初期化、タブ切替イベント（daily/analysis/calendar/island）、各タブの遅延初期化 | `init`, `setupTabEventListeners`, `setupFilterPanelToggle`, `populateMachineFilters` |
-| **tagmatch.js** | ~1067 | タグマッチングタブのロジック（※`index.html` から読み込まれておらず無効。`app.js` 内に `setupTagMatchEventListeners` 呼び出しの分岐だけ残る） | `TagMatch`（IIFE） |
+| **app.js** | ~110 | **エントリポイント**。`init()` で全データ初期化後、最後に `Router.start()` を呼ぶ。日別/解析の機種フィルターは起動時に初期化しない（各ページ初回表示時に初期化される）。`populateMachineFilters` は実質空 | `init`, `setupFilterPanelToggle`, `populateMachineFilters` |
+| **router.js** | ~130 | **ハッシュルーター**。`#home/#daily/...` でページ切替。`[data-nav]` のクリックをイベント委譲で遷移。`data-partial` を持つページは初回表示時に `partials/*.html` を fetch して挿入。各ページの `init`（初回1回・DOM挿入後）/ `onShow`（表示のたび）を呼ぶ。`DEFAULT_PAGE='home'` | `Router`（`start/navigate/show`、デバッグ用 `_state`） |
 
 ---
 
@@ -169,16 +178,16 @@ webapp/
 
 ## 6. タブ別 機能マップ
 
-実装されている表示タブは **4つ**（`data-tab` = `daily` / `analysis` / `calendar` / `island`）。タブは横幅均等割り付け。
+画面は **ホーム（ターミナル）ページ**を起点に、URLハッシュで各ページへ遷移する（`#home / #daily / #memo / #analysis / #calendar / #island`）。従来の上部タブバーは廃止。各ページ実体は `partials/*.html`。下表の「id」はハッシュ名かつ `.tab-content` の要素id。
 
-| タブ表示名 | HTML id (`data-tab`) | 主担当JS | できること |
+| ページ表示名 | id（ハッシュ名） | 主担当JS | できること |
 |------|---------|----------|-----------|
+| ホーム | `home` | router.js | 各ページへのランチャー（カード選択）。起動直後の初期画面 |
+| メモ | `memo` | memo.js | 着席メモの記録・共有（記録者/日付/台/設定） |
 | 日別データ | `daily` | daily.js / daily-state.js / aim.js | 1日分の全台テーブル。検索・ソート・数値フィルター・タグ・表示列・機種内バッジ・台番号末尾統計・CSV/コピー。「狙い台作成」モーダル（aim.js） |
 | 解析 | `analysis` | analysis.js | 期間内の推移（台別/機種別、合計/平均）、Chart.jsグラフ。旧「データトレンド」 |
 | カレンダー | `calendar` | calendar.js | 月カレンダーに日別サマリー＋イベント、月間累積差枚推移グラフ |
 | ヒートマップ | `island` | island.js | フロア島図上に差枚/機械割/G数/タグを色分け表示 |
-
-> 廃止/無効: 日別比較タブ（compare.js）は廃止済み。タグマッチタブ（tagmatch.js）はロジックのみ残存しUIタブ無し。
 
 ---
 
@@ -215,6 +224,20 @@ webapp/
 - 日別タブの「狙い台作成」モーダルから起動。凹み台（💀）を「最優先 / 優先 / その他」の3ゾーンに区分けし、1枚画像（html2canvas）として出力
 - 操作: PC=HTML5 Drag&Drop、スマホ=長押しドラッグ＋タップメニューの両対応。3位（💀🥉）の表示/非表示トグル、機種除外（プリセット一括可）
 - 保存: `localStorage('aimSheetState')` に自動保存。加えて **Cloudflare Workers + D1**（`AIM_API_URL` = `/api/aim`）に作成者名（`localStorage('aimSheetAuthor')`）ごとに upsert 保存。他人のシートの読込・削除も可能
+
+### 画面遷移（ルーティング）（`router.js` / `Router`）
+- ホーム（`#home`）起点のハッシュルーター。タブバーは持たない
+- ページ定義テーブル `PAGES` に各ページの `tabId`（= `.tab-content` の id）・`init`（初回1回）・`onShow`（表示のたび）を登録
+- `[data-nav="ページ名"]` 属性を持つ要素のクリックを **document レベルのイベント委譲**で捕捉して遷移（後から fetch 挿入された要素にも効く）
+- `data-partial="partials/xxx.html"` を持つページは、初回表示時に fetch して中身を挿入（`_loaded` フラグで二重 fetch を防止）。`home` のように `data-partial` を持たないページは index.html 内のベタ書きをそのまま使う
+- **初期化タイミングの設計**: JSファイルは全て常駐（index.html で読み込み済み）だが、各ページのDOMは初回表示まで存在しない。そのため「DOM存在前提の初期化」は `init()`（app.js）から router の各ページ `init` へ移してある:
+  - daily … `init`: `setupDailyEventListeners` + `filterAndRender`
+  - analysis … `init`: `setupTrendEventListeners` 等 / `onShow`: `loadTrendData`
+  - calendar … `init`: `setupCalendarEventListeners` / `onShow`: `renderCalendar`
+  - memo … `init`: `SeatMemo.setupEvents` + `SeatMemo.init`
+  - island … `init`: `IslandMap.init`
+- 他ページから日別へ飛ぶ処理（例: カレンダーの日付クリック `navigateToDailyData`）は、`DailyState.setState({dateFile})`（silent）→ `Router.navigate('daily')` の順で行う。daily が初期化済みなら明示的に `filterAndRender` を再実行する
+- デバッグ: `Router._state()` で各ページの `initialized` / `loaded` 状況を確認できる
 
 ### 状態の永続化
 - **日別タブ**: `DailyState`（`daily-state.js`）が `localStorage('dailyTabState')` とURLクエリに保存。URL共有で同じビューを再現可能
@@ -254,7 +277,10 @@ webapp/
 | タグの判定条件・UI | `js/hstag.js`（`TagEngine`） |
 | バッジ（🐙💀）のロジック | `js/machinebadge.js` |
 | 島図のレイアウト | `data/island-config.json` + `js/island.js` |
-| 初期化順・タブ切替の挙動 | `js/app.js` |
+| 初期化順（データ読込）| `js/app.js`（`init`） |
+| ページ遷移・ルーティング・初回初期化タイミング | `js/router.js`（`PAGES` テーブル） |
+| ページを追加する（新しい画面） | `partials/新ページ.html` 作成 → `index.html` に空コンテナ追加 → `js/router.js` の `PAGES` に登録 → ホームに `data-nav` カード追加 |
+| 各ページのHTMLを直す | `partials/該当.html`（index.html ではない） |
 | 共通ボタン/モーダル/トーストの見た目 | `css/components.css` |
 | 色（CSS変数） | `css/theme.css` |
 
@@ -273,6 +299,11 @@ webapp/
 - プリセットの `exact` / `excludeMachines` はデータの `機種名` と**完全一致**が前提。表記ゆれ（全角スペース・波ダッシュ・ハイフン種別など）があるとマッチしないため、機種追加時は実データと突き合わせて都度修正する運用。
 - バッジの台数別ロジックは日別タブ（`assignBadges`）のみ。解析タブ（`assignBadgesForTrend`）は従来の機種内順位のまま二系統が併存している。
 - 狙い台シートのクラウド保存は `aim.js` 冗頭の `AIM_API_URL` にハードコードされた Cloudflare Worker URL に依存。Worker/D1 未デプロイ時は localStorage 保存のみ動作し、クラウド操作は失敗する。
+- - **パーシャルの fetch は http 配信が前提**。`file://` で index.html を直接開くと CORS で各ページが読み込めず空表示になる。ローカル確認は Live Server や `python -m http.server` 等を使う。
+- 各ページのDOMは**初回表示まで存在しない**。起動時に特定ページのDOMへ触る処理を書くと `null` 参照で落ちる（過去に `populateMachineFilters` が起動時に daily/trend の機種フィルターを初期化して落ちた経緯あり）。DOM依存の初期化は必ず router の各ページ `init`/`onShow` 側に置く。
+- partials/*.html は**外側の `<div id="...">` ラッパーを含めない**（中身のみ）。ラッパーは index.html 側の空コンテナが持つ。両方に持たせると id が二重化してレイアウトが壊れる。
+- `index.html` は要素IDの一覧の正ではなくなった。日別/メモ/解析/カレンダー/島図の各要素IDは対応する `partials/*.html` を参照すること（ホームとローディングのみ index.html に直接ある）。
+- `tagmatch` 同様、`router.js` の `PAGES` に存在しないページ名のハッシュは `DEFAULT_PAGE`（home）にフォールバックする。
 
 ---
 
