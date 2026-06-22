@@ -299,3 +299,26 @@
     margin-top: 8px;
 }
 .board-edit-area { margin: 6px 0; }
+
+.board-author,
+.board-body,
+.board-edit-area {
+    background: var(--bg-input, #0f172a);
+    color: var(--text-primary, #e2e8f0);
+    border: 1px solid var(--border-light, #334155);
+    border-radius: var(--radius-sm, 4px);
+    padding: 8px 10px;
+    font-size: var(--font-size-md, 14px);
+    font-family: inherit;
+}
+.board-author:focus,
+.board-body:focus,
+.board-edit-area:focus {
+    outline: none;
+    border-color: var(--border-focus, #60a5fa);
+}
+.board-body::placeholder,
+.board-edit-area::placeholder,
+.board-author::placeholder {
+    color: var(--text-muted, #94a3b8);
+}
