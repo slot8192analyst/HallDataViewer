@@ -109,6 +109,20 @@
       "media": "戦国乙女5,SAOⅡ,カバネリ海門(増台)",
       "name": ["新台入替"],
       "note": ""
+    },
+    {
+      "date": "2026_06_27",
+      "type": "dmm",
+      "media": "DMMぱちタウン",
+      "name": ["奥義ノ矢"],
+      "note": ""
+    },
+    {
+      "date": "2026_07_07",
+      "type": "dmm",
+      "media": "DMMぱちタウン",
+      "name": ["天運総撃"],
+      "note": ""
     }
   ],
       "recurringEvents": [
@@ -354,6 +368,12 @@
       "startDate": "2026_06_15",
       "endDate": "2026_06_21",
       "machines": ["マイジャグ,GOD"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_06_22",
+      "endDate": "2026_06_28",
+      "machines": ["ネオアイムEX"],
       "color": "#3b82f6"
     }
  ],
