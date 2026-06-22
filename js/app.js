@@ -113,10 +113,4 @@ async function init() {
 document.addEventListener('DOMContentLoaded', init);
 
 function populateMachineFilters() {
-    if (typeof initDailyMachineFilter === 'function') {
-        initDailyMachineFilter();
-    }
-    if (typeof initTrendMachineFilter === 'function') {
-        initTrendMachineFilter();
-    }
 }

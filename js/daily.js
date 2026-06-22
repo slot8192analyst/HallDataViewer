@@ -505,6 +505,9 @@ function closeAppModal(modalId) {
 // ===================
 
 function initDailyMachineFilter() {
+    // コンテナがまだDOMに無い（daily未挿入）なら何もしない
+    if (!document.getElementById('dailyMachineFilterContainer')) return;
+
     var sortedFiles = sortFilesByDate(CSV_FILES, true);
     var currentFile = sortedFiles[currentDateIndex];
     var machineOptions = getMachineOptionsForDate(currentFile);
@@ -523,8 +526,9 @@ function initDailyMachineFilter() {
             }
         );
 
+        // initMultiSelectMachineFilter が null を返す可能性に備えてガード
         // DailyState に保存済みの機種選択を復元
-        if (typeof DailyState !== 'undefined') {
+        if (dailyMachineFilterSelect && typeof DailyState !== 'undefined') {
             var savedMachines = DailyState.get().selectedMachines;
             if (savedMachines && savedMachines.length > 0) {
                 dailyMachineFilterSelect.setSelectedValues(savedMachines);

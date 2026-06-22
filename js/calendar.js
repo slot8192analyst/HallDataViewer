@@ -19,29 +19,44 @@ function navigateToDailyData(dateKey) {
     const filename = `data/${dateKey}.csv`;
     const sortedFiles = sortFilesByDate(CSV_FILES, true);
     const fileIndex = sortedFiles.indexOf(filename);
-    
+
     if (fileIndex === -1) {
         showCopyToast('この日のデータはありません', true);
         return;
     }
-    
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    
-    const dailyTabBtn = document.querySelector('.tab-btn[data-tab="daily"]');
-    const dailyTabContent = document.getElementById('daily');
-    
-    if (dailyTabBtn && dailyTabContent) {
-        dailyTabBtn.classList.add('active');
-        dailyTabContent.classList.add('active');
-        
+
+    // 1) 日付を状態にセット（描画はまだ走らせない）
+    if (typeof DailyState !== 'undefined') {
+        DailyState.setState({ dateFile: filename }, { silent: true });
+    } else {
+        // フォールバック: 旧来のインデックス方式
         currentDateIndex = fileIndex;
-        
-        initDateSelectWithEvents();
-        filterAndRender();
-        
-        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    // 2) ルーター経由で日別データページを開く
+    if (typeof Router !== 'undefined' && typeof Router.navigate === 'function') {
+        Router.navigate('daily');
+
+        // 3) daily が既に初期化済み（DOM挿入済み）なら明示的に再描画する。
+        //    未初期化なら navigate→init の中で filterAndRender が走るので何もしない。
+        const st = (typeof Router._state === 'function') ? Router._state() : null;
+        if (st && st.initialized && st.initialized.daily) {
+            if (typeof initDateSelectWithEvents === 'function') initDateSelectWithEvents();
+            if (typeof filterAndRender === 'function') filterAndRender();
+        }
+    } else {
+        // Router が無い場合のフォールバック（旧挙動）
+        const dailyTabContent = document.getElementById('daily');
+        if (dailyTabContent) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            dailyTabContent.classList.add('active');
+            currentDateIndex = fileIndex;
+            if (typeof initDateSelectWithEvents === 'function') initDateSelectWithEvents();
+            if (typeof filterAndRender === 'function') filterAndRender();
+        }
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // カレンダーフィルター用の複数選択コンポーネント初期化
