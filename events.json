@@ -126,6 +126,11 @@
       "type": "dmm",
       "media": "DMMぱちタウン",
       "name": ["ゾンビ狩り取材"],
+      "report_url": "https://p-town.dmm.com/shop_reports/508239",
+      "target_machines": [
+        "甲鉄城のカバネリ 海門(うなと)決戦",
+        "スマート沖スロ ニューキングハナハナV",
+        "東京喰種"],
       "note": ""
     },
     {
@@ -133,6 +138,12 @@
       "type": "dmm",
       "media": "DMMぱちタウン",
       "name": ["奥義ノ矢"],
+      "report_url": "https://p-town.dmm.com/shop_reports/510902",
+      "target_machines": [
+        "甲鉄城のカバネリ 海門(うなと)決戦",
+        "ミリオンゴッド‐神々の軌跡‐",
+        "スマスロ秘宝伝",
+        "攻殻機動隊"],
       "note": ""
     },
     {
@@ -165,7 +176,11 @@
       "type": "dmm",
       "media": "DMMぱちタウン",
       "name": ["奥義ノ矢"],
-      "note": "ピックアップ：喰種・真打吉宗・ビッグドリーム"
+      "report_url": "https://p-town.dmm.com/shop_reports/519104",
+      "target_machines": [
+        "東京喰種",
+        "真打 吉宗",
+        "ビッグドリーム THE GOLDEN PUSHER"]
     },
     {
       "date": "2026_06_06",
