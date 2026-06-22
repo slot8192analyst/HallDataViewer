@@ -95,19 +95,22 @@ var Router = (function() {
         },
 
         // ===== 取材（promotion） =====
-        // 取材ハブ（各取材へのリンクのみ。fetch あり・初期化不要）
+        // 取材ハブ（各取材へのリンク + ハブ掲示板）
         promotion: {
             tabId: 'promotion',
             init: null,
-            onShow: null
+            onShow: function() {
+                if (typeof Board !== 'undefined') Board.render('hub');
+            }
         },
-        // 各取材ページ（開催日一覧 / 日付詳細を Promotion が描画）
+        // 各取材ページ（開催日一覧 / 日付詳細を Promotion が描画 + 取材掲示板）
         //   param が無ければ開催日一覧、あれば該当日の詳細
         tenun: {
             tabId: 'tenun',
             init: null,
             onShow: function(param) {
                 if (typeof Promotion !== 'undefined') Promotion.render('tenun', param);
+                if (typeof Board !== 'undefined') Board.render('tenun');
             }
         },
         ougi: {
@@ -115,6 +118,7 @@ var Router = (function() {
             init: null,
             onShow: function(param) {
                 if (typeof Promotion !== 'undefined') Promotion.render('ougi', param);
+                if (typeof Board !== 'undefined') Board.render('ougi');
             }
         },
         zombie: {
@@ -122,6 +126,7 @@ var Router = (function() {
             init: null,
             onShow: function(param) {
                 if (typeof Promotion !== 'undefined') Promotion.render('zombie', param);
+                if (typeof Board !== 'undefined') Board.render('zombie');
             }
         }
     };

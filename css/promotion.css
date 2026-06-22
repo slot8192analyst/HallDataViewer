@@ -247,3 +247,55 @@
     color: var(--primary-color, #60a5fa);
     text-decoration: none;
 }
+
+/* ===================
+   取材掲示板（board.js）
+   =================== */
+.board { margin-top: 28px; }
+.board-title { margin: 0 0 10px; }
+
+.board-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--bg-card, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+}
+.board-author { width: 200px; max-width: 100%; }
+.board-body, .board-edit-area { width: 100%; resize: vertical; }
+.board-form-actions { display: flex; justify-content: flex-end; }
+
+.board-list { display: flex; flex-direction: column; gap: 10px; }
+.board-empty { color: var(--text-muted, #94a3b8); padding: 8px 0; }
+
+.board-post {
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--bg-card, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-left: 3px solid var(--hall-accent, #f59e0b);
+}
+.board-post-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+.board-post-author { font-weight: bold; }
+.board-post-date {
+    font-size: 0.8em;
+    color: var(--text-muted, #94a3b8);
+}
+.board-edited { color: var(--text-muted, #94a3b8); }
+.board-post-body { line-height: 1.6; word-break: break-word; }
+
+.board-post-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+}
+.board-edit-area { margin: 6px 0; }
