@@ -1,0 +1,47 @@
+<button class="back-to-home" data-nav="home">← ホーム</button>
+<div class="calendar-container">
+    <div class="calendar-header">
+        <button id="prevMonth">◀ 前月</button>
+        <h2 id="calendarMonth"></h2>
+        <button id="nextMonth">次月 ▶</button>
+    </div>
+    <div id="calendarFilter" class="calendar-filter-container"></div>
+    <div class="calendar-scroll-wrapper">
+        <div class="calendar-weekdays">
+            <div class="weekday sunday">日</div>
+            <div class="weekday">月</div>
+            <div class="weekday">火</div>
+            <div class="weekday">水</div>
+            <div class="weekday">木</div>
+            <div class="weekday">金</div>
+            <div class="weekday saturday">土</div>
+        </div>
+        <div class="calendar-days" id="calendarDays"></div>
+    </div>
+    <div class="calendar-legend">
+        <div class="legend-item"><span class="legend-bar avg-sa"></span><span>平均差枚</span></div>
+        <div class="legend-item"><span class="legend-bar avg-game"></span><span>平均G数</span></div>
+        <div class="legend-item"><span class="legend-bar win-rate"></span><span>勝率</span></div>
+        <div class="legend-item"><span class="legend-bar total-sa"></span><span>総差枚</span></div>
+    </div>
+    <!-- 月間累積差枚推移グラフ -->
+    <div class="calendar-trend-section">
+        <div id="calendarTrendChartWrapper" class="calendar-trend-chart-wrapper">
+            <canvas id="calendarTrendChart"></canvas>
+        </div>
+        <div class="calendar-trend-legend">
+            <span class="calendar-trend-legend-item">
+                <span class="calendar-trend-legend-color" style="background:#ef4444;"></span>
+                <span class="calendar-trend-legend-label">表示月</span>
+            </span>
+            <span class="calendar-trend-legend-item">
+                <span class="calendar-trend-legend-color" style="background:#22d3ee;"></span>
+                <span class="calendar-trend-legend-label">1か月前</span>
+            </span>
+            <span class="calendar-trend-legend-item">
+                <span class="calendar-trend-legend-color" style="background:#9ca3af;"></span>
+                <span class="calendar-trend-legend-label">2か月前</span>
+            </span>
+        </div>
+    </div>
+</div>

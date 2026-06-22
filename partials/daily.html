@@ -1,0 +1,254 @@
+<button class="back-to-home" data-nav="home">← ホーム</button>
+<div class="date-nav">
+    <button id="prevDate">◀ 前日</button>
+    <span class="current-date" id="currentDateLabel">-</span>
+    <button id="nextDate">翌日 ▶</button>
+    <button id="latestDate" title="最新日のデータへ">⏭ 最新日</button>
+</div>
+
+<div class="controls">
+    <select id="dateSelect"></select>
+    <div id="dailyMachineFilterContainer"></div>
+    <input type="text" id="search" placeholder="台番号で検索">
+    <select id="sortBy">
+        <option value="">並び替え</option>
+        <option value="sa_desc">差枚 ↓</option>
+        <option value="sa_asc">差枚 ↑</option>
+        <option value="game_desc">G数 ↓</option>
+        <option value="rate_desc">機械割 ↓</option>
+        <option value="rate_asc">機械割 ↑</option>
+        <option value="machine_asc">機種名 あ→わ</option>
+        <option value="machine_desc">機種名 わ→あ</option>
+        <option value="unit_asc">台番号 ↑</option>
+        <option value="unit_desc">台番号 ↓</option>
+    </select>
+</div>
+
+<!-- アクティブフィルター チップバー -->
+<div class="active-filter-bar" id="activeFilterBar"></div>
+
+<!-- フィルター・設定ボタン群 -->
+<div class="daily-filter-bar">
+    <div class="daily-filter-btn-group">
+        <button class="daily-filter-btn" id="openNumFilterModal">
+            <span class="dfb-icon">🔢</span>
+            <span class="dfb-label">数値フィルター</span>
+            <span class="dfb-preview" id="numFilterPreview"></span>
+        </button>
+        <button class="daily-filter-btn" id="openDailyTagModal">
+            <span class="dfb-icon">🏷️</span>
+            <span class="dfb-label">タグ</span>
+            <span class="dfb-preview" id="dailyTagPreview"></span>
+        </button>
+        <button class="daily-filter-btn" id="openColumnModal">
+            <span class="dfb-icon">📋</span>
+            <span class="dfb-label">表示列</span>
+            <span class="dfb-preview" id="columnPreview"></span>
+        </button>
+        <button class="daily-filter-btn" id="openBadgeModal">
+            <span class="dfb-icon">🐙💀</span>
+            <span class="dfb-label">バッジ設定</span>
+            <span class="dfb-preview" id="badgePreview"></span>
+        </button>
+        <button class="daily-filter-btn" id="openAimModal">
+            <span class="dfb-icon">🎯</span>
+            <span class="dfb-label">狙い台作成</span>
+            <span class="dfb-preview"></span>
+        </button>
+    </div>
+    <label class="daily-filter-tagged-only">
+        <input type="checkbox" id="dailyShowTaggedOnly">
+        <span>タグ付きのみ表示</span>
+        <span class="tag-count-display" id="dailyTagCountDisplay"></span>
+    </label>
+</div>
+
+<!-- 数値フィルターモーダル -->
+<div class="app-modal" id="numFilterModal">
+    <div class="app-modal-content">
+        <div class="app-modal-header">
+            <h3>🔢 数値フィルター</h3>
+            <button class="close-btn" id="closeNumFilterModal">×</button>
+        </div>
+        <div class="app-modal-body">
+            <p class="filter-hint">グループ内の条件はAND（すべて満たす）、グループ同士はOR（いずれか満たす）で判定します</p>
+            <div class="daily-filter-groups">
+                <div class="tag-groups-list" id="dailyFilterGroupsList"></div>
+                <div class="tag-groups-actions">
+                    <button class="btn-small" id="dailyAddFilterGroup">＋ 条件グループを追加</button>
+                </div>
+            </div>
+        </div>
+        <div class="app-modal-footer">
+            <button class="btn-reset" id="resetFilter">リセット</button>
+            <button class="modal-btn primary" id="applyFilter">適用して閉じる</button>
+        </div>
+    </div>
+</div>
+
+<!-- タグ設定モーダル -->
+<div class="app-modal" id="dailyTagModal">
+    <div class="app-modal-content">
+        <div class="app-modal-header">
+            <h3>🏷️ タグ設定</h3>
+            <button class="close-btn" id="closeDailyTagModal">×</button>
+        </div>
+        <div class="app-modal-body">
+            <p class="filter-hint">タグごとに名前・色・条件を自由に設定できます。グループ内はAND、グループ同士はORで判定します</p>
+
+            <!-- フィルター後の台に一括タグ付け -->
+            <div class="tag-bulk-apply-section">
+                <div class="tag-bulk-apply-header">
+                    <span class="tag-bulk-apply-title">📌 現在表示中の台に一括タグ付け</span>
+                    <span class="tag-bulk-apply-hint" id="tagBulkHint">（フィルター後の台に台番号リストとして記録。日付をまたいでも維持されます）</span>
+                </div>
+                <div class="tag-bulk-apply-row">
+                    <select id="tagBulkTargetSelect" class="tag-bulk-select">
+                        <option value="">タグを選択...</option>
+                    </select>
+                    <button id="tagBulkApplyBtn" class="btn-apply tag-bulk-btn">✅ <span id="tagBulkCount">0</span>台にタグを付ける</button>
+                </div>
+            </div>
+
+            <div id="dailyTagGroupsList"></div>
+        </div>
+        <div class="app-modal-footer">
+            <button class="modal-btn primary" id="applyDailyTagModal">閉じる</button>
+        </div>
+    </div>
+</div>
+
+<!-- 表示列モーダル -->
+<div class="app-modal" id="columnModal">
+    <div class="app-modal-content">
+        <div class="app-modal-header">
+            <h3>📋 表示列</h3>
+            <button class="close-btn" id="closeColumnModal">×</button>
+        </div>
+        <div class="app-modal-body">
+            <div class="column-selector-controls">
+                <button class="btn-small" id="selectAllColumns">全選択</button>
+                <button class="btn-small" id="deselectAllColumns">全解除</button>
+            </div>
+            <div class="column-checkboxes" id="columnCheckboxes"></div>
+        </div>
+        <div class="app-modal-footer">
+            <button class="modal-btn primary" id="applyColumnModal">閉じる</button>
+        </div>
+    </div>
+</div>
+
+<!-- 機種内バッジ設定モーダル -->
+<div class="app-modal" id="badgeModal">
+    <div class="app-modal-content">
+        <div class="app-modal-header">
+            <h3>🐙💀 機種内バッジ設定</h3>
+            <button class="close-btn" id="closeBadgeModal">×</button>
+        </div>
+        <div class="app-modal-body">
+            <p class="filter-hint">その日を含む直近N日間の累積差枚（またはG数）で機種内順位を付けます。フィルター後の同機種内での順位。バッジ列を非表示にしたい場合は「表示列」で「機種内順位」のチェックを外してください。</p>
+            <div id="badgeSettingsContainer"></div>
+
+            <!-- バッジ再計算ボタン -->
+            <div class="badge-recalc-row">
+                <button id="badgeRecalcBtn" class="btn-apply badge-needs-calc">▶ バッジを計算</button>
+                <span class="badge-recalc-hint">設定変更後は再計算が必要です。フィルターを変更してもバッジは再計算されません。</span>
+            </div>
+
+            <!-- バッジ存在フィルター -->
+            <div class="badge-filter-row">
+                <label class="badge-filter-label">
+                    <input type="checkbox" id="badgeFilterTako"> 🐙 タコだしバッジあり のみ表示
+                </label>
+                <label class="badge-filter-label">
+                    <input type="checkbox" id="badgeFilterKubi"> 💀 死に台バッジあり のみ表示
+                </label>
+            </div>
+        </div>
+        <div class="app-modal-footer">
+            <button class="modal-btn primary" id="applyBadgeModal">閉じる</button>
+        </div>
+    </div>
+</div>
+
+<!-- 狙い台作成モーダル -->
+<div class="app-modal" id="aimModal">
+    <div class="app-modal-content">
+        <div class="app-modal-header">
+            <h3>🎯 狙い台作成</h3>
+            <button class="close-btn" id="closeAimModal">×</button>
+        </div>
+        <div class="app-modal-body">
+            <p class="aim-hint">
+                💀 凹み台を「最優先 / 優先 / その他」に振り分けます。<br>
+                ・<b>PC</b>: カード／💀チップをドラッグ。カードをクリックで行き先メニューも出ます<br>
+                ・<b>スマホ</b>: カード／チップを<b>長押し</b>するとドラッグ開始（軽く動かすと画面スクロール）<br>
+                ・カードを<b>タップ</b> → 「最優先/優先/その他へ」メニューで一発移動<br>
+                ・💀チップを<b>タップ</b> → 「狙わない（グレーアウト）」をトグル<br>
+                ・「機種の表示/除外」で座らない機種を外せます（プリセット一括も可）
+            </p>
+
+            <div class="aim-toolbar">
+                <input type="text" id="aimAuthorInput" class="aim-author-input" placeholder="作成者名" maxlength="20">
+                <button class="btn-apply" id="aimCloudSaveBtn">☁️ クラウド保存</button>
+                <select id="aimCloudList" class="aim-cloud-list">
+                    <option value="">他の人のシートを開く...</option>
+                </select>
+                <button class="btn-reset" id="aimCloudDeleteBtn">🗑️ 選択シートを削除</button>
+                <button class="btn-apply" id="aimExportImageBtn">🖼️ 1枚画像を出力</button>
+                <button class="btn-small" id="aimHiddenToggle">🛑 機種の表示/除外</button>
+                <button class="btn-small" id="aimRank3Toggle">💀🥉 3位を隠す</button>
+                <button class="btn-reset" id="aimResetBtn">↺ 初期配置</button>
+                <span class="aim-meta" id="aimMeta"></span>
+            </div>
+
+
+            <!-- 機種の表示/除外パネル（トグルで開閉） -->
+            <div class="aim-hidden-panel" id="aimHiddenPanel">
+                <div class="aim-hidden-panel-head">プリセットで一括除外/表示、または個別にチェックを外して除外できます（座らない機種）</div>
+                <div class="aim-preset-filters" id="aimPresetFilters"></div>
+                <div class="aim-hidden-list" id="aimHiddenList"></div>
+            </div>
+
+            <!-- 3区分ボード（操作用） -->
+            <div class="aim-board" id="aimBoard"></div>
+        </div>
+        <div class="app-modal-footer">
+            <button class="modal-btn primary" id="closeAimModalFooter" style="display:none;"></button>
+        </div>
+    </div>
+</div>
+
+<div class="summary" id="summary"></div>
+
+<div class="table-actions">
+    <button class="btn-copy" id="copyTableBtn" title="テーブルをクリップボードにコピー">📋 コピー</button>
+    <button class="btn-download" id="downloadCsvBtn" title="CSVファイルをダウンロード">💾 CSV</button>
+</div>
+
+<div class="table-wrapper">
+    <table id="data-table">
+        <thead></thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<!-- 台番号末尾別統計 -->
+<div class="suffix-stats-block collapsible" id="suffixStatsBlock">
+    <div class="suffix-stats-header" id="suffixStatsToggle">
+        <h4 class="block-title">🔢 台番号末尾別統計</h4>
+        <span class="toggle-icon">▼</span>
+    </div>
+    <div class="suffix-stats-content" id="suffixStatsContent">
+        <div class="suffix-table-actions">
+            <button class="btn-copy btn-small" id="copySuffixTableBtn" title="末尾統計をコピー">📋 コピー</button>
+            <button class="btn-download btn-small" id="downloadSuffixCsvBtn" title="末尾統計CSVダウンロード">💾 CSV</button>
+        </div>
+        <div class="table-wrapper">
+            <table class="suffix-stats-table" id="suffix-stats-table">
+                <thead></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1737,3 +1737,30 @@ td:has(.position-tags) {
         font-size: 11px;
     }
 }
+
+.terminal-home { max-width: 900px; margin: 0 auto; padding: 16px; }
+.terminal-lead { text-align: center; opacity: 0.8; margin-bottom: 20px; }
+.terminal-menu {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+.terminal-card {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 8px; padding: 24px 16px; cursor: pointer;
+    background: var(--bg-card, #1e1e2a);
+    border: 1px solid var(--border-light, #333);
+    border-radius: 12px; color: inherit; text-align: center;
+    transition: transform 0.12s, border-color 0.12s;
+}
+.terminal-card:hover { transform: translateY(-2px); border-color: #6366f1; }
+.terminal-card-icon { font-size: 32px; }
+.terminal-card-title { font-weight: bold; font-size: 1.05em; }
+.terminal-card-desc { font-size: 0.8em; opacity: 0.65; }
+
+.back-to-home {
+    margin-bottom: 12px; padding: 6px 14px; cursor: pointer;
+    background: transparent; border: 1px solid var(--border-light, #333);
+    border-radius: 8px; color: inherit;
+}
+.back-to-home:hover { border-color: #6366f1; }

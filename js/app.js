@@ -98,23 +98,9 @@ async function init() {
     populateDateSelectors();
     populateMachineFilters();
 
-    setupTabEventListeners();
-    setupDailyEventListeners();
-    setupTrendEventListeners();
-    document.getElementById('trendViewMode')?.addEventListener('change', function() {
-        var machineValueTypeGroup = document.getElementById('machineValueTypeGroup');
-        if (machineValueTypeGroup) {
-            machineValueTypeGroup.style.display = this.value === 'machine' ? 'flex' : 'none';
-        }
-    });
-    setupCalendarEventListeners();
-
-    setupFilterPanelToggle('trendFilterToggle', 'trendFilterContent');
-
     updateLoadingProgress(100, 100, '表示準備中...');
-    
-    await initDateSelectWithEvents();
-    await filterAndRender();
+
+    Router.start();
     
     hideLoadingScreen();
     console.log('初期表示完了');

@@ -1,0 +1,183 @@
+<button class="back-to-home" data-nav="home">← ホーム</button>
+<div class="controls">
+    <div class="control-group">
+        <label>表示期間:</label>
+        <button id="openTrendCalendar" class="calendar-btn">📅 日付を選択</button>
+        <span id="trendPeriodLabel" class="period-label-inline">7日間</span>
+    </div>
+    <div class="control-group">
+        <label>表示モード:</label>
+        <select id="trendViewMode">
+            <option value="unit">台別</option>
+            <option value="machine">機種別</option>
+        </select>
+    </div>
+    <div class="control-group">
+        <label>データ項目:</label>
+        <select id="trendDataColumn">
+            <option value="差枚">差枚</option>
+            <option value="G数">G数</option>
+            <option value="BB">BB回数</option>
+            <option value="RB">RB回数</option>
+            <option value="ART">ART回数</option>
+            <option value="合成確率">合成確率</option>
+            <option value="BB確率">BB確率</option>
+            <option value="RB確率">RB確率</option>
+            <option value="機械割">機械割</option>
+        </select>
+    </div>
+    <div class="control-group" id="machineAggTypeGroup" style="display: none;">
+        <label>集計方法:</label>
+        <select id="trendMachineAggType">
+            <option value="total">合計</option>
+            <option value="avg">平均</option>
+        </select>
+    </div>
+    <div class="control-group">
+        <label>機種:</label>
+        <div id="trendMachineFilterContainer"></div>
+    </div>
+    <div class="control-group">
+        <label>並び替え:</label>
+        <select id="trendSortBy">
+            <option value="total_desc">合計 多い順</option>
+            <option value="total_asc">合計 少ない順</option>
+            <option value="avg_desc">平均 多い順</option>
+            <option value="latest_desc">最新日 多い順</option>
+            <option value="prevtotal_desc">最新日以前 多い順</option>
+            <option value="prevtotal_asc">最新日以前 少ない順</option>
+            <option value="machine_asc">機種名 あ→わ</option>
+            <option value="machine_desc">機種名 わ→あ</option>
+            <option value="unit_asc">台番号 ↑</option>
+            <option value="unit_desc">台番号 ↓</option>
+        </select>
+    </div>
+    <button id="loadTrend" class="btn-apply">表示更新</button>
+</div>
+
+<div class="filter-panel collapsible">
+    <div class="filter-panel-header" id="trendFilterToggle">
+        <h4>🔍 フィルター・表示設定</h4>
+        <span class="toggle-icon">▼</span>
+    </div>
+    <div class="filter-panel-content" id="trendFilterContent">
+        <div class="filter-section">
+            <h5>数値フィルター</h5>
+            <div class="filter-row">
+                <div class="filter-item">
+                    <label>合計値</label>
+                    <select id="trendTotalFilterType">
+                        <option value="">--</option>
+                        <option value="gte">以上</option>
+                        <option value="lte">以下</option>
+                    </select>
+                    <input type="number" id="trendTotalFilterValue" placeholder="値">
+                </div>
+                <div class="filter-item">
+                    <label>最新日以前</label>
+                    <select id="trendPrevTotalFilterType">
+                        <option value="">--</option>
+                        <option value="gte">以上</option>
+                        <option value="lte">以下</option>
+                    </select>
+                    <input type="number" id="trendPrevTotalFilterValue" placeholder="値">
+                </div>
+            </div>
+        </div>
+        <div class="filter-section">
+            <h5>📋 表示列</h5>
+            <div class="column-checkboxes">
+                <label class="column-checkbox-item">
+                    <input type="checkbox" id="trendShowTotal" checked>
+                    <span>合計</span>
+                </label>
+                <label class="column-checkbox-item">
+                    <input type="checkbox" id="trendShowAvg" checked>
+                    <span>平均</span>
+                </label>
+                <label class="column-checkbox-item">
+                    <input type="checkbox" id="trendShowPrevTotal">
+                    <span>最新日以前</span>
+                </label>
+            </div>
+        </div>
+        <div class="filter-section">
+            <h5>📈 グラフ表示</h5>
+            <div class="column-checkboxes">
+                <label class="column-checkbox-item">
+                    <input type="checkbox" id="trendShowChart" checked>
+                    <span>グラフを表示</span>
+                </label>
+            </div>
+        </div>
+        <div class="filter-buttons">
+            <button class="btn-reset" id="resetTrendFilter">リセット</button>
+        </div>
+    </div>
+</div>
+
+<div id="trendCalendarModal" class="calendar-modal">
+    <div class="calendar-modal-content calendar-modal-large">
+        <div class="calendar-modal-header">
+            <h3>表示する日付を選択</h3>
+            <button id="closeTrendCalendar" class="close-btn">×</button>
+        </div>
+        <div id="trendFilterContainer" class="trend-modal-filters"></div>
+        <div class="calendar-modal-body">
+            <div id="trendDateList" class="date-checkbox-list"></div>
+        </div>
+        <div class="calendar-modal-footer">
+            <button id="selectAllDates" class="modal-btn">全選択</button>
+            <button id="deselectAllDates" class="modal-btn">全解除</button>
+            <button id="applyTrendDates" class="modal-btn primary">適用</button>
+        </div>
+    </div>
+</div>
+
+<div id="trendSummary" class="summary"></div>
+
+<!-- 機種別モード用サマリーカード（ページネーション付き） -->
+<div id="trendMachineSummaryWrapper" style="display:none;"></div>
+
+<div class="trend-chart-container">
+    <div class="chart-header">
+        <h4 id="trendChartTitle">📈 差枚推移グラフ</h4>
+        <div class="chart-controls">
+            <label><input type="checkbox" id="chartShowTop" checked> 上位</label>
+            <label><input type="checkbox" id="chartShowBottom"> 下位</label>
+            <label><input type="checkbox" id="chartShowAll"> 全件</label>
+            <select id="chartDisplayCount">
+                <option value="5">5件表示</option>
+                <option value="10">10件表示</option>
+                <option value="20">20件表示</option>
+            </select>
+            <select id="chartDisplayType">
+                <option value="cumulative">累積</option>
+                <option value="daily">日別</option>
+            </select>
+        </div>
+    </div>
+    <div class="chart-wrapper">
+        <canvas id="trendChart"></canvas>
+    </div>
+</div>
+
+<div class="table-actions">
+    <button class="btn-copy" id="copyTrendTableBtn" title="テーブルをクリップボードにコピー">📋 コピー</button>
+    <button class="btn-download" id="downloadTrendCsvBtn" title="CSVファイルをダウンロード">💾 CSV</button>
+</div>
+
+<div class="table-wrapper has-scrollbar">
+    <div class="fixed-columns">
+        <table id="trend-fixed-table">
+            <thead></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div class="scroll-columns">
+        <table id="trend-scroll-table">
+            <thead></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>

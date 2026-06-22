@@ -33,625 +33,61 @@
     
     <h1>📊 ホールデータまとめ</h1>
 
-    <!-- タブ -->
-    <div class="tabs">
-        <button class="tab-btn active" data-tab="daily">日別データ</button>
-        <button class="tab-btn" data-tab="memo">メモ</button>
-        <button class="tab-btn" data-tab="analysis">解析</button>
-        <button class="tab-btn" data-tab="calendar">カレンダー</button>
-        <button class="tab-btn" data-tab="island">ヒートマップ</button>
-    </div>
-
     <!-- =================== -->
-    <!-- 日別データタブ       -->
+    <!-- ホーム（ターミナル）  -->
     <!-- =================== -->
-    <div id="daily" class="tab-content active">
-        <div class="date-nav">
-            <button id="prevDate">◀ 前日</button>
-            <span class="current-date" id="currentDateLabel">-</span>
-            <button id="nextDate">翌日 ▶</button>
-            <button id="latestDate" title="最新日のデータへ">⏭ 最新日</button>
-        </div>
-
-        <div class="controls">
-            <select id="dateSelect"></select>
-            <div id="dailyMachineFilterContainer"></div>
-            <input type="text" id="search" placeholder="台番号で検索">
-            <select id="sortBy">
-                <option value="">並び替え</option>
-                <option value="sa_desc">差枚 ↓</option>
-                <option value="sa_asc">差枚 ↑</option>
-                <option value="game_desc">G数 ↓</option>
-                <option value="rate_desc">機械割 ↓</option>
-                <option value="rate_asc">機械割 ↑</option>
-                <option value="machine_asc">機種名 あ→わ</option>
-                <option value="machine_desc">機種名 わ→あ</option>
-                <option value="unit_asc">台番号 ↑</option>
-                <option value="unit_desc">台番号 ↓</option>
-            </select>
-        </div>
-
-        <!-- アクティブフィルター チップバー -->
-        <div class="active-filter-bar" id="activeFilterBar"></div>
-
-        <!-- フィルター・設定ボタン群 -->
-        <div class="daily-filter-bar">
-            <div class="daily-filter-btn-group">
-                <button class="daily-filter-btn" id="openNumFilterModal">
-                    <span class="dfb-icon">🔢</span>
-                    <span class="dfb-label">数値フィルター</span>
-                    <span class="dfb-preview" id="numFilterPreview"></span>
+    <div id="home" class="tab-content">
+        <div class="terminal-home">
+            <p class="terminal-lead">表示する内容を選んでください</p>
+            <div class="terminal-menu">
+                <button class="terminal-card" data-nav="daily">
+                    <span class="terminal-card-icon">📅</span>
+                    <span class="terminal-card-title">日別データ</span>
+                    <span class="terminal-card-desc">日ごとの台データ・フィルター・タグ</span>
                 </button>
-                <button class="daily-filter-btn" id="openDailyTagModal">
-                    <span class="dfb-icon">🏷️</span>
-                    <span class="dfb-label">タグ</span>
-                    <span class="dfb-preview" id="dailyTagPreview"></span>
+                <button class="terminal-card" data-nav="memo">
+                    <span class="terminal-card-icon">📝</span>
+                    <span class="terminal-card-title">メモ</span>
+                    <span class="terminal-card-desc">着席メモの記録・共有</span>
                 </button>
-                <button class="daily-filter-btn" id="openColumnModal">
-                    <span class="dfb-icon">📋</span>
-                    <span class="dfb-label">表示列</span>
-                    <span class="dfb-preview" id="columnPreview"></span>
+                <button class="terminal-card" data-nav="analysis">
+                    <span class="terminal-card-icon">📈</span>
+                    <span class="terminal-card-title">解析</span>
+                    <span class="terminal-card-desc">期間推移・トレンドグラフ</span>
                 </button>
-                <button class="daily-filter-btn" id="openBadgeModal">
-                    <span class="dfb-icon">🐙💀</span>
-                    <span class="dfb-label">バッジ設定</span>
-                    <span class="dfb-preview" id="badgePreview"></span>
+                <button class="terminal-card" data-nav="calendar">
+                    <span class="terminal-card-icon">🗓️</span>
+                    <span class="terminal-card-title">カレンダー</span>
+                    <span class="terminal-card-desc">月間の差枚・勝率カレンダー</span>
                 </button>
-                <button class="daily-filter-btn" id="openAimModal">
-                    <span class="dfb-icon">🎯</span>
-                    <span class="dfb-label">狙い台作成</span>
-                    <span class="dfb-preview"></span>
+                <button class="terminal-card" data-nav="island">
+                    <span class="terminal-card-icon">🗺️</span>
+                    <span class="terminal-card-title">ヒートマップ</span>
+                    <span class="terminal-card-desc">島図レイアウトで視覚化</span>
                 </button>
             </div>
-            <label class="daily-filter-tagged-only">
-                <input type="checkbox" id="dailyShowTaggedOnly">
-                <span>タグ付きのみ表示</span>
-                <span class="tag-count-display" id="dailyTagCountDisplay"></span>
-            </label>
-        </div>
-
-        <!-- 数値フィルターモーダル -->
-        <div class="app-modal" id="numFilterModal">
-            <div class="app-modal-content">
-                <div class="app-modal-header">
-                    <h3>🔢 数値フィルター</h3>
-                    <button class="close-btn" id="closeNumFilterModal">×</button>
-                </div>
-                <div class="app-modal-body">
-                    <p class="filter-hint">グループ内の条件はAND（すべて満たす）、グループ同士はOR（いずれか満たす）で判定します</p>
-                    <div class="daily-filter-groups">
-                        <div class="tag-groups-list" id="dailyFilterGroupsList"></div>
-                        <div class="tag-groups-actions">
-                            <button class="btn-small" id="dailyAddFilterGroup">＋ 条件グループを追加</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="app-modal-footer">
-                    <button class="btn-reset" id="resetFilter">リセット</button>
-                    <button class="modal-btn primary" id="applyFilter">適用して閉じる</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- タグ設定モーダル -->
-        <div class="app-modal" id="dailyTagModal">
-            <div class="app-modal-content">
-                <div class="app-modal-header">
-                    <h3>🏷️ タグ設定</h3>
-                    <button class="close-btn" id="closeDailyTagModal">×</button>
-                </div>
-                <div class="app-modal-body">
-                    <p class="filter-hint">タグごとに名前・色・条件を自由に設定できます。グループ内はAND、グループ同士はORで判定します</p>
-
-                    <!-- フィルター後の台に一括タグ付け -->
-                    <div class="tag-bulk-apply-section">
-                        <div class="tag-bulk-apply-header">
-                            <span class="tag-bulk-apply-title">📌 現在表示中の台に一括タグ付け</span>
-                            <span class="tag-bulk-apply-hint" id="tagBulkHint">（フィルター後の台に台番号リストとして記録。日付をまたいでも維持されます）</span>
-                        </div>
-                        <div class="tag-bulk-apply-row">
-                            <select id="tagBulkTargetSelect" class="tag-bulk-select">
-                                <option value="">タグを選択...</option>
-                            </select>
-                            <button id="tagBulkApplyBtn" class="btn-apply tag-bulk-btn">✅ <span id="tagBulkCount">0</span>台にタグを付ける</button>
-                        </div>
-                    </div>
-
-                    <div id="dailyTagGroupsList"></div>
-                </div>
-                <div class="app-modal-footer">
-                    <button class="modal-btn primary" id="applyDailyTagModal">閉じる</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 表示列モーダル -->
-        <div class="app-modal" id="columnModal">
-            <div class="app-modal-content">
-                <div class="app-modal-header">
-                    <h3>📋 表示列</h3>
-                    <button class="close-btn" id="closeColumnModal">×</button>
-                </div>
-                <div class="app-modal-body">
-                    <div class="column-selector-controls">
-                        <button class="btn-small" id="selectAllColumns">全選択</button>
-                        <button class="btn-small" id="deselectAllColumns">全解除</button>
-                    </div>
-                    <div class="column-checkboxes" id="columnCheckboxes"></div>
-                </div>
-                <div class="app-modal-footer">
-                    <button class="modal-btn primary" id="applyColumnModal">閉じる</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 機種内バッジ設定モーダル -->
-        <div class="app-modal" id="badgeModal">
-            <div class="app-modal-content">
-                <div class="app-modal-header">
-                    <h3>🐙💀 機種内バッジ設定</h3>
-                    <button class="close-btn" id="closeBadgeModal">×</button>
-                </div>
-                <div class="app-modal-body">
-                    <p class="filter-hint">その日を含む直近N日間の累積差枚（またはG数）で機種内順位を付けます。フィルター後の同機種内での順位。バッジ列を非表示にしたい場合は「表示列」で「機種内順位」のチェックを外してください。</p>
-                    <div id="badgeSettingsContainer"></div>
-
-                    <!-- バッジ再計算ボタン -->
-                    <div class="badge-recalc-row">
-                        <button id="badgeRecalcBtn" class="btn-apply badge-needs-calc">▶ バッジを計算</button>
-                        <span class="badge-recalc-hint">設定変更後は再計算が必要です。フィルターを変更してもバッジは再計算されません。</span>
-                    </div>
-
-                    <!-- バッジ存在フィルター -->
-                    <div class="badge-filter-row">
-                        <label class="badge-filter-label">
-                            <input type="checkbox" id="badgeFilterTako"> 🐙 タコだしバッジあり のみ表示
-                        </label>
-                        <label class="badge-filter-label">
-                            <input type="checkbox" id="badgeFilterKubi"> 💀 死に台バッジあり のみ表示
-                        </label>
-                    </div>
-                </div>
-                <div class="app-modal-footer">
-                    <button class="modal-btn primary" id="applyBadgeModal">閉じる</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 狙い台作成モーダル -->
-        <div class="app-modal" id="aimModal">
-            <div class="app-modal-content">
-                <div class="app-modal-header">
-                    <h3>🎯 狙い台作成</h3>
-                    <button class="close-btn" id="closeAimModal">×</button>
-                </div>
-                <div class="app-modal-body">
-                    <p class="aim-hint">
-                        💀 凹み台を「最優先 / 優先 / その他」に振り分けます。<br>
-                        ・<b>PC</b>: カード／💀チップをドラッグ。カードをクリックで行き先メニューも出ます<br>
-                        ・<b>スマホ</b>: カード／チップを<b>長押し</b>するとドラッグ開始（軽く動かすと画面スクロール）<br>
-                        ・カードを<b>タップ</b> → 「最優先/優先/その他へ」メニューで一発移動<br>
-                        ・💀チップを<b>タップ</b> → 「狙わない（グレーアウト）」をトグル<br>
-                        ・「機種の表示/除外」で座らない機種を外せます（プリセット一括も可）
-                    </p>
-
-                    <div class="aim-toolbar">
-                        <input type="text" id="aimAuthorInput" class="aim-author-input" placeholder="作成者名" maxlength="20">
-                        <button class="btn-apply" id="aimCloudSaveBtn">☁️ クラウド保存</button>
-                        <select id="aimCloudList" class="aim-cloud-list">
-                            <option value="">他の人のシートを開く...</option>
-                        </select>
-                        <button class="btn-reset" id="aimCloudDeleteBtn">🗑️ 選択シートを削除</button>
-                        <button class="btn-apply" id="aimExportImageBtn">🖼️ 1枚画像を出力</button>
-                        <button class="btn-small" id="aimHiddenToggle">🛑 機種の表示/除外</button>
-                        <button class="btn-small" id="aimRank3Toggle">💀🥉 3位を隠す</button>
-                        <button class="btn-reset" id="aimResetBtn">↺ 初期配置</button>
-                        <span class="aim-meta" id="aimMeta"></span>
-                    </div>
-
-
-                    <!-- 機種の表示/除外パネル（トグルで開閉） -->
-                    <div class="aim-hidden-panel" id="aimHiddenPanel">
-                        <div class="aim-hidden-panel-head">プリセットで一括除外/表示、または個別にチェックを外して除外できます（座らない機種）</div>
-                        <div class="aim-preset-filters" id="aimPresetFilters"></div>
-                        <div class="aim-hidden-list" id="aimHiddenList"></div>
-                    </div>
-
-                    <!-- 3区分ボード（操作用） -->
-                    <div class="aim-board" id="aimBoard"></div>
-                </div>
-                <div class="app-modal-footer">
-                    <button class="modal-btn primary" id="closeAimModalFooter" style="display:none;"></button>
-                </div>
-            </div>
-        </div>
-
-        <div class="summary" id="summary"></div>
-
-        <div class="table-actions">
-            <button class="btn-copy" id="copyTableBtn" title="テーブルをクリップボードにコピー">📋 コピー</button>
-            <button class="btn-download" id="downloadCsvBtn" title="CSVファイルをダウンロード">💾 CSV</button>
-        </div>
-
-        <div class="table-wrapper">
-            <table id="data-table">
-                <thead></thead>
-                <tbody></tbody>
-            </table>
-        </div>
-
-        <!-- 台番号末尾別統計 -->
-        <div class="suffix-stats-block collapsible" id="suffixStatsBlock">
-            <div class="suffix-stats-header" id="suffixStatsToggle">
-                <h4 class="block-title">🔢 台番号末尾別統計</h4>
-                <span class="toggle-icon">▼</span>
-            </div>
-            <div class="suffix-stats-content" id="suffixStatsContent">
-                <div class="suffix-table-actions">
-                    <button class="btn-copy btn-small" id="copySuffixTableBtn" title="末尾統計をコピー">📋 コピー</button>
-                    <button class="btn-download btn-small" id="downloadSuffixCsvBtn" title="末尾統計CSVダウンロード">💾 CSV</button>
-                </div>
-                <div class="table-wrapper">
-                    <table class="suffix-stats-table" id="suffix-stats-table">
-                        <thead></thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     </div>
 
     <!-- =================== -->
-    <!-- メモタブ             -->
+    <!-- 日別データタブ（中身は partials/daily.html から動的挿入） -->
     <!-- =================== -->
-    <div id="memo" class="tab-content">
-        <div class="island-header">
-            <h2>📝 着席メモ</h2>
-            <p class="island-description">「誰が座っていたか」「設定がどれだったか」を台ごとに記録して仲間内で共有します</p>
-        </div>
-
-        <div class="memo-input-panel">
-            <div class="memo-input-row">
-                <label class="memo-field-label">記録者</label>
-                <input type="text" id="memoAuthorInput" placeholder="あなたの名前" maxlength="20">
-            </div>
-
-            <div class="memo-input-row memo-wheel-row">
-                <label class="memo-field-label">日付</label>
-                <div class="memo-wheel" id="memoDateWheel"></div>
-            </div>
-
-            <div class="memo-input-row">
-                <label class="memo-field-label">台を選択</label>
-                <select id="memoMachineSelect"><option value="">機種を選択...</option></select>
-                <select id="memoUnitSelect"><option value="">台番号を選択...</option></select>
-                <span class="memo-or-sep">または直接入力 →</span>
-                <input type="text" id="memoUnitDirect" placeholder="台番号">
-            </div>
-
-            <div class="memo-input-row">
-                <label class="memo-field-label">誰が</label>
-                <input type="text" id="memoPersonInput" placeholder="例: 常連の○○さん（空欄可）">
-            </div>
-
-            <div class="memo-input-row">
-                <label class="memo-field-label">設定</label>
-                <div class="memo-setting-checks" id="memoSettingChecks"></div>
-            </div>
-
-            <div class="memo-input-actions">
-                <button class="btn-apply" id="memoSubmitBtn">💾 メモを保存</button>
-                <button class="btn-reset" id="memoClearBtn">↺ 入力クリア</button>
-            </div>
-        </div>
-
-        <div id="memoList"></div>
+    <div id="daily" class="tab-content" data-partial="partials/daily.html">
+        <!-- 中身は partials/daily.html から fetch して挿入される -->
     </div>
 
+    <!-- メモタブ（中身は partials/memo.html から動的挿入） -->
+    <div id="memo" class="tab-content" data-partial="partials/memo.html"></div>
 
-    <!-- =================== -->
-    <!-- 解析タブ   -->
-    <!-- =================== -->
-    <div id="analysis" class="tab-content">
-        <div class="controls">
-            <div class="control-group">
-                <label>表示期間:</label>
-                <button id="openTrendCalendar" class="calendar-btn">📅 日付を選択</button>
-                <span id="trendPeriodLabel" class="period-label-inline">7日間</span>
-            </div>
-            <div class="control-group">
-                <label>表示モード:</label>
-                <select id="trendViewMode">
-                    <option value="unit">台別</option>
-                    <option value="machine">機種別</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label>データ項目:</label>
-                <select id="trendDataColumn">
-                    <option value="差枚">差枚</option>
-                    <option value="G数">G数</option>
-                    <option value="BB">BB回数</option>
-                    <option value="RB">RB回数</option>
-                    <option value="ART">ART回数</option>
-                    <option value="合成確率">合成確率</option>
-                    <option value="BB確率">BB確率</option>
-                    <option value="RB確率">RB確率</option>
-                    <option value="機械割">機械割</option>
-                </select>
-            </div>
-            <div class="control-group" id="machineAggTypeGroup" style="display: none;">
-                <label>集計方法:</label>
-                <select id="trendMachineAggType">
-                    <option value="total">合計</option>
-                    <option value="avg">平均</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label>機種:</label>
-                <div id="trendMachineFilterContainer"></div>
-            </div>
-            <div class="control-group">
-                <label>並び替え:</label>
-                <select id="trendSortBy">
-                    <option value="total_desc">合計 多い順</option>
-                    <option value="total_asc">合計 少ない順</option>
-                    <option value="avg_desc">平均 多い順</option>
-                    <option value="latest_desc">最新日 多い順</option>
-                    <option value="prevtotal_desc">最新日以前 多い順</option>
-                    <option value="prevtotal_asc">最新日以前 少ない順</option>
-                    <option value="machine_asc">機種名 あ→わ</option>
-                    <option value="machine_desc">機種名 わ→あ</option>
-                    <option value="unit_asc">台番号 ↑</option>
-                    <option value="unit_desc">台番号 ↓</option>
-                </select>
-            </div>
-            <button id="loadTrend" class="btn-apply">表示更新</button>
-        </div>
+    <!-- 解析タブ（中身は partials/analysis.html から動的挿入） -->
+    <div id="analysis" class="tab-content" data-partial="partials/analysis.html"></div>
 
-        <div class="filter-panel collapsible">
-            <div class="filter-panel-header" id="trendFilterToggle">
-                <h4>🔍 フィルター・表示設定</h4>
-                <span class="toggle-icon">▼</span>
-            </div>
-            <div class="filter-panel-content" id="trendFilterContent">
-                <div class="filter-section">
-                    <h5>数値フィルター</h5>
-                    <div class="filter-row">
-                        <div class="filter-item">
-                            <label>合計値</label>
-                            <select id="trendTotalFilterType">
-                                <option value="">--</option>
-                                <option value="gte">以上</option>
-                                <option value="lte">以下</option>
-                            </select>
-                            <input type="number" id="trendTotalFilterValue" placeholder="値">
-                        </div>
-                        <div class="filter-item">
-                            <label>最新日以前</label>
-                            <select id="trendPrevTotalFilterType">
-                                <option value="">--</option>
-                                <option value="gte">以上</option>
-                                <option value="lte">以下</option>
-                            </select>
-                            <input type="number" id="trendPrevTotalFilterValue" placeholder="値">
-                        </div>
-                    </div>
-                </div>
-                <div class="filter-section">
-                    <h5>📋 表示列</h5>
-                    <div class="column-checkboxes">
-                        <label class="column-checkbox-item">
-                            <input type="checkbox" id="trendShowTotal" checked>
-                            <span>合計</span>
-                        </label>
-                        <label class="column-checkbox-item">
-                            <input type="checkbox" id="trendShowAvg" checked>
-                            <span>平均</span>
-                        </label>
-                        <label class="column-checkbox-item">
-                            <input type="checkbox" id="trendShowPrevTotal">
-                            <span>最新日以前</span>
-                        </label>
-                    </div>
-                </div>
-                <div class="filter-section">
-                    <h5>📈 グラフ表示</h5>
-                    <div class="column-checkboxes">
-                        <label class="column-checkbox-item">
-                            <input type="checkbox" id="trendShowChart" checked>
-                            <span>グラフを表示</span>
-                        </label>
-                    </div>
-                </div>
-                <div class="filter-buttons">
-                    <button class="btn-reset" id="resetTrendFilter">リセット</button>
-                </div>
-            </div>
-        </div>
+    <!-- カレンダータブ（中身は partials/calendar.html から動的挿入） -->
+    <div id="calendar" class="tab-content" data-partial="partials/calendar.html"></div>
 
-        <div id="trendCalendarModal" class="calendar-modal">
-            <div class="calendar-modal-content calendar-modal-large">
-                <div class="calendar-modal-header">
-                    <h3>表示する日付を選択</h3>
-                    <button id="closeTrendCalendar" class="close-btn">×</button>
-                </div>
-                <div id="trendFilterContainer" class="trend-modal-filters"></div>
-                <div class="calendar-modal-body">
-                    <div id="trendDateList" class="date-checkbox-list"></div>
-                </div>
-                <div class="calendar-modal-footer">
-                    <button id="selectAllDates" class="modal-btn">全選択</button>
-                    <button id="deselectAllDates" class="modal-btn">全解除</button>
-                    <button id="applyTrendDates" class="modal-btn primary">適用</button>
-                </div>
-            </div>
-        </div>
 
-        <div id="trendSummary" class="summary"></div>
-
-        <!-- 機種別モード用サマリーカード（ページネーション付き） -->
-        <div id="trendMachineSummaryWrapper" style="display:none;"></div>
-
-        <div class="trend-chart-container">
-            <div class="chart-header">
-                <h4 id="trendChartTitle">📈 差枚推移グラフ</h4>
-                <div class="chart-controls">
-                    <label><input type="checkbox" id="chartShowTop" checked> 上位</label>
-                    <label><input type="checkbox" id="chartShowBottom"> 下位</label>
-                    <label><input type="checkbox" id="chartShowAll"> 全件</label>
-                    <select id="chartDisplayCount">
-                        <option value="5">5件表示</option>
-                        <option value="10">10件表示</option>
-                        <option value="20">20件表示</option>
-                    </select>
-                    <select id="chartDisplayType">
-                        <option value="cumulative">累積</option>
-                        <option value="daily">日別</option>
-                    </select>
-                </div>
-            </div>
-            <div class="chart-wrapper">
-                <canvas id="trendChart"></canvas>
-            </div>
-        </div>
-
-        <div class="table-actions">
-            <button class="btn-copy" id="copyTrendTableBtn" title="テーブルをクリップボードにコピー">📋 コピー</button>
-            <button class="btn-download" id="downloadTrendCsvBtn" title="CSVファイルをダウンロード">💾 CSV</button>
-        </div>
-
-        <div class="table-wrapper has-scrollbar">
-            <div class="fixed-columns">
-                <table id="trend-fixed-table">
-                    <thead></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-            <div class="scroll-columns">
-                <table id="trend-scroll-table">
-                    <thead></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- =================== -->
-    <!-- カレンダータブ       -->
-    <!-- =================== -->
-    <div id="calendar" class="tab-content">
-        <div class="calendar-container">
-            <div class="calendar-header">
-                <button id="prevMonth">◀ 前月</button>
-                <h2 id="calendarMonth"></h2>
-                <button id="nextMonth">次月 ▶</button>
-            </div>
-            <div id="calendarFilter" class="calendar-filter-container"></div>
-            <div class="calendar-scroll-wrapper">
-                <div class="calendar-weekdays">
-                    <div class="weekday sunday">日</div>
-                    <div class="weekday">月</div>
-                    <div class="weekday">火</div>
-                    <div class="weekday">水</div>
-                    <div class="weekday">木</div>
-                    <div class="weekday">金</div>
-                    <div class="weekday saturday">土</div>
-                </div>
-                <div class="calendar-days" id="calendarDays"></div>
-            </div>
-            <div class="calendar-legend">
-                <div class="legend-item"><span class="legend-bar avg-sa"></span><span>平均差枚</span></div>
-                <div class="legend-item"><span class="legend-bar avg-game"></span><span>平均G数</span></div>
-                <div class="legend-item"><span class="legend-bar win-rate"></span><span>勝率</span></div>
-                <div class="legend-item"><span class="legend-bar total-sa"></span><span>総差枚</span></div>
-            </div>
-            <!-- 月間累積差枚推移グラフ -->
-            <div class="calendar-trend-section">
-                <div id="calendarTrendChartWrapper" class="calendar-trend-chart-wrapper">
-                    <canvas id="calendarTrendChart"></canvas>
-                </div>
-                <div class="calendar-trend-legend">
-                    <span class="calendar-trend-legend-item">
-                        <span class="calendar-trend-legend-color" style="background:#ef4444;"></span>
-                        <span class="calendar-trend-legend-label">表示月</span>
-                    </span>
-                    <span class="calendar-trend-legend-item">
-                        <span class="calendar-trend-legend-color" style="background:#22d3ee;"></span>
-                        <span class="calendar-trend-legend-label">1か月前</span>
-                    </span>
-                    <span class="calendar-trend-legend-item">
-                        <span class="calendar-trend-legend-color" style="background:#9ca3af;"></span>
-                        <span class="calendar-trend-legend-label">2か月前</span>
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- =================== -->
-    <!-- 島図タブ             -->
-    <!-- =================== -->
-    <div id="island" class="tab-content">
-        <div class="island-header">
-            <h2>🗺️ 島図</h2>
-            <p class="island-description">フロアレイアウトと台データを視覚的に確認できます</p>
-        </div>
-    
-        <!-- 日付ナビゲーション -->
-        <div class="island-date-nav">
-            <button id="islandPrevDate">◀ 前日</button>
-            <span class="current-date" id="islandDateLabel">-</span>
-            <button id="islandNextDate">翌日 ▶</button>
-        </div>
-    
-        <!-- 日付セレクター追加 -->
-        <div class="island-date-select-wrapper">
-            <select id="islandDateSelect"></select>
-        </div>
-    
-        <!-- 表示モード選択 -->
-        <div class="island-controls">
-            <div class="island-view-modes">
-                <span class="control-label">表示:</span>
-                <div class="island-mode-buttons">
-                    <button class="island-mode-btn active" data-mode="machine">機種名</button>
-                    <button class="island-mode-btn" data-mode="diff">差枚</button>
-                    <button class="island-mode-btn" data-mode="rate">機械割</button>
-                    <button class="island-mode-btn" data-mode="games">G数</button>
-                    <button class="island-mode-btn" data-mode="tag">タグ</button>
-                </div>
-            </div>
-        </div>
-    
-        <!-- 凡例 -->
-        <div class="island-legend" id="islandLegend">
-            <div class="legend-title">凡例</div>
-            <div class="legend-items" id="islandLegendItems">
-                <!-- 動的に生成 -->
-            </div>
-        </div>
-    
-        <!-- 島図エリア -->
-        <div class="island-map-container">
-            <div class="island-map" id="islandMap">
-                <!-- 動的に生成 -->
-            </div>
-        </div>
-    
-        <!-- 台詳細モーダル -->
-        <div class="island-unit-modal" id="islandUnitModal">
-            <div class="island-unit-modal-content">
-                <div class="island-unit-modal-header">
-                    <h3 id="islandUnitModalTitle">台番号: ---</h3>
-                    <button class="close-btn" id="islandUnitModalClose">×</button>
-                </div>
-                <div class="island-unit-modal-body" id="islandUnitModalBody">
-                    <!-- 動的に生成 -->
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- 島図タブ（中身は partials/island.html から動的挿入） -->
+    <div id="island" class="tab-content" data-partial="partials/island.html"></div>
 
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
@@ -667,6 +103,7 @@
     <script src="js/analysis.js"></script>
     <script src="js/calendar.js"></script>
     <script src="js/island.js"></script>
+    <script src="js/router.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
