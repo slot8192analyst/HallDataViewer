@@ -1763,6 +1763,21 @@ function setupDailyEventListeners() {
         }
     });
 
+    // ---- 最新日へジャンプ ----
+    document.getElementById('latestDate') && document.getElementById('latestDate').addEventListener('click', function() {
+        var sortedFiles = sortFilesByDate(CSV_FILES, true);
+        var latestFile = sortedFiles[0];
+        if (!latestFile) return;
+        delete dailyBadgeCache[latestFile];
+        if (typeof DailyState !== 'undefined') {
+            DailyState.setState({ dateFile: latestFile });
+        } else {
+            currentDateIndex = 0;
+            initDateSelectWithEvents();
+            filterAndRender();
+        }
+    });
+
     // ---- 日付セレクト ----
     document.getElementById('dateSelect') && document.getElementById('dateSelect').addEventListener('change', function(e) {
         // 日付変更時はバッジキャッシュをクリア
