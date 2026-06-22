@@ -69,7 +69,12 @@ webapp/
 │   ├── memo.html               … メモページの中身
 │   ├── analysis.html           … 解析ページの中身
 │   ├── calendar.html           … カレンダーページの中身
-│   └── island.html             … ヒートマップ（島図）ページの中身
+│   ├── island.html             … ヒートマップ（島図）ページの中身
+│   └── promotion/              … 取材（promotion）ページ群
+│       ├── promotion.html      … 取材ハブ（3種への入口）
+│       ├── promotion-a.html    … 取材A（現状タイトルのみ）
+│       ├── promotion-b.html    … 取材B（現状タイトルのみ）
+│       └── promotion-c.html    … 取材C（現状タイトルのみ）
 │
 └── converter/
     └── convert_csv_to_json.py  … HTML/CSV → 月別JSON 変換スクリプト（更新時に使う）
@@ -188,6 +193,7 @@ webapp/
 | 解析 | `analysis` | analysis.js | 期間内の推移（台別/機種別、合計/平均）、Chart.jsグラフ。旧「データトレンド」 |
 | カレンダー | `calendar` | calendar.js | 月カレンダーに日別サマリー＋イベント、月間累積差枚推移グラフ |
 | ヒートマップ | `island` | island.js | フロア島図上に差枚/機械割/G数/タグを色分け表示 |
+| 取材 | `promotion` | router.js | 取材データのまとめ。ハブから天運総撃(tenun)/奥義の矢(ougi)/ゾンビ狩り(zombie)へ遷移。現状は取材タイトルのみ |
 
 ---
 

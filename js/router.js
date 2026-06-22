@@ -1,21 +1,14 @@
 // ===================
-// ハッシュルーター（完全版 / ステップ1〜3統合）
+// ハッシュルーター（完全版 / パラメータ対応 #page/param）
 //
 // 役割:
-//   - URLハッシュ（#home, #daily ...）でページを切り替える
-//   - [data-nav] を持つ要素のクリックでページ遷移（イベント委譲）
+//   - URLハッシュ（#home, #daily, #tenun/2026-06-15 ...）でページを切り替える
+//   - [data-nav]（+任意の data-param）を持つ要素のクリックで遷移（イベント委譲）
 //   - data-partial を持つページは初回表示時に fetch して中身を挿入
-//   - 各ページの init（初回1回）/ onShow（表示のたび）を呼ぶ
-//
-// 前提:
-//   - 各ページは <div id="ページ名" class="tab-content"> として存在する
-//   - パーシャル化したページは <div id="..." data-partial="partials/xxx.html">
-//     のように data-partial を持ち、中身は空にしておく
-//   - JSファイル（daily.js 等）は index.html で常駐読み込みされている
+//   - 各ページの init（初回1回）/ onShow（表示のたび。param を受け取れる）を呼ぶ
 //
 // 注意:
-//   - data-partial を使うため、ローカル確認時は file:// では動かない。
-//     必ずローカルサーバー経由（例: python -m http.server）で開くこと。
+//   - data-partial を使うため file:// では動かない。ローカルはサーバー経由で。
 // ===================
 
 var Router = (function() {
@@ -25,7 +18,7 @@ var Router = (function() {
     // ページ定義テーブル
     //   tabId  : 対応する .tab-content の id
     //   init   : そのページを「初めて表示したとき」に1回だけ呼ぶ（DOM挿入後）
-    //   onShow : そのページを表示するたびに呼ぶ（init の後にも呼ばれる）
+    //   onShow : そのページを表示するたびに呼ぶ（param を引数で受け取れる）
     // ----------------
     var PAGES = {
 
@@ -36,8 +29,7 @@ var Router = (function() {
             onShow: null
         },
 
-        // 日別データ（ステップ3: partials/daily.html に切り出し済み）
-        // → DOM が挿入された後に初期化する
+        // 日別データ
         daily: {
             tabId: 'daily',
             init: function() {
@@ -48,9 +40,6 @@ var Router = (function() {
         },
 
         // メモ
-        //   未切り出しの間は従来どおり（init で setupEvents + init）。
-        //   切り出したら index.html のラッパーに data-partial を付けるだけで、
-        //   この init はそのまま使える（DOM挿入後に呼ばれるため）。
         memo: {
             tabId: 'memo',
             init: function() {
@@ -63,19 +52,10 @@ var Router = (function() {
         },
 
         // 解析（トレンド）
-        //   未切り出しの間: setupTrendEventListeners は app.js の init() で実行済み。
-        //                   表示のたびに loadTrendData を呼ぶ（onShow）。
-        //   切り出すとき: app.js の init() から setupTrendEventListeners() を外し、
-        //                 下の init に移すこと。
-        //                 例)
-        //                 init: function() {
-        //                     if (typeof setupTrendEventListeners === 'function') setupTrendEventListeners();
-        //                 },
         analysis: {
             tabId: 'analysis',
             init: function() {
                 if (typeof setupTrendEventListeners === 'function') setupTrendEventListeners();
-                // trendViewMode の変更ハンドラ（元 app.js にあったもの）
                 var vm = document.getElementById('trendViewMode');
                 if (vm) {
                     vm.addEventListener('change', function() {
@@ -93,9 +73,6 @@ var Router = (function() {
         },
 
         // カレンダー
-        //   表示のたびに renderCalendar。
-        //   setupCalendarEventListeners は app.js の init() で実行済み。
-        //   切り出すときは setupCalendarEventListeners() を init へ移すこと。
         calendar: {
             tabId: 'calendar',
             init: function() {
@@ -106,7 +83,6 @@ var Router = (function() {
             }
         },
 
-
         // ヒートマップ（島図）
         island: {
             tabId: 'island',
@@ -116,6 +92,37 @@ var Router = (function() {
                 }
             },
             onShow: null
+        },
+
+        // ===== 取材（promotion） =====
+        // 取材ハブ（各取材へのリンクのみ。fetch あり・初期化不要）
+        promotion: {
+            tabId: 'promotion',
+            init: null,
+            onShow: null
+        },
+        // 各取材ページ（開催日一覧 / 日付詳細を Promotion が描画）
+        //   param が無ければ開催日一覧、あれば該当日の詳細
+        tenun: {
+            tabId: 'tenun',
+            init: null,
+            onShow: function(param) {
+                if (typeof Promotion !== 'undefined') Promotion.render('tenun', param);
+            }
+        },
+        ougi: {
+            tabId: 'ougi',
+            init: null,
+            onShow: function(param) {
+                if (typeof Promotion !== 'undefined') Promotion.render('ougi', param);
+            }
+        },
+        zombie: {
+            tabId: 'zombie',
+            init: null,
+            onShow: function(param) {
+                if (typeof Promotion !== 'undefined') Promotion.render('zombie', param);
+            }
         }
     };
 
@@ -127,17 +134,25 @@ var Router = (function() {
     var _loaded = {};        // ページごとのパーシャル挿入済みフラグ
 
     // ----------------
-    // ハッシュ → ページ名
+    // ハッシュ解析（#page/param → {page, param}）
+    //   param が無いハッシュ（#daily 等）は param: null
     // ----------------
-    function getPageFromHash() {
+    function parseHash() {
         var h = (window.location.hash || '').replace(/^#/, '');
-        return PAGES[h] ? h : DEFAULT_PAGE;
+        var parts = h.split('/');
+        return {
+            page: PAGES[parts[0]] ? parts[0] : DEFAULT_PAGE,
+            param: parts[1] ? decodeURIComponent(parts[1]) : null
+        };
+    }
+
+    // 後方互換: ページ名だけ欲しい既存呼び出し用に残す
+    function getPageFromHash() {
+        return parseHash().page;
     }
 
     // ----------------
     // パーシャル読み込み（初回のみ）
-    //   data-partial を持つページだけ fetch して挿入する。
-    //   data-partial が無いページ（home 等、ベタ書き）は何もしない。
     // ----------------
     function ensurePartial(pageName) {
         var page = PAGES[pageName];
@@ -170,9 +185,9 @@ var Router = (function() {
     }
 
     // ----------------
-    // ページ表示
+    // ページ表示（param を onShow へ渡す）
     // ----------------
-    function show(pageName) {
+    function show(pageName, param) {
         var page = PAGES[pageName];
         if (!page) { pageName = DEFAULT_PAGE; page = PAGES[DEFAULT_PAGE]; }
 
@@ -195,23 +210,26 @@ var Router = (function() {
                 if (typeof page.init === 'function') page.init();
             }
 
-            // 表示のたびに onShow
-            if (typeof page.onShow === 'function') page.onShow();
+            // 表示のたびに onShow（param を渡す）
+            if (typeof page.onShow === 'function') page.onShow(param);
 
-            // ページ先頭へスクロール（任意。不要なら削除可）
+            // ページ先頭へスクロール
             window.scrollTo(0, 0);
         });
     }
 
     // ----------------
-    // 遷移
+    // 遷移（param 対応）
     // ----------------
-    function navigate(pageName) {
+    function navigate(pageName, param) {
         if (!PAGES[pageName]) return;
-        if (window.location.hash === '#' + pageName) {
-            show(pageName); // 同じハッシュでも明示遷移なら再表示
+        var hash = '#' + pageName + (param ? '/' + encodeURIComponent(param) : '');
+        if (window.location.hash === hash) {
+            // 同じハッシュでも明示遷移なら再表示
+            var p = parseHash();
+            show(p.page, p.param);
         } else {
-            window.location.hash = '#' + pageName; // hashchange が show を呼ぶ
+            window.location.hash = hash; // hashchange が show を呼ぶ
         }
     }
 
@@ -221,20 +239,21 @@ var Router = (function() {
     function start() {
         // ハッシュ変更で表示切り替え
         window.addEventListener('hashchange', function() {
-            show(getPageFromHash());
+            var p = parseHash();
+            show(p.page, p.param);
         });
 
-        // [data-nav] を持つ要素のクリックで遷移（イベント委譲）
-        //   後から fetch で挿入された要素にも効くよう document に登録する
+        // [data-nav]（+ data-param）クリックで遷移（イベント委譲）
         document.addEventListener('click', function(e) {
             var navEl = e.target.closest('[data-nav]');
             if (!navEl) return;
             e.preventDefault();
-            navigate(navEl.dataset.nav);
+            navigate(navEl.dataset.nav, navEl.dataset.param || null);
         });
 
         // 初期表示
-        show(getPageFromHash());
+        var p0 = parseHash();
+        show(p0.page, p0.param);
     }
 
     // ----------------

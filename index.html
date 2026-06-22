@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/machinebadge.css">
     <link rel="stylesheet" href="css/aim.css">
     <link rel="stylesheet" href="css/memo.css">
+    <link rel="stylesheet" href="css/promotion.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
@@ -65,6 +66,12 @@
                     <span class="terminal-card-title">ヒートマップ</span>
                     <span class="terminal-card-desc">島図レイアウトで視覚化</span>
                 </button>
+                <button class="terminal-card" data-nav="promotion">
+                    <span class="terminal-card-icon">📣</span>
+                    <span class="terminal-card-title">取材</span>
+                    <span class="terminal-card-desc">取材データのまとめ</span>
+                </button>
+
             </div>
         </div>
     </div>
@@ -88,6 +95,15 @@
     <!-- 島図タブ（中身は partials/island.html から動的挿入） -->
     <div id="island" class="tab-content" data-partial="partials/island.html"></div>
 
+    <!-- 取材ハブ -->
+    <div id="promotion" class="tab-content" data-partial="partials/promotion/promotion.html"></div>
+    <!-- 各取材ページ -->
+    <div id="tenun"  class="tab-content" data-partial="partials/promotion/tenun.html"></div>
+    <div id="ougi"   class="tab-content" data-partial="partials/promotion/ougi.html"></div>
+    <div id="zombie" class="tab-content" data-partial="partials/promotion/zombie.html"></div>
+
+
+
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/data.js"></script>
@@ -102,6 +118,7 @@
     <script src="js/analysis.js"></script>
     <script src="js/calendar.js"></script>
     <script src="js/island.js"></script>
+    <script src="js/promotion.js"></script>
     <script src="js/router.js"></script>
     <script src="js/app.js"></script>
 </body>

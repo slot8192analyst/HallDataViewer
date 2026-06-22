@@ -1,0 +1,14 @@
+.promo-date-list { list-style: none; padding: 0; }
+.promo-date-list li { margin: 6px 0; }
+.promo-date-list a { display: inline-block; padding: 8px 14px; border-radius: 8px;
+    background: var(--card-bg, #1e293b); color: var(--primary-color, #60a5fa); text-decoration: none; }
+.promo-report-link { color: var(--hall-accent, #f59e0b); font-weight: bold; }
+.promo-group-title { margin: 16px 0 6px; }
+.promo-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+.promo-table th, .promo-table td { border: 1px solid var(--border-color, #334155);
+    padding: 6px 10px; text-align: center; }
+.promo-empty { color: #94a3b8; padding: 8px 0; }
+.promo-note { margin: 12px 0; padding: 10px 14px; border-left: 3px solid var(--hall-accent, #f59e0b);
+    background: var(--card-bg, rgba(255,255,255,0.04)); border-radius: 6px; }
+.promo-note-title { margin: 0 0 6px; font-size: 0.95em; color: var(--hall-accent, #f59e0b); }
+.promo-note-line { margin: 2px 0; }
