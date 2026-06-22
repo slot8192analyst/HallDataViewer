@@ -1,14 +1,249 @@
+/* ===================
+   promotion.css - 取材ページ
+   ===================
+   構成:
+     1. 取材カラー（カスタムプロパティ）
+     2. 取材ハブのカード
+     3. 開催日一覧カード
+     4. 対象機種マトリクス
+     5. 詳細ページ（テーブル・サマリー・メモ）
+     6. 旧: 開催日リンクリスト（後方互換）
+*/
+
+/* ===================
+   1. 取材カラー
+   各取材の左ボーダー色を1か所で管理
+   =================== */
+[data-promo="tenun"]  { --promo-accent: #f59e0b; --promo-accent-hover: #fbbf24; }
+[data-promo="ougi"]   { --promo-accent: #60a5fa; --promo-accent-hover: #93c5fd; }
+[data-promo="zombie"] { --promo-accent: #34d399; --promo-accent-hover: #6ee7b7; }
+
+/* ===================
+   2. 取材ハブのカード
+   =================== */
+.promo-card {
+    position: relative;
+    border-left: 4px solid var(--promo-accent, var(--border-color, #334155));
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.promo-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    border-left-color: var(--promo-accent-hover, var(--primary-color, #60a5fa));
+}
+.promo-card .terminal-card-icon {
+    font-size: 1.6em;
+}
+
+/* ===================
+   3. 開催日一覧カード
+   =================== */
+.promo-day-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+}
+.promo-day-card {
+    display: block;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--bg-card, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-left: 4px solid var(--promo-accent, var(--border-color, #334155));
+    text-decoration: none;
+    color: var(--text-primary, #e2e8f0);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.promo-day-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.promo-day-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.promo-day-date {
+    font-weight: bold;
+    font-size: 1.05em;
+}
+.promo-day-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1.3;
+}
+.promo-day-winrate {
+    font-size: 0.8em;
+    color: var(--text-muted, #94a3b8);
+}
+
+.promo-day-machines {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.promo-machine-chip {
+    font-size: 0.78em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--bg-input, #0f172a);
+    border: 1px solid var(--border-color, #334155);
+    color: var(--text-secondary, #cbd5e1);
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.promo-machine-more {
+    color: var(--text-muted, #94a3b8);
+    font-style: italic;
+}
+
+/* ===================
+   4. 対象機種マトリクス
+   =================== */
+.promo-matrix-section { margin-top: 28px; }
+.promo-matrix-title { margin: 0 0 8px; }
+
+.promo-matrix-legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 10px;
+    font-size: 0.85em;
+    color: var(--text-secondary, #cbd5e1);
+}
+.promo-matrix-legend i {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-right: 4px;
+}
+.promo-matrix-legend .promo-cell-target {
+    background: var(--hall-accent, #f59e0b);
+}
+.promo-matrix-legend .promo-cell-candidate {
+    background: rgba(245, 158, 11, 0.28);
+}
+
+.promo-matrix-table {
+    width: auto;
+    min-width: 100%;
+    border-collapse: collapse;
+}
+.promo-matrix-table th,
+.promo-matrix-table td {
+    border: 1px solid var(--border-color, #334155);
+    padding: 6px 8px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* 機種名列は左寄せ・横スクロール時に左固定 */
+.promo-matrix-table th.promo-matrix-machine,
+.promo-matrix-table td.promo-matrix-machine {
+    text-align: left;
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--bg-card, #1e293b);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.promo-matrix-table th.promo-matrix-machine { z-index: 3; }
+
+.promo-matrix-count { color: var(--text-secondary, #cbd5e1); }
+.promo-matrix-candcount {
+    font-size: 0.8em;
+    color: var(--text-muted, #94a3b8);
+    margin-left: 2px;
+}
+.promo-matrix-day {
+    font-size: 0.8em;
+    color: var(--text-muted, #94a3b8);
+}
+
+/* セルの ●/○ は背景の塗りつぶしで表現（文字は背景と同色で隠す） */
+.promo-matrix-cell { color: transparent; }
+.promo-cell-target {
+    background: var(--hall-accent, #f59e0b);
+    color: var(--hall-accent, #f59e0b);
+}
+.promo-cell-candidate {
+    background: rgba(245, 158, 11, 0.28);
+    color: rgba(245, 158, 11, 0.28);
+}
+
+/* ===================
+   5. 詳細ページ（テーブル・サマリー・メモ）
+   =================== */
+.promo-group-title { margin: 16px 0 6px; }
+
+.promo-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 8px 0 12px;
+}
+.promo-summary span { white-space: nowrap; }
+.promo-summary b { font-size: 1.05em; }
+
+.promo-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+}
+.promo-table th,
+.promo-table td {
+    border: 1px solid var(--border-color, #334155);
+    padding: 6px 10px;
+    text-align: center;
+}
+
+.promo-report-link {
+    color: var(--hall-accent, #f59e0b);
+    font-weight: bold;
+}
+
+.promo-note {
+    margin: 12px 0;
+    padding: 10px 14px;
+    border-left: 3px solid var(--hall-accent, #f59e0b);
+    background: var(--card-bg, rgba(255, 255, 255, 0.04));
+    border-radius: 6px;
+}
+.promo-note-title {
+    margin: 0 0 6px;
+    font-size: 0.95em;
+    color: var(--hall-accent, #f59e0b);
+}
+.promo-note-line { margin: 2px 0; }
+
+.promo-empty {
+    color: var(--text-muted, #94a3b8);
+    padding: 8px 0;
+}
+.promo-nodetail {
+    color: var(--text-muted, #94a3b8);
+    font-style: italic;
+}
+
+/* ===================
+   6. 旧: 開催日リンクリスト（後方互換・現在は未使用）
+   =================== */
 .promo-date-list { list-style: none; padding: 0; }
 .promo-date-list li { margin: 6px 0; }
-.promo-date-list a { display: inline-block; padding: 8px 14px; border-radius: 8px;
-    background: var(--card-bg, #1e293b); color: var(--primary-color, #60a5fa); text-decoration: none; }
-.promo-report-link { color: var(--hall-accent, #f59e0b); font-weight: bold; }
-.promo-group-title { margin: 16px 0 6px; }
-.promo-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-.promo-table th, .promo-table td { border: 1px solid var(--border-color, #334155);
-    padding: 6px 10px; text-align: center; }
-.promo-empty { color: #94a3b8; padding: 8px 0; }
-.promo-note { margin: 12px 0; padding: 10px 14px; border-left: 3px solid var(--hall-accent, #f59e0b);
-    background: var(--card-bg, rgba(255,255,255,0.04)); border-radius: 6px; }
-.promo-note-title { margin: 0 0 6px; font-size: 0.95em; color: var(--hall-accent, #f59e0b); }
-.promo-note-line { margin: 2px 0; }
+.promo-date-list a {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: var(--card-bg, #1e293b);
+    color: var(--primary-color, #60a5fa);
+    text-decoration: none;
+}
