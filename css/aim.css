@@ -181,53 +181,57 @@
 
 /* ========== 画像出力用リスト形式 ========== */
 .aim-export-list {
-    width: 720px;
+    width: 820px;                 /* 720 → 820 に拡幅して余裕を持たせる */
     background: var(--bg-color, #1a1a2e);
     color: var(--text-color, #e5e7eb);
-    padding: 20px 24px;
+    padding: 26px 30px;
     box-sizing: border-box;
     font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
 }
-.aim-export-head { margin-bottom: 14px; }
-.aim-export-title { font-size: 20px; font-weight: bold; }
-.aim-export-sub { font-size: 13px; color: var(--text-muted, #9ca3af); margin-top: 2px; }
+.aim-export-head { margin-bottom: 18px; }
+.aim-export-title { font-size: 28px; font-weight: bold; }      /* 20 → 28 */
+.aim-export-sub { font-size: 16px; color: var(--text-muted, #9ca3af); margin-top: 4px; } /* 13 → 16 */
 
-.aim-export-section { margin-bottom: 14px; }
+.aim-export-section { margin-bottom: 18px; }
 .aim-export-zone-label {
-    font-size: 14px;
+    font-size: 19px;              /* 14 → 19 */
     font-weight: bold;
-    padding: 4px 10px;
-    border-radius: 4px;
-    margin-bottom: 6px;
+    padding: 6px 14px;
+    border-radius: 5px;
+    margin-bottom: 10px;
 }
 .aim-export-top   .aim-export-zone-label,
-.aim-export-section.aim-export-top   .aim-export-zone-label { background: rgba(239,68,68,0.25);  border-left: 4px solid #ef4444; }
-.aim-export-section.aim-export-high  .aim-export-zone-label { background: rgba(251,191,36,0.22); border-left: 4px solid #fbbf24; }
-.aim-export-section.aim-export-other .aim-export-zone-label { background: rgba(107,114,128,0.22); border-left: 4px solid #6b7280; }
+.aim-export-section.aim-export-top   .aim-export-zone-label { background: rgba(239,68,68,0.25);  border-left: 5px solid #ef4444; }
+.aim-export-section.aim-export-high  .aim-export-zone-label { background: rgba(251,191,36,0.22); border-left: 5px solid #fbbf24; }
+.aim-export-section.aim-export-other .aim-export-zone-label { background: rgba(107,114,128,0.22); border-left: 5px solid #6b7280; }
 
 .aim-export-row {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
-    gap: 6px 14px;
-    padding: 5px 10px;
+    align-items: center;          /* baseline → center で絵文字と数字が揃う */
+    gap: 8px 16px;
+    padding: 9px 12px;
     border-bottom: 1px solid var(--border-light, #3a3a5a);
 }
 .aim-export-name {
-    font-size: 14px;
+    font-size: 18px;             /* 14 → 18 */
     font-weight: bold;
-    min-width: 180px;
+    min-width: 200px;
 }
 .aim-export-unit {
-    font-size: 13px;
+    font-size: 19px;            /* 13 → 19 台番号を大きく */
+    font-weight: bold;          /* 太字で視認性アップ */
     font-variant-numeric: tabular-nums;
-    padding: 1px 6px;
-    border-radius: 4px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;       /* 絵文字と番号を少し離す */
+    white-space: nowrap;
 }
-.aim-export-kubi-1 { background: rgba(239, 68, 68, 0.20); }
-.aim-export-kubi-2 { background: rgba(245, 158, 11, 0.18); }
-.aim-export-kubi-3 { background: rgba(59, 130, 246, 0.16); }
-.aim-export-empty { font-size: 12px; color: var(--text-muted, #9ca3af); padding: 4px 10px; }
+/* 台番号の数字部分をさらに強調する枠（kubi別の色は維持） */
+.aim-export-kubi-1 { background: rgba(239, 68, 68, 0.28); border: 1px solid rgba(239,68,68,0.6); }
+.aim-export-kubi-2 { background: rgba(245, 158, 11, 0.26); border: 1px solid rgba(245,158,11,0.6); }
+.aim-export-kubi-3 { background: rgba(59, 130, 246, 0.24); border: 1px solid rgba(59,130,246,0.6); }
+.aim-export-empty { font-size: 15px; color: var(--text-muted, #9ca3af); padding: 6px 12px; }
 
 /* レスポンシブ */
 @media (max-width: 720px) {
