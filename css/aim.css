@@ -384,3 +384,178 @@
     font-size: 13px;
     max-width: 200px;
 }
+
+/* =================== */
+/* 狙い台ページ化（独立ページ用の追加スタイル） */
+/* =================== */
+
+.aim-page-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+.aim-page-header h2 { margin: 0; }
+
+.aim-date-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+.aim-date-picker label { color: var(--text-muted, #9ca3af); }
+.aim-date-picker select {
+    padding: 6px 10px;
+    border: 1px solid var(--border-light, #3a3a5a);
+    border-radius: 6px;
+    background: var(--bg-color, #1a1a2e);
+    color: var(--text-color, #e5e7eb);
+    font-size: 14px;
+}
+.aim-date-day { color: var(--text-muted, #9ca3af); font-size: 13px; }
+
+/* 凹み判定（バッジ）設定パネル */
+.aim-badge-panel {
+    margin-bottom: 10px;
+    border: 1px solid var(--border-light, #3a3a5a);
+    border-radius: 8px;
+    overflow: hidden;
+    display: none;
+}
+.aim-badge-panel.open { display: block; }
+.aim-badge-panel-head {
+    padding: 6px 10px;
+    font-size: 12px;
+    color: var(--text-muted, #9ca3af);
+    background: rgba(0,0,0,0.15);
+}
+.aim-badge-panel #aimBadgeSettings { padding: 10px; }
+
+/* 空ガイド */
+.aim-empty-guide {
+    padding: 24px 16px;
+    text-align: center;
+    color: var(--text-muted, #9ca3af);
+    border: 1px dashed var(--border-light, #3a3a5a);
+    border-radius: 8px;
+}
+
+/* =================== */
+/* 狙い台ページ内タブ + 振り返り */
+/* =================== */
+
+.aim-tabs {
+    display: flex;
+    gap: 4px;
+    margin-left: 8px;
+}
+.aim-tab {
+    padding: 6px 16px;
+    border: 1px solid var(--border-light, #3a3a5a);
+    border-radius: 6px;
+    background: var(--card-bg, #232342);
+    color: var(--text-muted, #9ca3af);
+    font-size: 14px;
+    cursor: pointer;
+}
+.aim-tab.active {
+    background: var(--hall-accent, #fbbf24);
+    color: #1a1a2e;
+    font-weight: bold;
+    border-color: var(--hall-accent, #fbbf24);
+}
+
+/* 振り返りサマリー */
+.aim-review-summary { margin-bottom: 16px; }
+.aim-review-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+.aim-review-stat {
+    background: var(--card-bg, #232342);
+    border: 1px solid var(--border-light, #3a3a5a);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+}
+.aim-review-stat-total { border-top: 3px solid var(--hall-accent, #fbbf24); }
+.aim-review-stat-top   { border-top: 3px solid #ef4444; }
+.aim-review-stat-high  { border-top: 3px solid #fbbf24; }
+.aim-review-stat-other { border-top: 3px solid #6b7280; }
+.aim-review-stat-label { font-size: 12px; color: var(--text-muted, #9ca3af); }
+.aim-review-stat-value { font-size: 26px; font-weight: bold; margin: 4px 0; }
+.aim-review-stat-sub   { font-size: 11px; color: var(--text-muted, #9ca3af); }
+.aim-review-note {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-muted, #9ca3af);
+}
+
+/* 振り返り 区分テーブル */
+.aim-review-zone { margin-bottom: 18px; }
+.aim-review-zone-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 6px 6px 0 0;
+    font-weight: bold;
+}
+.aim-review-zone-top   .aim-review-zone-head,
+.aim-review-zone.aim-review-zone-top   .aim-review-zone-head { background: rgba(239,68,68,0.20);  border-left: 4px solid #ef4444; }
+.aim-review-zone.aim-review-zone-high  .aim-review-zone-head { background: rgba(251,191,36,0.18); border-left: 4px solid #fbbf24; }
+.aim-review-zone.aim-review-zone-other .aim-review-zone-head { background: rgba(107,114,128,0.18); border-left: 4px solid #6b7280; }
+.aim-review-zone-label { font-size: 14px; }
+.aim-review-zone-hit { font-size: 12px; color: var(--text-muted, #cbd5e1); font-weight: normal; }
+
+.aim-review-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.aim-review-table th, .aim-review-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border-light, #3a3a5a);
+    text-align: center;
+    white-space: nowrap;
+}
+.aim-review-table th { background: rgba(0,0,0,0.15); font-size: 12px; color: var(--text-muted, #9ca3af); }
+.aim-review-table td.plus  { color: #34d399; font-variant-numeric: tabular-nums; }
+.aim-review-table td.minus { color: #f87171; font-variant-numeric: tabular-nums; }
+.aim-review-nodata { opacity: 0.55; }
+.aim-review-nodata-cell, .aim-review-empty-cell {
+    color: var(--text-muted, #9ca3af);
+    font-size: 12px;
+    font-style: italic;
+}
+
+.aim-hit-badge { font-size: 12px; font-weight: bold; }
+.aim-hit-badge.hit  { color: #34d399; }
+.aim-hit-badge.miss { color: #6b7280; }
+
+@media (max-width: 720px) {
+    .aim-review-stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* 振り返りコントロール（シート選択＋日付） */
+.aim-review-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.aim-sheet-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+.aim-sheet-picker label { color: var(--text-muted, #9ca3af); }
+.aim-sheet-picker select {
+    padding: 6px 10px;
+    border: 1px solid var(--border-light, #3a3a5a);
+    border-radius: 6px;
+    background: var(--bg-color, #1a1a2e);
+    color: var(--text-color, #e5e7eb);
+    font-size: 14px;
+    max-width: 220px;
+}

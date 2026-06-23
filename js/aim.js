@@ -1,14 +1,20 @@
 // ===================
-// 狙い台作成ページ（AimSheet）
+// 狙い台ページ（AimSheet）
 //
 // ホーム（ターミナル）から独立ページ #aim として起動。
-// 基準日は AimSheet 内部で独立管理（daily ページとは連動しない）。デフォルトは最新日。
+// ページ内タブ: 「作成」と「振り返り」。
 //
-// PC: HTML5 Drag&Drop / スマホ: 長押しドラッグ＋タップメニュー の両対応。
-// 凹みは 💀🥇💀🥈💀🥉 表記。3位は表示/非表示トグル。機種除外（プリセット一括可）。
+// 【作成】基準日（独立管理・デフォルト最新日）の凹み台を 3ゾーンに振り分け。
+// 【振り返り】選んだシート（現在の作成配置 or クラウドの他人/自分のシート）を
+//            「答え合わせ日」のデータで答え合わせ。
+//            凹み判定は答え合わせ日の前日基準でN日累積。的中=機械割105%以上。
+//            振り返りは reviewState を使い、作成タブの state は壊さない。
+//            3位を隠す設定（showRank3）はシートごとに従う。
+//
+// PC: HTML5 Drag&Drop / スマホ: 長押しドラッグ＋タップメニュー。
+// 凹みは 💀🥇💀🥈💀🥉。3位トグル。機種除外（プリセット一括）。
 // 凹み判定（バッジ）設定もこのページで可能（MachineBadge 設定を共有 / このページでは即再計算）。
-// 画像はリスト形式で html2canvas 出力。
-// 保存: localStorage（自動）＋ Cloudflare D1（作成者ごとに upsert / 他人のシート読込・削除）。
+// 保存: localStorage（自動）＋ Cloudflare D1（作成者ごと upsert / 他人のシート読込・削除）。
 // ===================
 
 var AimSheet = (function() {
@@ -19,6 +25,11 @@ var AimSheet = (function() {
 
     var STORAGE_KEY = 'aimSheetState';
     var AUTHOR_KEY  = 'aimSheetAuthor';
+
+    // バッジ設定の localStorage キー（前日基準への一時切替に使用）
+    var MB_BASE_KEY = 'machineBadgeBase';
+
+    var WIN_RATE = 105; // 的中とみなす機械割(%)。設定4相当
 
     var ZONES = [
         { id: 'top',    label: '最優先', presetId: 'at_main' },
@@ -51,8 +62,21 @@ var AimSheet = (function() {
     var builtRaw = {};
     var built = {};
     var currentFile = null;
-    var aimDateFile = null;     // ★ 基準日（daily とは独立。デフォルト最新日）
+    var aimDateFile = null;        // 作成: 基準日（daily と独立。デフォルト最新日）
+    var reviewDateFile = null;     // 振り返り: 答え合わせ日（デフォルト最新日）
+    var activeTab = 'create';      // 'create' | 'review'
     var initialized = false;
+
+    // ★ 振り返り専用の一時状態（作成タブの state を壊さない）
+    var reviewState = {
+        placement: {},
+        perUnit: {},
+        excluded: {},
+        hiddenMachines: {},
+        showRank3: true
+    };
+    var reviewSheetSel = '__current__';   // 選択中シート（'__current__' または作成者名）
+    var reviewCloudCache = {};            // author -> data のキャッシュ
 
     // クラウド保存対象だけを抜き出す（死に台の数値は含めない）
     function pickPersist() {
@@ -182,6 +206,8 @@ var AimSheet = (function() {
                 toast('🗑️ ' + targetAuthor + ' さんのシートを削除しました');
                 sel.value = '';
                 refreshCloudList();
+                // 振り返りキャッシュからも除去
+                delete reviewCloudCache[targetAuthor];
             } else {
                 alert('削除に失敗しました: ' + (res && res.error ? res.error : '不明なエラー'));
             }
@@ -220,40 +246,44 @@ var AimSheet = (function() {
         }
     }
 
-    // ========== 基準日の解決 ==========
+    // ========== 基準日の解決 / データロード ==========
 
     function aimSortedFiles() {
         return (typeof sortFilesByDate === 'function') ? sortFilesByDate(CSV_FILES, true) : [];
     }
 
-    // 基準日が未設定／無効なら最新日にフォールバック
     function resolveAimDateFile() {
         var files = aimSortedFiles();
         if (aimDateFile && files.indexOf(aimDateFile) !== -1) return aimDateFile;
-        aimDateFile = files.length ? files[0] : null;   // 最新日
+        aimDateFile = files.length ? files[0] : null;
         return aimDateFile;
     }
 
-    // 指定ファイルの月別JSONが未キャッシュなら読み込む（基準日＋累積期間ぶん）
+    function resolveReviewDateFile() {
+        var files = aimSortedFiles();
+        if (reviewDateFile && files.indexOf(reviewDateFile) !== -1) return reviewDateFile;
+        reviewDateFile = files.length ? files[0] : null;
+        return reviewDateFile;
+    }
+
+    // 指定ファイル＋累積期間ぶんの月別JSONが未キャッシュなら読み込む
     function ensureDataLoaded(file) {
         var loaders = [];
         if (!file) return Promise.resolve();
 
-        // 基準日を含む直近N日ぶんのファイルを対象に、未ロードの月をまとめてロード
         var files = aimSortedFiles();
         var idx = files.indexOf(file);
         if (idx === -1) idx = 0;
         var days = (typeof MachineBadge !== 'undefined') ? MachineBadge.getBadgeDays() : 7;
-        // 前日基準も考慮して1日余分に見る
         var windowFiles = files.slice(idx, idx + days + 1);
 
         var monthsToLoad = {};
         windowFiles.forEach(function(f) {
-            if (dataCache && dataCache[f]) return;        // 既にロード済み
+            if (dataCache && dataCache[f]) return;
             if (typeof getDateKeyFromFilename !== 'function') return;
             var dk = getDateKeyFromFilename(f);
             if (!dk) return;
-            var ym = dk.substring(0, 7);                   // "2026_06"
+            var ym = dk.substring(0, 7);
             monthsToLoad['data/' + ym + '.json'] = true;
         });
 
@@ -265,7 +295,7 @@ var AimSheet = (function() {
         return Promise.all(loaders);
     }
 
-    // ========== データ構築 ==========
+    // ========== 作成: データ構築 ==========
 
     function buildData() {
         builtRaw = {};
@@ -333,7 +363,7 @@ var AimSheet = (function() {
         });
     }
 
-    // ========== 区分振り分け ==========
+    // ========== 区分振り分け（共通） ==========
 
     function chipKey(machine, num) { return machine + '_' + num; }
 
@@ -351,6 +381,20 @@ var AimSheet = (function() {
             return z === zoneId;
         });
         return visibleItems(filtered);
+    }
+
+    // 作成用: 台→ゾーン解決（state ベース）
+    function resolveZoneOf(machine, num) {
+        var pk = chipKey(machine, num);
+        if (state.perUnit[pk] !== undefined) return state.perUnit[pk];
+        return state.placement[machine] || 'other';
+    }
+
+    // 振り返り用: reviewState からゾーン解決
+    function reviewZoneOf(machine, num) {
+        var pk = chipKey(machine, num);
+        if (reviewState.perUnit[pk] !== undefined) return reviewState.perUnit[pk];
+        return reviewState.placement[machine] || 'other';
     }
 
     function machinesInZone(zoneId) {
@@ -383,7 +427,7 @@ var AimSheet = (function() {
 
     function zoneOfMachine(machine) { return state.placement[machine] || 'other'; }
 
-    // ========== 描画 ==========
+    // ========== 作成: 描画 ==========
 
     function renderChip(item) {
         var key = chipKey(item.machine, item.num);
@@ -467,7 +511,6 @@ var AimSheet = (function() {
         if (!container || typeof MachineBadge === 'undefined') return;
         container.innerHTML = MachineBadge.renderSettingsHtml('aimMb');
         MachineBadge.setupSettingsEvents('aimMb', function() {
-            // 設定変更 → 即再構築（このページのバッジは buildData が自前で計算）
             render();
         });
         badgePanelRendered = true;
@@ -942,12 +985,361 @@ var AimSheet = (function() {
         });
     }
 
-    // ========== ページ表示 ==========
+    // ========== 振り返り（答え合わせ） ==========
+
+    // 答え合わせ日を前日基準でバッジ計算し、凹み台を {machine, num, kubi} で返す。
+    // MachineBadge.badgeBase を一時的に 'prev' にして計算→必ず元に戻す。
+    function buildReviewKubiList(reviewFile) {
+        if (typeof MachineBadge === 'undefined') return [];
+        if (!reviewFile || !dataCache || !dataCache[reviewFile]) return [];
+
+        var savedBase = null;
+        try { savedBase = localStorage.getItem(MB_BASE_KEY); } catch (e) {}
+
+        var list = [];
+        try {
+            // 前日基準へ一時切替（設定を再ロードさせる）
+            try { localStorage.setItem(MB_BASE_KEY, 'prev'); } catch (e) {}
+            if (typeof MachineBadge.loadSettings === 'function') MachineBadge.loadSettings();
+
+            var rawData = dataCache[reviewFile].map(function(r) { return Object.assign({}, r); });
+            if (typeof addMechanicalRateToData === 'function') rawData = addMechanicalRateToData(rawData);
+            var badged = MachineBadge.assignBadges(rawData, reviewFile, dataCache, MachineBadge.getTargetColumn());
+
+            badged.forEach(function(row) {
+                var mb = row['_machineBadge'];
+                if (!mb || mb.kubi === null || mb.kubi === undefined) return;
+                if (KUBI_RANKS.indexOf(mb.kubi) === -1) return;
+                list.push({
+                    machine: row['機種名'] || '',
+                    num:     row['台番号'] || '',
+                    kubi:    mb.kubi
+                });
+            });
+        } finally {
+            // base 設定を必ず元に戻す
+            try {
+                if (savedBase === null) localStorage.removeItem(MB_BASE_KEY);
+                else localStorage.setItem(MB_BASE_KEY, savedBase);
+            } catch (e) {}
+            if (typeof MachineBadge.loadSettings === 'function') MachineBadge.loadSettings();
+        }
+        return list;
+    }
+
+    // 答え合わせ日の台データを台番号でマップ化（G数/差枚/機械割）
+    function reviewDayDataMap(reviewFile) {
+        var map = {};
+        if (!reviewFile || !dataCache || !dataCache[reviewFile]) return map;
+        var rows = dataCache[reviewFile];
+        var withRate = (typeof addMechanicalRateToData === 'function') ? addMechanicalRateToData(rows) : rows;
+        withRate.forEach(function(row) {
+            var num = String(row['台番号'] || '');
+            map[num] = {
+                machine: row['機種名'] || '',
+                games:   parseInt(String(row['G数']).replace(/,/g, '')) || 0,
+                diff:    parseInt(String(row['差枚']).replace(/,/g, '')) || 0,
+                rate:    (row['機械割'] !== null && row['機械割'] !== undefined && !isNaN(row['機械割'])) ? row['機械割'] : null
+            };
+        });
+        return map;
+    }
+
+    // 振り返り結果を構築。ゾーンごとに対象台の実績を集計（reviewState を使用）。
+    function buildReviewResult(reviewFile) {
+        var kubiList = buildReviewKubiList(reviewFile);
+        var dayMap = reviewDayDataMap(reviewFile);
+
+        var byZone = { top: [], high: [], other: [] };
+
+        kubiList.forEach(function(it) {
+            // 3位非表示シートなら kubi===3 を除外（シートの showRank3 に従う）
+            if (!reviewState.showRank3 && it.kubi === 3) return;
+
+            var key = chipKey(it.machine, it.num);
+            // 除外（狙わない）台・機種除外は対象外（reviewState 基準）
+            if (reviewState.excluded[key]) return;
+            if (reviewState.hiddenMachines[it.machine]) return;
+
+            var zone = reviewZoneOf(it.machine, it.num);
+            if (!byZone[zone]) byZone[zone] = [];
+
+            var day = dayMap[String(it.num)];
+            var hasData = !!day;
+            var rate = hasData ? day.rate : null;
+            var hit = (hasData && rate !== null) ? (rate >= WIN_RATE) : null;
+
+            byZone[zone].push({
+                machine: it.machine,
+                num:     it.num,
+                kubi:    it.kubi,
+                hasData: hasData,
+                games:   hasData ? day.games : null,
+                diff:    hasData ? day.diff  : null,
+                rate:    rate,
+                hit:     hit
+            });
+        });
+
+        Object.keys(byZone).forEach(function(z) {
+            byZone[z].sort(function(a, b) {
+                var ar = (a.rate === null) ? -Infinity : a.rate;
+                var br = (b.rate === null) ? -Infinity : b.rate;
+                return br - ar;
+            });
+        });
+
+        return byZone;
+    }
+
+    // ゾーンの的中率を計算（母数=データありの台数、的中=hit true）
+    function zoneHitStats(rows) {
+        var denom = 0, hit = 0;
+        rows.forEach(function(r) {
+            if (r.hasData && r.hit !== null) {
+                denom++;
+                if (r.hit) hit++;
+            }
+        });
+        return { denom: denom, hit: hit, rate: denom > 0 ? (hit / denom * 100) : null };
+    }
+
+    function fmtRate(v) {
+        return (v === null || v === undefined || isNaN(v)) ? '-' : v.toFixed(2) + '%';
+    }
+    function fmtHitRate(v) {
+        return (v === null) ? '-' : v.toFixed(1) + '%';
+    }
+
+    // 振り返りシート選択肢を構築（現在配置 + クラウド全シート）
+    function refreshReviewSheetList() {
+        var sel = document.getElementById('aimReviewSheetSelect');
+        if (!sel) return Promise.resolve();
+
+        return fetch(AIM_API_URL)
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                var sheets = (res && res.sheets) ? res.sheets : [];
+                var opts = ['<option value="__current__">現在の作成タブの配置</option>'];
+                sheets.forEach(function(s) {
+                    var dateTxt = s.date_key ? '（' + s.date_key.replace(/_/g, '/') + '）' : '';
+                    opts.push('<option value="' + escapeAttr(s.author) + '">'
+                        + escapeHtml(s.author + dateTxt) + '</option>');
+                });
+                sel.innerHTML = opts.join('');
+                sel.value = reviewSheetSel;
+                if (sel.value !== reviewSheetSel) {
+                    // 選択中シートが消えていたら現在配置に戻す
+                    reviewSheetSel = '__current__';
+                    sel.value = '__current__';
+                }
+            })
+            .catch(function() {
+                sel.innerHTML = '<option value="__current__">現在の作成タブの配置</option>';
+                sel.value = '__current__';
+                reviewSheetSel = '__current__';
+            });
+    }
+
+    // 選択中シートの配置を reviewState に読み込む（Promise）
+    function loadReviewState() {
+        if (reviewSheetSel === '__current__') {
+            reviewState.placement      = Object.assign({}, state.placement);
+            reviewState.perUnit        = Object.assign({}, state.perUnit);
+            reviewState.excluded       = Object.assign({}, state.excluded);
+            reviewState.hiddenMachines = Object.assign({}, state.hiddenMachines);
+            reviewState.showRank3      = state.showRank3;
+            return Promise.resolve();
+        }
+
+        if (reviewCloudCache[reviewSheetSel]) {
+            applyToReviewState(reviewCloudCache[reviewSheetSel]);
+            return Promise.resolve();
+        }
+
+        return fetch(AIM_API_URL + '?author=' + encodeURIComponent(reviewSheetSel))
+            .then(function(r) {
+                if (!r.ok) throw new Error('not found');
+                return r.json();
+            })
+            .then(function(res) {
+                var data = (res && res.data) ? res.data : null;
+                reviewCloudCache[reviewSheetSel] = data || {};
+                applyToReviewState(data);
+            })
+            .catch(function() {
+                applyToReviewState(null);
+            });
+    }
+
+    function applyToReviewState(data) {
+        data = data || {};
+        reviewState.placement      = data.placement      || {};
+        reviewState.perUnit        = data.perUnit        || {};
+        reviewState.excluded       = data.excluded       || {};
+        reviewState.hiddenMachines = data.hiddenMachines || {};
+        reviewState.showRank3      = (data.showRank3 !== undefined) ? data.showRank3 : true;
+    }
+
+    function renderReview() {
+        var reviewFile = resolveReviewDateFile();
+        syncReviewDateNav();
+
+        var summaryEl = document.getElementById('aimReviewSummary');
+        var bodyEl    = document.getElementById('aimReviewBody');
+        if (!summaryEl || !bodyEl) return;
+
+        if (!reviewFile || !dataCache || !dataCache[reviewFile]) {
+            summaryEl.innerHTML = '';
+            bodyEl.innerHTML = '<div class="aim-empty-guide">答え合わせ日のデータが読み込めませんでした。</div>';
+            return;
+        }
+
+        // 選択中シートの配置を reviewState へ読み込んでから集計
+        loadReviewState().then(function() {
+            var byZone = buildReviewResult(reviewFile);
+
+            var allRows = byZone.top.concat(byZone.high).concat(byZone.other);
+            var totalStats = zoneHitStats(allRows);
+
+            // ---- サマリー ----
+            var summaryCards = [];
+            summaryCards.push(
+                '<div class="aim-review-stat aim-review-stat-total">'
+                + '<div class="aim-review-stat-label">全体的中率</div>'
+                + '<div class="aim-review-stat-value">' + fmtHitRate(totalStats.rate) + '</div>'
+                + '<div class="aim-review-stat-sub">' + totalStats.hit + ' / ' + totalStats.denom + ' 台</div>'
+                + '</div>'
+            );
+            ZONES.forEach(function(zone) {
+                var st = zoneHitStats(byZone[zone.id] || []);
+                summaryCards.push(
+                    '<div class="aim-review-stat aim-review-stat-' + zone.id + '">'
+                    + '<div class="aim-review-stat-label">' + zone.label + '</div>'
+                    + '<div class="aim-review-stat-value">' + fmtHitRate(st.rate) + '</div>'
+                    + '<div class="aim-review-stat-sub">' + st.hit + ' / ' + st.denom + ' 台</div>'
+                    + '</div>'
+                );
+            });
+            summaryEl.innerHTML = '<div class="aim-review-stats">' + summaryCards.join('') + '</div>'
+                + '<div class="aim-review-note">的中 = 機械割 ' + WIN_RATE + '% 以上（設定4相当）。母数はデータがある台のみ。</div>';
+
+            // ---- 区分ごとの表 ----
+            var html = ZONES.map(function(zone) {
+                var rows = byZone[zone.id] || [];
+                var st = zoneHitStats(rows);
+                var tableRows = rows.map(function(r) {
+                    if (!r.hasData) {
+                        return '<tr class="aim-review-nodata">'
+                            + '<td>' + kubiMedal(r.kubi) + '</td>'
+                            + '<td>' + escapeHtml(shortNameOf(r.machine)) + '</td>'
+                            + '<td>' + escapeHtml(r.num) + '</td>'
+                            + '<td colspan="3" class="aim-review-nodata-cell">この日はデータなし（撤去/移動など）</td>'
+                            + '<td>-</td>'
+                            + '</tr>';
+                    }
+                    var diffCls = r.diff > 0 ? 'plus' : (r.diff < 0 ? 'minus' : '');
+                    var rateCls = (r.rate !== null && r.rate >= 100) ? 'plus' : 'minus';
+                    var hitBadge = r.hit
+                        ? '<span class="aim-hit-badge hit">⭕ 的中</span>'
+                        : '<span class="aim-hit-badge miss">✕</span>';
+                    return '<tr>'
+                        + '<td>' + kubiMedal(r.kubi) + '</td>'
+                        + '<td>' + escapeHtml(shortNameOf(r.machine)) + '</td>'
+                        + '<td>' + escapeHtml(r.num) + '</td>'
+                        + '<td>' + r.games.toLocaleString() + '</td>'
+                        + '<td class="' + diffCls + '">' + (r.diff >= 0 ? '+' : '') + r.diff.toLocaleString() + '</td>'
+                        + '<td class="' + rateCls + '">' + fmtRate(r.rate) + '</td>'
+                        + '<td>' + hitBadge + '</td>'
+                        + '</tr>';
+                }).join('');
+
+                var emptyRow = rows.length === 0
+                    ? '<tr><td colspan="7" class="aim-review-empty-cell">対象台なし</td></tr>'
+                    : '';
+
+                return '<div class="aim-review-zone aim-review-zone-' + zone.id + '">'
+                    + '<div class="aim-review-zone-head">'
+                    + '<span class="aim-review-zone-label">' + zone.label + '</span>'
+                    + '<span class="aim-review-zone-hit">的中率 ' + fmtHitRate(st.rate) + '（' + st.hit + '/' + st.denom + '）</span>'
+                    + '</div>'
+                    + '<div class="table-wrapper">'
+                    + '<table class="aim-review-table">'
+                    + '<thead><tr><th>順位</th><th>機種</th><th>台番号</th><th>G数</th><th>差枚</th><th>機械割</th><th>判定</th></tr></thead>'
+                    + '<tbody>' + tableRows + emptyRow + '</tbody>'
+                    + '</table>'
+                    + '</div>'
+                    + '</div>';
+            }).join('');
+
+            bodyEl.innerHTML = html;
+        });
+    }
+
+    // 振り返り日付セレクト/ラベル更新
+    function syncReviewDateNav() {
+        var files = aimSortedFiles();
+        var cur = resolveReviewDateFile();
+        var idx = files.indexOf(cur);
+        if (idx === -1) idx = 0;
+
+        var sel = document.getElementById('aimReviewDateSelect');
+        if (sel) {
+            sel.innerHTML = files.map(function(f, i) {
+                var t = (typeof formatDate === 'function') ? formatDate(f) : f;
+                return '<option value="' + escapeAttr(f) + '"' + (i === idx ? ' selected' : '') + '>' + escapeHtml(t) + '</option>';
+            }).join('');
+        }
+        var label = document.getElementById('aimReviewDateLabel');
+        if (label) {
+            var f = files[idx];
+            var txt = '';
+            if (f && typeof getDayOfWeek === 'function' && typeof getDayOfWeekName === 'function') {
+                try { txt = '（' + getDayOfWeekName(getDayOfWeek(f)) + '）'; } catch (e) {}
+            }
+            label.textContent = txt;
+        }
+    }
+
+    // 答え合わせ日を変更して再集計（未ロードなら月別JSONをロード）
+    function gotoReviewFile(file) {
+        if (!file) return;
+        reviewDateFile = file;
+        ensureDataLoaded(file).then(function() {
+            renderReview();
+        });
+    }
+
+    // ========== タブ切替 ==========
+
+    function switchTab(tab) {
+        activeTab = (tab === 'review') ? 'review' : 'create';
+
+        var createView = document.getElementById('aimCreateView');
+        var reviewView = document.getElementById('aimReviewView');
+        if (createView) createView.style.display = (activeTab === 'create') ? '' : 'none';
+        if (reviewView) reviewView.style.display = (activeTab === 'review') ? '' : 'none';
+
+        document.querySelectorAll('.aim-tab').forEach(function(btn) {
+            btn.classList.toggle('active', btn.dataset.aimTab === activeTab);
+        });
+
+        if (activeTab === 'review') {
+            var file = resolveReviewDateFile();
+            Promise.all([
+                ensureDataLoaded(file),
+                refreshReviewSheetList()
+            ]).then(function() { renderReview(); });
+        } else {
+            render();
+        }
+    }
+
+    // ========== ページ表示（作成ビュー） ==========
 
     function render() {
         loadState();
 
-        // 基準日を確定し、必要なら月別JSONをロードしてから構築
         var file = resolveAimDateFile();
         return ensureDataLoaded(file).then(function() {
             buildData();
@@ -990,16 +1382,14 @@ var AimSheet = (function() {
         renderBoard();
     }
 
-    // ========== 日付ナビ（基準日セレクトのみ） ==========
+    // ========== 日付ナビ（作成: 基準日セレクトのみ） ==========
 
-    // 基準日を変更して再構築
     function gotoFile(file) {
         if (!file) return;
         aimDateFile = file;
         render();
     }
 
-    // セレクトとラベルを基準日に合わせて更新
     function syncDateNav() {
         var files = aimSortedFiles();
         var cur = resolveAimDateFile();
@@ -1047,10 +1437,39 @@ var AimSheet = (function() {
         bind('aimCloudSaveBtn', cloudSave);
         bind('aimCloudDeleteBtn', cloudDelete);
 
-        // ---- 基準日セレクト ----
+        // ---- タブ切替 ----
+        document.querySelectorAll('.aim-tab').forEach(function(btn) {
+            btn.addEventListener('click', function() { switchTab(this.dataset.aimTab); });
+        });
+
+        // ---- 作成: 基準日セレクト ----
         var dateSel = document.getElementById('aimDateSelect');
         if (dateSel) {
             dateSel.addEventListener('change', function() { gotoFile(this.value); });
+        }
+
+        // ---- 振り返り: 答え合わせ日セレクト ----
+        var reviewSel = document.getElementById('aimReviewDateSelect');
+        if (reviewSel) {
+            reviewSel.addEventListener('change', function() { gotoReviewFile(this.value); });
+        }
+
+        // ---- 振り返り: シート選択 ----
+        var sheetSel = document.getElementById('aimReviewSheetSelect');
+        if (sheetSel) {
+            sheetSel.addEventListener('change', function() {
+                reviewSheetSel = this.value;
+                renderReview();
+            });
+        }
+
+        // ---- 振り返り: シート一覧 再取得 ----
+        var reloadBtn = document.getElementById('aimReviewReloadBtn');
+        if (reloadBtn) {
+            reloadBtn.addEventListener('click', function() {
+                reviewCloudCache = {};   // キャッシュ破棄
+                refreshReviewSheetList().then(function() { renderReview(); });
+            });
         }
 
         // 作成者入力
@@ -1062,7 +1481,7 @@ var AimSheet = (function() {
             });
         }
 
-        // 他の人のシート読み込み
+        // 他の人のシート読み込み（作成タブ）
         var cloudList = document.getElementById('aimCloudList');
         if (cloudList) {
             cloudList.addEventListener('change', function() {
@@ -1070,7 +1489,7 @@ var AimSheet = (function() {
             });
         }
 
-        // Esc でカードメニューだけ閉じる（ページなのでモーダル close は不要）
+        // Esc でカードメニューだけ閉じる
         document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeCardMenu(); });
     }
 
