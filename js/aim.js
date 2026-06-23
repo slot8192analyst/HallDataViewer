@@ -9,10 +9,10 @@
 //            「答え合わせ日」のデータで答え合わせ。
 //            凹み判定は答え合わせ日の前日基準でN日累積。的中=機械割105%以上。
 //            振り返りは reviewState を使い、作成タブの state は壊さない。
-//            3位を隠す設定（showRank3）はシートごとに従う。
+//            3位を隠す設定（rank3ByPreset / 後方互換 showRank3）はシートごとに従う。
 //
 // PC: HTML5 Drag&Drop / スマホ: 長押しドラッグ＋タップメニュー。
-// 凹みは 💀🥇💀🥈💀🥉。3位トグル。機種除外（プリセット一括）。
+// 凹みは 💀🥇💀🥈💀🥉。3位トグルはプリセット単位。機種除外（プリセット一括）。
 // 凹み判定（バッジ）設定もこのページで可能（MachineBadge 設定を共有 / このページでは即再計算）。
 // 保存: localStorage（自動）＋ Cloudflare D1（作成者ごと upsert / 他人のシート読込・削除）。
 // ===================
@@ -41,6 +41,13 @@ var AimSheet = (function() {
     var LONGPRESS_MS = 350;
     var MOVE_TOLERANCE = 10;
 
+    // 機種除外リストのグループ表示順（プリセットIDで指定）
+    // メイン → サブ → バラエティ → ジャグ・ハナ・沖スロ → アクロス
+    var HIDDEN_GROUP_ORDER = ['at_main', 'at_sub', 'variety', 'jug_hana_oki', 'acros'];
+
+    // プリセット未所属（その他グループ）の rank3ByPreset 用キー
+    var OTHER_PRESET_KEY = '__other__';
+
     function kubiMedal(kubi) {
         if (kubi === 1) return '💀🥇';
         if (kubi === 2) return '💀🥈';
@@ -54,7 +61,8 @@ var AimSheet = (function() {
         perUnit: {},
         excluded: {},
         hiddenMachines: {},
-        showRank3: true,
+        showRank3: true,          // 後方互換・デフォルト値として使用
+        rank3ByPreset: {},        // { presetId(or __other__): true/false } 未設定は showRank3 を採用
         order: {}
     };
 
@@ -67,13 +75,17 @@ var AimSheet = (function() {
     var activeTab = 'create';      // 'create' | 'review'
     var initialized = false;
 
+    // 機種 -> プリセットID（or __other__）のキャッシュ。buildData / 設置台数変化時に再計算
+    var machinePresetMap = null;
+
     // ★ 振り返り専用の一時状態（作成タブの state を壊さない）
     var reviewState = {
         placement: {},
         perUnit: {},
         excluded: {},
         hiddenMachines: {},
-        showRank3: true
+        showRank3: true,
+        rank3ByPreset: {}
     };
     var reviewSheetSel = '__current__';   // 選択中シート（'__current__' または作成者名）
     var reviewCloudCache = {};            // author -> data のキャッシュ
@@ -86,6 +98,7 @@ var AimSheet = (function() {
             excluded: state.excluded,
             hiddenMachines: state.hiddenMachines,
             showRank3: state.showRank3,
+            rank3ByPreset: state.rank3ByPreset,
             order: state.order
         };
     }
@@ -96,6 +109,7 @@ var AimSheet = (function() {
         state.excluded       = p.excluded       || {};
         state.hiddenMachines = p.hiddenMachines || {};
         state.showRank3      = (p.showRank3 !== undefined) ? p.showRank3 : true;
+        state.rank3ByPreset  = p.rank3ByPreset  || {};
         state.order          = p.order          || {};
     }
 
@@ -295,10 +309,89 @@ var AimSheet = (function() {
         return Promise.all(loaders);
     }
 
+    // ========== プリセット振り分け（共通） ==========
+
+    // プリセットを HIDDEN_GROUP_ORDER の順に並べ替えて返す（ID指定）
+    function orderedPresetsForHidden() {
+        if (typeof MachinePreset === 'undefined') return [];
+        var presets = MachinePreset.getAll() || [];
+        var byId = {};
+        presets.forEach(function(p) { byId[p.id] = p; });
+
+        var ordered = [];
+        var used = {};
+        HIDDEN_GROUP_ORDER.forEach(function(id) {
+            if (byId[id] && !used[id]) { ordered.push(byId[id]); used[id] = true; }
+        });
+        presets.forEach(function(p) {
+            if (!used[p.id]) { ordered.push(p); used[p.id] = true; }
+        });
+        return ordered;
+    }
+
+    // 基準日の machineOptions（value -> count を持つ）
+    function currentMachineOptions() {
+        return (typeof getMachineOptionsForDate === 'function')
+            ? getMachineOptionsForDate(currentFile)
+            : Object.keys(builtRaw).map(function(m) { return { value: m, count: builtRaw[m].length }; });
+    }
+
+    // builtRaw の各機種を「最初にマッチしたプリセットID（or __other__）」へ対応付けて返す。
+    // 並びは HIDDEN_GROUP_ORDER 準拠。1機種は1グループのみ所属。
+    function computeMachinePresetMap() {
+        var map = {};
+        var allMachines = Object.keys(builtRaw);
+        if (allMachines.length === 0) return map;
+
+        var machineOptions = currentMachineOptions();
+        var presets = orderedPresetsForHidden();
+        var assigned = {};
+
+        presets.forEach(function(p) {
+            var resolved = (typeof MachinePreset !== 'undefined')
+                ? (MachinePreset.resolve(p, machineOptions, machineOptions) || [])
+                : [];
+            resolved.forEach(function(machine) {
+                if (builtRaw[machine] === undefined) return;
+                if (assigned[machine]) return;
+                assigned[machine] = true;
+                map[machine] = p.id;
+            });
+        });
+        allMachines.forEach(function(m) {
+            if (!assigned[m]) map[m] = OTHER_PRESET_KEY;
+        });
+        return map;
+    }
+
+    function getMachinePresetMap() {
+        if (!machinePresetMap) machinePresetMap = computeMachinePresetMap();
+        return machinePresetMap;
+    }
+
+    function presetKeyOfMachine(machine) {
+        var map = getMachinePresetMap();
+        return map[machine] || OTHER_PRESET_KEY;
+    }
+
+    // そのプリセットキーで「3位を表示するか」。未設定は showRank3 をデフォルトに。
+    function isRank3VisibleForPresetKey(presetKey, st) {
+        st = st || state;
+        var byPreset = st.rank3ByPreset || {};
+        if (byPreset[presetKey] !== undefined) return byPreset[presetKey];
+        return (st.showRank3 !== undefined) ? st.showRank3 : true;
+    }
+
+    // 機種単位で 3位を表示するか（作成 state ベース）
+    function isRank3VisibleForMachine(machine) {
+        return isRank3VisibleForPresetKey(presetKeyOfMachine(machine), state);
+    }
+
     // ========== 作成: データ構築 ==========
 
     function buildData() {
         builtRaw = {};
+        machinePresetMap = null; // 再計算させる
         if (typeof MachineBadge === 'undefined') { built = {}; return; }
 
         currentFile = resolveAimDateFile();
@@ -328,6 +421,7 @@ var AimSheet = (function() {
             builtRaw[m].sort(function(a, b) { return a.kubi - b.kubi; });
         });
 
+        machinePresetMap = computeMachinePresetMap();
         rebuildVisible();
     }
 
@@ -340,9 +434,7 @@ var AimSheet = (function() {
     }
 
     function applyDefaultPlacement() {
-        var machineOptions = (typeof getMachineOptionsForDate === 'function')
-            ? getMachineOptionsForDate(currentFile)
-            : Object.keys(builtRaw).map(function(m) { return { value: m, count: builtRaw[m].length }; });
+        var machineOptions = currentMachineOptions();
 
         var allBuilt = Object.keys(builtRaw);
 
@@ -367,8 +459,9 @@ var AimSheet = (function() {
 
     function chipKey(machine, num) { return machine + '_' + num; }
 
-    function visibleItems(items) {
-        if (state.showRank3) return items;
+    // 機種ごとの 3位表示フラグに従って3位を除外
+    function visibleItems(machine, items) {
+        if (isRank3VisibleForMachine(machine)) return items;
         return items.filter(function(it) { return it.kubi !== 3; });
     }
 
@@ -380,7 +473,7 @@ var AimSheet = (function() {
             var z = (state.perUnit[pk] !== undefined) ? state.perUnit[pk] : base;
             return z === zoneId;
         });
-        return visibleItems(filtered);
+        return visibleItems(machine, filtered);
     }
 
     // 作成用: 台→ゾーン解決（state ベース）
@@ -477,7 +570,6 @@ var AimSheet = (function() {
         bindChipToggle();
         bindCardTapMenu();
         updateMeta();
-        updateRank3Button();
     }
 
     function updateMeta() {
@@ -489,17 +581,13 @@ var AimSheet = (function() {
         if (meta) meta.textContent = dateLabel + ' / 凹み判定: ' + days + '日累積・' + base + '・' + col;
     }
 
-    function updateRank3Button() {
-        var btn = document.getElementById('aimRank3Toggle');
-        if (!btn) return;
-        btn.textContent = state.showRank3 ? '💀🥉 3位を隠す' : '💀🥉 3位を表示';
-        btn.classList.toggle('aim-rank3-off', !state.showRank3);
-    }
-
-    function toggleRank3() {
-        state.showRank3 = !state.showRank3;
+    // プリセットキー単位で3位表示をトグル
+    function toggleRank3ForPreset(presetKey) {
+        var cur = isRank3VisibleForPresetKey(presetKey, state);
+        state.rank3ByPreset[presetKey] = !cur;
         saveState();
-        renderBoard();
+        renderHiddenList(); // ボタン表記更新
+        renderBoard();      // 盤面に反映
     }
 
     // ========== 凹み判定（バッジ）設定パネル ==========
@@ -527,35 +615,28 @@ var AimSheet = (function() {
 
     // ========== 機種除外パネル ==========
 
-    function renderHiddenPanel() { renderPresetButtons(); renderHiddenList(); }
-
-    function renderPresetButtons() {
-        var container = document.getElementById('aimPresetFilters');
-        if (!container || typeof MachinePreset === 'undefined') return;
-        var presets = MachinePreset.getAll();
-        if (!presets || presets.length === 0) { container.innerHTML = ''; return; }
-        container.innerHTML = presets.map(function(p) {
-            return '<div class="aim-preset-row">'
-                + '<span class="aim-preset-name">' + escapeHtml(p.name) + '</span>'
-                + '<button class="btn-small aim-preset-show" data-preset="' + escapeAttr(p.id) + '">表示</button>'
-                + '<button class="btn-small aim-preset-hide" data-preset="' + escapeAttr(p.id) + '">除外</button>'
-                + '</div>';
-        }).join('');
-        container.querySelectorAll('.aim-preset-show').forEach(function(btn) {
-            btn.addEventListener('click', function() { applyPresetToHidden(this.dataset.preset, false); });
-        });
-        container.querySelectorAll('.aim-preset-hide').forEach(function(btn) {
-            btn.addEventListener('click', function() { applyPresetToHidden(this.dataset.preset, true); });
-        });
-    }
+    function renderHiddenPanel() { renderHiddenList(); }
 
     function applyPresetToHidden(presetId, hide) {
+        if (presetId === OTHER_PRESET_KEY) {
+            // 「その他」グループはプリセット未所属機種を直接操作
+            var map = getMachinePresetMap();
+            Object.keys(builtRaw).forEach(function(machine) {
+                if (map[machine] !== OTHER_PRESET_KEY) return;
+                if (hide) state.hiddenMachines[machine] = true;
+                else delete state.hiddenMachines[machine];
+            });
+            rebuildVisible();
+            saveState();
+            renderHiddenList();
+            renderBoard();
+            return;
+        }
+
         if (typeof MachinePreset === 'undefined') return;
         var preset = MachinePreset.getAll().filter(function(p) { return p.id === presetId; })[0];
         if (!preset) return;
-        var machineOptions = (typeof getMachineOptionsForDate === 'function')
-            ? getMachineOptionsForDate(currentFile)
-            : Object.keys(builtRaw).map(function(m) { return { value: m, count: builtRaw[m].length }; });
+        var machineOptions = currentMachineOptions();
         var resolved = MachinePreset.resolve(preset, machineOptions, machineOptions);
         resolved.forEach(function(machine) {
             if (builtRaw[machine] === undefined) return;
@@ -568,21 +649,94 @@ var AimSheet = (function() {
         renderBoard();
     }
 
+    // 機種除外リスト：プリセットグループ順＋各グループ内は基準日の設置台数の降順で描画。
+    // 各グループ見出しに「表示／除外」「3位表示/非表示」ボタンを配置。
     function renderHiddenList() {
         var panel = document.getElementById('aimHiddenList');
         if (!panel) return;
-        var machines = Object.keys(builtRaw).sort(function(a, b) {
-            return shortNameOf(a).localeCompare(shortNameOf(b), 'ja');
+
+        var allMachines = Object.keys(builtRaw);
+        if (allMachines.length === 0) {
+            panel.innerHTML = '<div class="aim-zone-empty">対象機種がありません</div>';
+            return;
+        }
+
+        var machineOptions = currentMachineOptions();
+        var countMap = {};
+        machineOptions.forEach(function(o) {
+            if (o && o.value !== undefined) countMap[o.value] = (o.count !== undefined ? o.count : 0);
         });
-        if (machines.length === 0) { panel.innerHTML = '<div class="aim-zone-empty">対象機種がありません</div>'; return; }
-        panel.innerHTML = machines.map(function(m) {
-            var checked = state.hiddenMachines[m] ? '' : ' checked';
-            return '<label class="aim-hidden-item">'
-                + '<input type="checkbox" class="aim-hidden-cb" data-machine="' + escapeAttr(m) + '"' + checked + '>'
-                + '<span>' + escapeHtml(shortNameOf(m)) + '</span>'
-                + '<span class="aim-hidden-count">' + builtRaw[m].length + '台</span>'
-                + '</label>';
+        function installCount(m) {
+            return (countMap[m] !== undefined) ? countMap[m] : builtRaw[m].length;
+        }
+
+        // 機種 -> プリセットキーのマップで振り分け
+        var map = getMachinePresetMap();
+        var presets = orderedPresetsForHidden();
+
+        // グループ枠を順番どおりに用意（プリセット順 → その他）
+        var groups = []; // { key, name, machines:[] }
+        presets.forEach(function(p) {
+            groups.push({ key: p.id, name: p.name, machines: [] });
+        });
+        var otherGroup = { key: OTHER_PRESET_KEY, name: 'その他', machines: [] };
+
+        allMachines.forEach(function(m) {
+            var key = map[m] || OTHER_PRESET_KEY;
+            var g = null;
+            for (var i = 0; i < groups.length; i++) { if (groups[i].key === key) { g = groups[i]; break; } }
+            if (!g) g = otherGroup;
+            g.machines.push(m);
+        });
+        if (otherGroup.machines.length > 0) groups.push(otherGroup);
+
+        // 空グループは描画しない
+        groups = groups.filter(function(g) { return g.machines.length > 0; });
+
+        // 各グループ内を設置台数の降順（同数なら短縮名順）でソート
+        groups.forEach(function(g) {
+            g.machines.sort(function(a, b) {
+                var diff = installCount(b) - installCount(a);
+                if (diff !== 0) return diff;
+                return shortNameOf(a).localeCompare(shortNameOf(b), 'ja');
+            });
+        });
+
+        // 描画
+        var html = groups.map(function(g) {
+            var rank3On = isRank3VisibleForPresetKey(g.key, state);
+            var rank3Label = rank3On ? '💀🥉 3位を隠す' : '💀🥉 3位を表示';
+            var rank3Cls = 'btn-small aim-group-rank3' + (rank3On ? '' : ' aim-rank3-off');
+
+            var headBtns = ''
+                + '<div class="aim-hidden-group-btns">'
+                + '<button class="btn-small aim-preset-show" data-preset="' + escapeAttr(g.key) + '">表示</button>'
+                + '<button class="btn-small aim-preset-hide" data-preset="' + escapeAttr(g.key) + '">除外</button>'
+                + '<button class="' + rank3Cls + '" data-preset="' + escapeAttr(g.key) + '">' + rank3Label + '</button>'
+                + '</div>';
+
+            var items = g.machines.map(function(m) {
+                var checked = state.hiddenMachines[m] ? '' : ' checked';
+                var cnt = installCount(m);
+                return '<label class="aim-hidden-item">'
+                    + '<input type="checkbox" class="aim-hidden-cb" data-machine="' + escapeAttr(m) + '"' + checked + '>'
+                    + '<span>' + escapeHtml(shortNameOf(m)) + '</span>'
+                    + '<span class="aim-hidden-count">' + cnt + '台</span>'
+                    + '</label>';
+            }).join('');
+
+            return '<div class="aim-hidden-group">'
+                + '<div class="aim-hidden-group-head">'
+                + '<span class="aim-hidden-group-name">' + escapeHtml(g.name) + '</span>'
+                + headBtns
+                + '</div>'
+                + '<div class="aim-hidden-group-body">' + items + '</div>'
+                + '</div>';
         }).join('');
+
+        panel.innerHTML = html;
+
+        // 機種チェックボックス
         panel.querySelectorAll('.aim-hidden-cb').forEach(function(cb) {
             cb.addEventListener('change', function() {
                 var m = this.dataset.machine;
@@ -592,6 +746,19 @@ var AimSheet = (function() {
                 saveState();
                 renderBoard();
             });
+        });
+
+        // グループ「表示」ボタン
+        panel.querySelectorAll('.aim-preset-show').forEach(function(btn) {
+            btn.addEventListener('click', function() { applyPresetToHidden(this.dataset.preset, false); });
+        });
+        // グループ「除外」ボタン
+        panel.querySelectorAll('.aim-preset-hide').forEach(function(btn) {
+            btn.addEventListener('click', function() { applyPresetToHidden(this.dataset.preset, true); });
+        });
+        // グループ「3位表示/非表示」ボタン
+        panel.querySelectorAll('.aim-group-rank3').forEach(function(btn) {
+            btn.addEventListener('click', function() { toggleRank3ForPreset(this.dataset.preset); });
         });
     }
 
@@ -987,8 +1154,40 @@ var AimSheet = (function() {
 
     // ========== 振り返り（答え合わせ） ==========
 
+    // 振り返り用の機種→プリセットキー対応（答え合わせ日の設置台数で判定）
+    var reviewPresetMap = null;
+
+    function computeReviewPresetMap(reviewFile, machineSet) {
+        var map = {};
+        var machines = Object.keys(machineSet);
+        if (machines.length === 0) return map;
+
+        var machineOptions = (typeof getMachineOptionsForDate === 'function')
+            ? getMachineOptionsForDate(reviewFile)
+            : machines.map(function(m) { return { value: m, count: 1 }; });
+
+        var presets = orderedPresetsForHidden();
+        var assigned = {};
+        presets.forEach(function(p) {
+            var resolved = (typeof MachinePreset !== 'undefined')
+                ? (MachinePreset.resolve(p, machineOptions, machineOptions) || [])
+                : [];
+            resolved.forEach(function(machine) {
+                if (!machineSet[machine]) return;
+                if (assigned[machine]) return;
+                assigned[machine] = true;
+                map[machine] = p.id;
+            });
+        });
+        machines.forEach(function(m) { if (!assigned[m]) map[m] = OTHER_PRESET_KEY; });
+        return map;
+    }
+
+    function reviewPresetKeyOf(machine) {
+        return (reviewPresetMap && reviewPresetMap[machine]) ? reviewPresetMap[machine] : OTHER_PRESET_KEY;
+    }
+
     // 答え合わせ日を前日基準でバッジ計算し、凹み台を {machine, num, kubi} で返す。
-    // MachineBadge.badgeBase を一時的に 'prev' にして計算→必ず元に戻す。
     function buildReviewKubiList(reviewFile) {
         if (typeof MachineBadge === 'undefined') return [];
         if (!reviewFile || !dataCache || !dataCache[reviewFile]) return [];
@@ -998,7 +1197,6 @@ var AimSheet = (function() {
 
         var list = [];
         try {
-            // 前日基準へ一時切替（設定を再ロードさせる）
             try { localStorage.setItem(MB_BASE_KEY, 'prev'); } catch (e) {}
             if (typeof MachineBadge.loadSettings === 'function') MachineBadge.loadSettings();
 
@@ -1017,7 +1215,6 @@ var AimSheet = (function() {
                 });
             });
         } finally {
-            // base 設定を必ず元に戻す
             try {
                 if (savedBase === null) localStorage.removeItem(MB_BASE_KEY);
                 else localStorage.setItem(MB_BASE_KEY, savedBase);
@@ -1050,14 +1247,21 @@ var AimSheet = (function() {
         var kubiList = buildReviewKubiList(reviewFile);
         var dayMap = reviewDayDataMap(reviewFile);
 
+        // 振り返り対象機種のプリセットマップを答え合わせ日基準で作る
+        var machineSet = {};
+        kubiList.forEach(function(it) { machineSet[it.machine] = true; });
+        reviewPresetMap = computeReviewPresetMap(reviewFile, machineSet);
+
         var byZone = { top: [], high: [], other: [] };
 
         kubiList.forEach(function(it) {
-            // 3位非表示シートなら kubi===3 を除外（シートの showRank3 に従う）
-            if (!reviewState.showRank3 && it.kubi === 3) return;
+            // 3位非表示はシートのプリセット単位設定に従う
+            if (it.kubi === 3) {
+                var pkey = reviewPresetKeyOf(it.machine);
+                if (!isRank3VisibleForPresetKey(pkey, reviewState)) return;
+            }
 
             var key = chipKey(it.machine, it.num);
-            // 除外（狙わない）台・機種除外は対象外（reviewState 基準）
             if (reviewState.excluded[key]) return;
             if (reviewState.hiddenMachines[it.machine]) return;
 
@@ -1092,7 +1296,6 @@ var AimSheet = (function() {
         return byZone;
     }
 
-    // ゾーンの的中率を計算（母数=データありの台数、的中=hit true）
     function zoneHitStats(rows) {
         var denom = 0, hit = 0;
         rows.forEach(function(r) {
@@ -1111,7 +1314,6 @@ var AimSheet = (function() {
         return (v === null) ? '-' : v.toFixed(1) + '%';
     }
 
-    // 振り返りシート選択肢を構築（現在配置 + クラウド全シート）
     function refreshReviewSheetList() {
         var sel = document.getElementById('aimReviewSheetSelect');
         if (!sel) return Promise.resolve();
@@ -1129,7 +1331,6 @@ var AimSheet = (function() {
                 sel.innerHTML = opts.join('');
                 sel.value = reviewSheetSel;
                 if (sel.value !== reviewSheetSel) {
-                    // 選択中シートが消えていたら現在配置に戻す
                     reviewSheetSel = '__current__';
                     sel.value = '__current__';
                 }
@@ -1141,7 +1342,6 @@ var AimSheet = (function() {
             });
     }
 
-    // 選択中シートの配置を reviewState に読み込む（Promise）
     function loadReviewState() {
         if (reviewSheetSel === '__current__') {
             reviewState.placement      = Object.assign({}, state.placement);
@@ -1149,6 +1349,7 @@ var AimSheet = (function() {
             reviewState.excluded       = Object.assign({}, state.excluded);
             reviewState.hiddenMachines = Object.assign({}, state.hiddenMachines);
             reviewState.showRank3      = state.showRank3;
+            reviewState.rank3ByPreset  = Object.assign({}, state.rank3ByPreset);
             return Promise.resolve();
         }
 
@@ -1179,6 +1380,7 @@ var AimSheet = (function() {
         reviewState.excluded       = data.excluded       || {};
         reviewState.hiddenMachines = data.hiddenMachines || {};
         reviewState.showRank3      = (data.showRank3 !== undefined) ? data.showRank3 : true;
+        reviewState.rank3ByPreset  = data.rank3ByPreset  || {};
     }
 
     function renderReview() {
@@ -1195,14 +1397,12 @@ var AimSheet = (function() {
             return;
         }
 
-        // 選択中シートの配置を reviewState へ読み込んでから集計
         loadReviewState().then(function() {
             var byZone = buildReviewResult(reviewFile);
 
             var allRows = byZone.top.concat(byZone.high).concat(byZone.other);
             var totalStats = zoneHitStats(allRows);
 
-            // ---- サマリー ----
             var summaryCards = [];
             summaryCards.push(
                 '<div class="aim-review-stat aim-review-stat-total">'
@@ -1224,7 +1424,6 @@ var AimSheet = (function() {
             summaryEl.innerHTML = '<div class="aim-review-stats">' + summaryCards.join('') + '</div>'
                 + '<div class="aim-review-note">的中 = 機械割 ' + WIN_RATE + '% 以上（設定4相当）。母数はデータがある台のみ。</div>';
 
-            // ---- 区分ごとの表 ----
             var html = ZONES.map(function(zone) {
                 var rows = byZone[zone.id] || [];
                 var st = zoneHitStats(rows);
@@ -1276,7 +1475,6 @@ var AimSheet = (function() {
         });
     }
 
-    // 振り返り日付セレクト/ラベル更新
     function syncReviewDateNav() {
         var files = aimSortedFiles();
         var cur = resolveReviewDateFile();
@@ -1301,7 +1499,6 @@ var AimSheet = (function() {
         }
     }
 
-    // 答え合わせ日を変更して再集計（未ロードなら月別JSONをロード）
     function gotoReviewFile(file) {
         if (!file) return;
         reviewDateFile = file;
@@ -1373,9 +1570,9 @@ var AimSheet = (function() {
     function close() { closeCardMenu(); removeAllGhosts(); clearDropMarkers(); }
 
     function resetPlacement() {
-        if (!confirm('配置をプリセット初期状態に戻しますか?（除外・機種除外・並び順もクリアされます）')) return;
+        if (!confirm('配置をプリセット初期状態に戻しますか?（除外・機種除外・並び順・3位設定もクリアされます）')) return;
         state.placement = {}; state.perUnit = {}; state.excluded = {};
-        state.hiddenMachines = {}; state.showRank3 = true; state.order = {};
+        state.hiddenMachines = {}; state.showRank3 = true; state.rank3ByPreset = {}; state.order = {};
         saveState();
         buildData();
         applyDefaultPlacement();
@@ -1433,7 +1630,6 @@ var AimSheet = (function() {
         bind('aimResetBtn', resetPlacement);
         bind('aimBadgeToggle', toggleBadgePanel);
         bind('aimHiddenToggle', toggleHiddenPanel);
-        bind('aimRank3Toggle', toggleRank3);
         bind('aimCloudSaveBtn', cloudSave);
         bind('aimCloudDeleteBtn', cloudDelete);
 
@@ -1467,7 +1663,7 @@ var AimSheet = (function() {
         var reloadBtn = document.getElementById('aimReviewReloadBtn');
         if (reloadBtn) {
             reloadBtn.addEventListener('click', function() {
-                reviewCloudCache = {};   // キャッシュ破棄
+                reviewCloudCache = {};
                 refreshReviewSheetList().then(function() { renderReview(); });
             });
         }

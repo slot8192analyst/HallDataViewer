@@ -559,3 +559,62 @@
     font-size: 14px;
     max-width: 220px;
 }
+
+/* 機種除外リストのプリセットグループ見出し */
+.aim-hidden-list {
+    /* 既存の grid を group 単位の縦積みに変更 */
+    display: block;
+}
+.aim-hidden-group {
+    margin-bottom: 10px;
+}
+.aim-hidden-group-head {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--hall-accent, #fbbf24);
+    padding: 4px 2px;
+    border-bottom: 1px solid var(--border-light, #3a3a5a);
+    margin-bottom: 6px;
+}
+.aim-hidden-group-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 4px 10px;
+}
+
+/* 機種除外リストのプリセットグループ */
+.aim-hidden-list {
+    display: block; /* 既存の grid を上書きして縦積みに */
+}
+.aim-hidden-group {
+    margin-bottom: 12px;
+}
+.aim-hidden-group-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 4px 2px;
+    border-bottom: 1px solid var(--border-light, #3a3a5a);
+    margin-bottom: 6px;
+}
+.aim-hidden-group-name {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--hall-accent, #fbbf24);
+}
+.aim-hidden-group-btns {
+    display: flex;
+    gap: 6px;
+    margin-left: auto; /* ボタン群を右寄せ */
+}
+.aim-hidden-group-btns .aim-preset-hide { color: #fca5a5; }
+.aim-hidden-group-btns .aim-group-rank3.aim-rank3-off {
+    opacity: 0.6;
+    text-decoration: line-through;
+}
+.aim-hidden-group-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 4px 10px;
+}
