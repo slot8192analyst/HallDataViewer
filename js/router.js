@@ -94,6 +94,21 @@ var Router = (function() {
             onShow: null
         },
 
+        // 狙い台作成
+        aim: {
+            tabId: 'aim',
+            init: function() {
+                if (typeof AimSheet !== 'undefined' && typeof AimSheet.setupEvents === 'function') {
+                    AimSheet.setupEvents();
+                }
+            },
+            onShow: function() {
+                if (typeof AimSheet !== 'undefined' && typeof AimSheet.render === 'function') {
+                    AimSheet.render();
+                }
+            }
+        },
+
         // ===== 取材（promotion） =====
         // 取材ハブ（各取材へのリンク + ハブ掲示板）
         promotion: {

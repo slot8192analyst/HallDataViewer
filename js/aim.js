@@ -1,6 +1,9 @@
 // ===================
 // 狙い台作成ページ（AimSheet）
 //
+// ホーム（ターミナル）から独立ページ #aim として起動。
+// 日付は DailyState を daily ページと共有（aim ページ独自の日付ナビも持つ）。
+//
 // PC: HTML5 Drag&Drop / スマホ: 長押しドラッグ＋タップメニュー の両対応。
 // 凹みは 💀🥇💀🥈💀🥉 表記。3位は表示/非表示トグル。機種除外（プリセット一括可）。
 // 画像はリスト形式で html2canvas 出力。
@@ -872,30 +875,38 @@ var AimSheet = (function() {
         });
     }
 
-    // ========== モーダル開閉 ==========
+    // ========== ページ表示（旧 open のモーダル非依存版） ==========
 
-    function open() {
+    function render() {
         loadState();
         buildData();
-        if (Object.keys(builtRaw).length === 0) {
-            alert('凹み台（💀バッジ）が見つかりません。\n日別タブの「バッジ設定」で「バッジを計算」を実行してから開いてください。');
-            return;
-        }
-        applyDefaultPlacement();
-        renderBoard();
+
+        var board   = document.getElementById('aimBoard');
+        var guide   = document.getElementById('aimEmptyGuide');
+        var hasData = Object.keys(builtRaw).length > 0;
+
+        if (guide) guide.style.display = hasData ? 'none' : 'block';
+        if (board) board.style.display = hasData ? '' : 'none';
+
+        syncDateNav();
         syncAuthorInput();
         refreshCloudList();
+
         var panel = document.getElementById('aimHiddenPanel');
         if (panel) panel.classList.remove('open');
-        var modal = document.getElementById('aimModal');
-        if (modal) modal.classList.add('open');
+
+        if (!hasData) {
+            updateMeta();
+            return;
+        }
+
+        applyDefaultPlacement();
+        renderBoard();
     }
 
-    function close() {
-        closeCardMenu(); removeAllGhosts(); clearDropMarkers();
-        var modal = document.getElementById('aimModal');
-        if (modal) modal.classList.remove('open');
-    }
+    // 後方互換: 旧 open()/close() 呼び出し用の薄いラッパ
+    function open()  { render(); }
+    function close() { closeCardMenu(); removeAllGhosts(); clearDropMarkers(); }
 
     function resetPlacement() {
         if (!confirm('配置をプリセット初期状態に戻しますか?（除外・機種除外・並び順もクリアされます）')) return;
@@ -905,6 +916,61 @@ var AimSheet = (function() {
         buildData();
         applyDefaultPlacement();
         renderBoard();
+    }
+
+    // ========== 日付ナビ（aim ページ独自） ==========
+
+    function aimSortedFiles() {
+        return (typeof sortFilesByDate === 'function') ? sortFilesByDate(CSV_FILES, true) : [];
+    }
+
+    function aimCurrentIndex() {
+        var files = aimSortedFiles();
+        var idx = currentFile ? files.indexOf(currentFile) : -1;
+        if (idx === -1) idx = (typeof currentDateIndex === 'number') ? currentDateIndex : 0;
+        return idx;
+    }
+
+    // 指定ファイルへ移動して再構築（DailyState 共有で daily と同期）
+    function gotoFile(file) {
+        if (!file) return;
+        if (typeof DailyState !== 'undefined') {
+            DailyState.setState({ dateFile: file }, { silent: true });
+        } else if (typeof currentDateIndex === 'number') {
+            var files = aimSortedFiles();
+            var i = files.indexOf(file);
+            if (i !== -1) currentDateIndex = i;
+        }
+        render();
+    }
+
+    // セレクトとラベルを現在ファイルに合わせて更新
+    function syncDateNav() {
+        var files = aimSortedFiles();
+        var idx = aimCurrentIndex();
+
+        var label = document.getElementById('aimCurrentDateLabel');
+        if (label) {
+            var f = files[idx];
+            var txt = f && typeof formatDate === 'function' ? formatDate(f) : (f || '-');
+            if (f && typeof getDayOfWeek === 'function' && typeof getDayOfWeekName === 'function') {
+                try { txt += '（' + getDayOfWeekName(getDayOfWeek(f)) + '）'; } catch (e) {}
+            }
+            label.textContent = txt;
+        }
+
+        var sel = document.getElementById('aimDateSelect');
+        if (sel) {
+            sel.innerHTML = files.map(function(f, i) {
+                var t = (typeof formatDate === 'function') ? formatDate(f) : f;
+                return '<option value="' + escapeAttr(f) + '"' + (i === idx ? ' selected' : '') + '>' + escapeHtml(t) + '</option>';
+            }).join('');
+        }
+
+        var prev = document.getElementById('aimPrevDate');
+        var next = document.getElementById('aimNextDate');
+        if (prev) prev.disabled = idx >= files.length - 1;
+        if (next) next.disabled = idx <= 0;
     }
 
     // ========== 作成者欄 ==========
@@ -921,14 +987,32 @@ var AimSheet = (function() {
         initialized = true;
 
         var bind = function(id, fn) { var el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
-        bind('openAimModal', open);
-        bind('closeAimModal', close);
         bind('aimExportImageBtn', exportImage);
         bind('aimResetBtn', resetPlacement);
         bind('aimHiddenToggle', toggleHiddenPanel);
         bind('aimRank3Toggle', toggleRank3);
         bind('aimCloudSaveBtn', cloudSave);
         bind('aimCloudDeleteBtn', cloudDelete);
+
+        // ---- 日付ナビ ----
+        bind('aimPrevDate', function() {
+            var files = aimSortedFiles();
+            var idx = aimCurrentIndex();
+            if (idx < files.length - 1) gotoFile(files[idx + 1]);
+        });
+        bind('aimNextDate', function() {
+            var files = aimSortedFiles();
+            var idx = aimCurrentIndex();
+            if (idx > 0) gotoFile(files[idx - 1]);
+        });
+        bind('aimLatestDate', function() {
+            var files = aimSortedFiles();
+            if (files.length) gotoFile(files[0]);
+        });
+        var dateSel = document.getElementById('aimDateSelect');
+        if (dateSel) {
+            dateSel.addEventListener('change', function() { gotoFile(this.value); });
+        }
 
         // 作成者入力
         var authorInput = document.getElementById('aimAuthorInput');
@@ -947,9 +1031,8 @@ var AimSheet = (function() {
             });
         }
 
-        var modal = document.getElementById('aimModal');
-        if (modal) modal.addEventListener('click', function(e) { if (e.target === modal) close(); });
-        document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeCardMenu(); close(); } });
+        // Esc でカードメニューだけ閉じる（ページなのでモーダル close は不要）
+        document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeCardMenu(); });
     }
 
     // ========== ヘルパ ==========
@@ -967,5 +1050,5 @@ var AimSheet = (function() {
         return String(str).replace(/["\\]/g, '\\$&');
     }
 
-    return { setupEvents: setupEvents, open: open, close: close, exportImage: exportImage };
+    return { setupEvents: setupEvents, render: render, open: open, close: close, exportImage: exportImage };
 })();

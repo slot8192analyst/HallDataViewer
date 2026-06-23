@@ -1,0 +1,51 @@
+<!-- partials/aim.html （外側の <div id="aim"> ラッパーは含めない） -->
+<button class="back-to-home" data-nav="home">← ホーム</button>
+
+<div class="aim-page-header">
+    <h2>🎯 狙い台作成</h2>
+    <div class="date-nav">
+        <button id="aimPrevDate">◀ 前日</button>
+        <span class="current-date" id="aimCurrentDateLabel">-</span>
+        <button id="aimNextDate">翌日 ▶</button>
+        <button id="aimLatestDate" title="最新日のデータへ">⏭ 最新日</button>
+        <select id="aimDateSelect"></select>
+    </div>
+</div>
+
+<p class="aim-hint">
+    💀 凹み台を「最優先 / 優先 / その他」に振り分けます。<br>
+    ・<b>PC</b>: カード／💀チップをドラッグ。カードをクリックで行き先メニューも出ます<br>
+    ・<b>スマホ</b>: カード／チップを<b>長押し</b>するとドラッグ開始（軽く動かすと画面スクロール）<br>
+    ・カードを<b>タップ</b> → 「最優先/優先/その他へ」メニューで一発移動<br>
+    ・💀チップを<b>タップ</b> → 「狙わない（グレーアウト）」をトグル<br>
+    ・「機種の表示/除外」で座らない機種を外せます（プリセット一括も可）
+</p>
+
+<div class="aim-toolbar">
+    <input type="text" id="aimAuthorInput" class="aim-author-input" placeholder="作成者名" maxlength="20">
+    <button class="btn-apply" id="aimCloudSaveBtn">☁️ クラウド保存</button>
+    <select id="aimCloudList" class="aim-cloud-list">
+        <option value="">他の人のシートを開く...</option>
+    </select>
+    <button class="btn-reset" id="aimCloudDeleteBtn">🗑️ 選択シートを削除</button>
+    <button class="btn-apply" id="aimExportImageBtn">🖼️ 1枚画像を出力</button>
+    <button class="btn-small" id="aimHiddenToggle">🛑 機種の表示/除外</button>
+    <button class="btn-small" id="aimRank3Toggle">💀🥉 3位を隠す</button>
+    <button class="btn-reset" id="aimResetBtn">↺ 初期配置</button>
+    <span class="aim-meta" id="aimMeta"></span>
+</div>
+
+<!-- 機種の表示/除外パネル（トグルで開閉） -->
+<div class="aim-hidden-panel" id="aimHiddenPanel">
+    <div class="aim-hidden-panel-head">プリセットで一括除外/表示、または個別にチェックを外して除外できます（座らない機種）</div>
+    <div class="aim-preset-filters" id="aimPresetFilters"></div>
+    <div class="aim-hidden-list" id="aimHiddenList"></div>
+</div>
+
+<!-- バッジ未計算時のガイド（render が出し分け） -->
+<div class="aim-empty-guide" id="aimEmptyGuide" style="display:none;">
+    凹み台（💀バッジ）が見つかりません。日別データページの「バッジ設定」で「バッジを計算」を実行してから開いてください。
+</div>
+
+<!-- 3区分ボード（操作用） -->
+<div class="aim-board" id="aimBoard"></div>

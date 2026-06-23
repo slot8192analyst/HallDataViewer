@@ -50,11 +50,6 @@
             <span class="dfb-label">バッジ設定</span>
             <span class="dfb-preview" id="badgePreview"></span>
         </button>
-        <button class="daily-filter-btn" id="openAimModal">
-            <span class="dfb-icon">🎯</span>
-            <span class="dfb-label">狙い台作成</span>
-            <span class="dfb-preview"></span>
-        </button>
     </div>
     <label class="daily-filter-tagged-only">
         <input type="checkbox" id="dailyShowTaggedOnly">
@@ -167,54 +162,6 @@
         </div>
         <div class="app-modal-footer">
             <button class="modal-btn primary" id="applyBadgeModal">閉じる</button>
-        </div>
-    </div>
-</div>
-
-<!-- 狙い台作成モーダル -->
-<div class="app-modal" id="aimModal">
-    <div class="app-modal-content">
-        <div class="app-modal-header">
-            <h3>🎯 狙い台作成</h3>
-            <button class="close-btn" id="closeAimModal">×</button>
-        </div>
-        <div class="app-modal-body">
-            <p class="aim-hint">
-                💀 凹み台を「最優先 / 優先 / その他」に振り分けます。<br>
-                ・<b>PC</b>: カード／💀チップをドラッグ。カードをクリックで行き先メニューも出ます<br>
-                ・<b>スマホ</b>: カード／チップを<b>長押し</b>するとドラッグ開始（軽く動かすと画面スクロール）<br>
-                ・カードを<b>タップ</b> → 「最優先/優先/その他へ」メニューで一発移動<br>
-                ・💀チップを<b>タップ</b> → 「狙わない（グレーアウト）」をトグル<br>
-                ・「機種の表示/除外」で座らない機種を外せます（プリセット一括も可）
-            </p>
-
-            <div class="aim-toolbar">
-                <input type="text" id="aimAuthorInput" class="aim-author-input" placeholder="作成者名" maxlength="20">
-                <button class="btn-apply" id="aimCloudSaveBtn">☁️ クラウド保存</button>
-                <select id="aimCloudList" class="aim-cloud-list">
-                    <option value="">他の人のシートを開く...</option>
-                </select>
-                <button class="btn-reset" id="aimCloudDeleteBtn">🗑️ 選択シートを削除</button>
-                <button class="btn-apply" id="aimExportImageBtn">🖼️ 1枚画像を出力</button>
-                <button class="btn-small" id="aimHiddenToggle">🛑 機種の表示/除外</button>
-                <button class="btn-small" id="aimRank3Toggle">💀🥉 3位を隠す</button>
-                <button class="btn-reset" id="aimResetBtn">↺ 初期配置</button>
-                <span class="aim-meta" id="aimMeta"></span>
-            </div>
-
-
-            <!-- 機種の表示/除外パネル（トグルで開閉） -->
-            <div class="aim-hidden-panel" id="aimHiddenPanel">
-                <div class="aim-hidden-panel-head">プリセットで一括除外/表示、または個別にチェックを外して除外できます（座らない機種）</div>
-                <div class="aim-preset-filters" id="aimPresetFilters"></div>
-                <div class="aim-hidden-list" id="aimHiddenList"></div>
-            </div>
-
-            <!-- 3区分ボード（操作用） -->
-            <div class="aim-board" id="aimBoard"></div>
-        </div>
-        <div class="app-modal-footer">
-            <button class="modal-btn primary" id="closeAimModalFooter" style="display:none;"></button>
         </div>
     </div>
 </div>
