@@ -2,10 +2,11 @@
 // 狙い台作成ページ（AimSheet）
 //
 // ホーム（ターミナル）から独立ページ #aim として起動。
-// 日付は DailyState を daily ページと共有（aim ページ独自の日付ナビも持つ）。
+// 基準日は AimSheet 内部で独立管理（daily ページとは連動しない）。デフォルトは最新日。
 //
 // PC: HTML5 Drag&Drop / スマホ: 長押しドラッグ＋タップメニュー の両対応。
 // 凹みは 💀🥇💀🥈💀🥉 表記。3位は表示/非表示トグル。機種除外（プリセット一括可）。
+// 凹み判定（バッジ）設定もこのページで可能（MachineBadge 設定を共有 / このページでは即再計算）。
 // 画像はリスト形式で html2canvas 出力。
 // 保存: localStorage（自動）＋ Cloudflare D1（作成者ごとに upsert / 他人のシート読込・削除）。
 // ===================
@@ -50,6 +51,7 @@ var AimSheet = (function() {
     var builtRaw = {};
     var built = {};
     var currentFile = null;
+    var aimDateFile = null;     // ★ 基準日（daily とは独立。デフォルト最新日）
     var initialized = false;
 
     // クラウド保存対象だけを抜き出す（死に台の数値は含めない）
@@ -136,7 +138,6 @@ var AimSheet = (function() {
     function cloudLoad(targetAuthor) {
         if (!targetAuthor) return;
         if (!confirm(targetAuthor + ' さんのシートを読み込みます。\n現在の配置は上書きされます。よろしいですか?')) {
-            // セレクトを戻す
             var sel = document.getElementById('aimCloudList');
             if (sel) sel.value = '';
             return;
@@ -219,16 +220,58 @@ var AimSheet = (function() {
         }
     }
 
+    // ========== 基準日の解決 ==========
+
+    function aimSortedFiles() {
+        return (typeof sortFilesByDate === 'function') ? sortFilesByDate(CSV_FILES, true) : [];
+    }
+
+    // 基準日が未設定／無効なら最新日にフォールバック
+    function resolveAimDateFile() {
+        var files = aimSortedFiles();
+        if (aimDateFile && files.indexOf(aimDateFile) !== -1) return aimDateFile;
+        aimDateFile = files.length ? files[0] : null;   // 最新日
+        return aimDateFile;
+    }
+
+    // 指定ファイルの月別JSONが未キャッシュなら読み込む（基準日＋累積期間ぶん）
+    function ensureDataLoaded(file) {
+        var loaders = [];
+        if (!file) return Promise.resolve();
+
+        // 基準日を含む直近N日ぶんのファイルを対象に、未ロードの月をまとめてロード
+        var files = aimSortedFiles();
+        var idx = files.indexOf(file);
+        if (idx === -1) idx = 0;
+        var days = (typeof MachineBadge !== 'undefined') ? MachineBadge.getBadgeDays() : 7;
+        // 前日基準も考慮して1日余分に見る
+        var windowFiles = files.slice(idx, idx + days + 1);
+
+        var monthsToLoad = {};
+        windowFiles.forEach(function(f) {
+            if (dataCache && dataCache[f]) return;        // 既にロード済み
+            if (typeof getDateKeyFromFilename !== 'function') return;
+            var dk = getDateKeyFromFilename(f);
+            if (!dk) return;
+            var ym = dk.substring(0, 7);                   // "2026_06"
+            monthsToLoad['data/' + ym + '.json'] = true;
+        });
+
+        if (typeof loadMonthlyJSON === 'function') {
+            Object.keys(monthsToLoad).forEach(function(mf) {
+                loaders.push(loadMonthlyJSON(mf).catch(function() {}));
+            });
+        }
+        return Promise.all(loaders);
+    }
+
     // ========== データ構築 ==========
 
     function buildData() {
         builtRaw = {};
         if (typeof MachineBadge === 'undefined') { built = {}; return; }
 
-        var sortedFiles = sortFilesByDate(CSV_FILES, true);
-        var _s = (typeof DailyState !== 'undefined') ? DailyState.get() : {};
-        currentFile = (_s.dateFile && sortedFiles.indexOf(_s.dateFile) !== -1)
-            ? _s.dateFile : sortedFiles[currentDateIndex];
+        currentFile = resolveAimDateFile();
 
         if (!currentFile || !dataCache || !dataCache[currentFile]) { built = {}; return; }
 
@@ -413,6 +456,30 @@ var AimSheet = (function() {
         state.showRank3 = !state.showRank3;
         saveState();
         renderBoard();
+    }
+
+    // ========== 凹み判定（バッジ）設定パネル ==========
+
+    var badgePanelRendered = false;
+
+    function renderBadgePanel() {
+        var container = document.getElementById('aimBadgeSettings');
+        if (!container || typeof MachineBadge === 'undefined') return;
+        container.innerHTML = MachineBadge.renderSettingsHtml('aimMb');
+        MachineBadge.setupSettingsEvents('aimMb', function() {
+            // 設定変更 → 即再構築（このページのバッジは buildData が自前で計算）
+            render();
+        });
+        badgePanelRendered = true;
+    }
+
+    function toggleBadgePanel() {
+        var panel = document.getElementById('aimBadgePanel');
+        if (!panel) return;
+        panel.classList.toggle('open');
+        if (panel.classList.contains('open') && !badgePanelRendered) {
+            renderBadgePanel();
+        }
     }
 
     // ========== 機種除外パネル ==========
@@ -875,37 +942,42 @@ var AimSheet = (function() {
         });
     }
 
-    // ========== ページ表示（旧 open のモーダル非依存版） ==========
+    // ========== ページ表示 ==========
 
     function render() {
         loadState();
-        buildData();
 
-        var board   = document.getElementById('aimBoard');
-        var guide   = document.getElementById('aimEmptyGuide');
-        var hasData = Object.keys(builtRaw).length > 0;
+        // 基準日を確定し、必要なら月別JSONをロードしてから構築
+        var file = resolveAimDateFile();
+        return ensureDataLoaded(file).then(function() {
+            buildData();
 
-        if (guide) guide.style.display = hasData ? 'none' : 'block';
-        if (board) board.style.display = hasData ? '' : 'none';
+            var board   = document.getElementById('aimBoard');
+            var guide   = document.getElementById('aimEmptyGuide');
+            var hasData = Object.keys(builtRaw).length > 0;
 
-        syncDateNav();
-        syncAuthorInput();
-        refreshCloudList();
+            if (guide) guide.style.display = hasData ? 'none' : 'block';
+            if (board) board.style.display = hasData ? '' : 'none';
 
-        var panel = document.getElementById('aimHiddenPanel');
-        if (panel) panel.classList.remove('open');
+            syncDateNav();
+            syncAuthorInput();
+            refreshCloudList();
 
-        if (!hasData) {
-            updateMeta();
-            return;
-        }
+            var panel = document.getElementById('aimHiddenPanel');
+            if (panel) panel.classList.remove('open');
 
-        applyDefaultPlacement();
-        renderBoard();
+            if (!hasData) {
+                updateMeta();
+                return;
+            }
+
+            applyDefaultPlacement();
+            renderBoard();
+        });
     }
 
     // 後方互換: 旧 open()/close() 呼び出し用の薄いラッパ
-    function open()  { render(); }
+    function open()  { return render(); }
     function close() { closeCardMenu(); removeAllGhosts(); clearDropMarkers(); }
 
     function resetPlacement() {
@@ -918,46 +990,21 @@ var AimSheet = (function() {
         renderBoard();
     }
 
-    // ========== 日付ナビ（aim ページ独自） ==========
+    // ========== 日付ナビ（基準日セレクトのみ） ==========
 
-    function aimSortedFiles() {
-        return (typeof sortFilesByDate === 'function') ? sortFilesByDate(CSV_FILES, true) : [];
-    }
-
-    function aimCurrentIndex() {
-        var files = aimSortedFiles();
-        var idx = currentFile ? files.indexOf(currentFile) : -1;
-        if (idx === -1) idx = (typeof currentDateIndex === 'number') ? currentDateIndex : 0;
-        return idx;
-    }
-
-    // 指定ファイルへ移動して再構築（DailyState 共有で daily と同期）
+    // 基準日を変更して再構築
     function gotoFile(file) {
         if (!file) return;
-        if (typeof DailyState !== 'undefined') {
-            DailyState.setState({ dateFile: file }, { silent: true });
-        } else if (typeof currentDateIndex === 'number') {
-            var files = aimSortedFiles();
-            var i = files.indexOf(file);
-            if (i !== -1) currentDateIndex = i;
-        }
+        aimDateFile = file;
         render();
     }
 
-    // セレクトとラベルを現在ファイルに合わせて更新
+    // セレクトとラベルを基準日に合わせて更新
     function syncDateNav() {
         var files = aimSortedFiles();
-        var idx = aimCurrentIndex();
-
-        var label = document.getElementById('aimCurrentDateLabel');
-        if (label) {
-            var f = files[idx];
-            var txt = f && typeof formatDate === 'function' ? formatDate(f) : (f || '-');
-            if (f && typeof getDayOfWeek === 'function' && typeof getDayOfWeekName === 'function') {
-                try { txt += '（' + getDayOfWeekName(getDayOfWeek(f)) + '）'; } catch (e) {}
-            }
-            label.textContent = txt;
-        }
+        var cur = resolveAimDateFile();
+        var idx = files.indexOf(cur);
+        if (idx === -1) idx = 0;
 
         var sel = document.getElementById('aimDateSelect');
         if (sel) {
@@ -967,10 +1014,15 @@ var AimSheet = (function() {
             }).join('');
         }
 
-        var prev = document.getElementById('aimPrevDate');
-        var next = document.getElementById('aimNextDate');
-        if (prev) prev.disabled = idx >= files.length - 1;
-        if (next) next.disabled = idx <= 0;
+        var label = document.getElementById('aimCurrentDateLabel');
+        if (label) {
+            var f = files[idx];
+            var txt = '';
+            if (f && typeof getDayOfWeek === 'function' && typeof getDayOfWeekName === 'function') {
+                try { txt = '（' + getDayOfWeekName(getDayOfWeek(f)) + '）'; } catch (e) {}
+            }
+            label.textContent = txt;
+        }
     }
 
     // ========== 作成者欄 ==========
@@ -989,26 +1041,13 @@ var AimSheet = (function() {
         var bind = function(id, fn) { var el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
         bind('aimExportImageBtn', exportImage);
         bind('aimResetBtn', resetPlacement);
+        bind('aimBadgeToggle', toggleBadgePanel);
         bind('aimHiddenToggle', toggleHiddenPanel);
         bind('aimRank3Toggle', toggleRank3);
         bind('aimCloudSaveBtn', cloudSave);
         bind('aimCloudDeleteBtn', cloudDelete);
 
-        // ---- 日付ナビ ----
-        bind('aimPrevDate', function() {
-            var files = aimSortedFiles();
-            var idx = aimCurrentIndex();
-            if (idx < files.length - 1) gotoFile(files[idx + 1]);
-        });
-        bind('aimNextDate', function() {
-            var files = aimSortedFiles();
-            var idx = aimCurrentIndex();
-            if (idx > 0) gotoFile(files[idx - 1]);
-        });
-        bind('aimLatestDate', function() {
-            var files = aimSortedFiles();
-            if (files.length) gotoFile(files[0]);
-        });
+        // ---- 基準日セレクト ----
         var dateSel = document.getElementById('aimDateSelect');
         if (dateSel) {
             dateSel.addEventListener('change', function() { gotoFile(this.value); });

@@ -3,17 +3,15 @@
 
 <div class="aim-page-header">
     <h2>🎯 狙い台作成</h2>
-    <div class="date-nav">
-        <button id="aimPrevDate">◀ 前日</button>
-        <span class="current-date" id="aimCurrentDateLabel">-</span>
-        <button id="aimNextDate">翌日 ▶</button>
-        <button id="aimLatestDate" title="最新日のデータへ">⏭ 最新日</button>
+    <div class="aim-date-picker">
+        <label for="aimDateSelect">基準日:</label>
         <select id="aimDateSelect"></select>
+        <span class="aim-date-day" id="aimCurrentDateLabel"></span>
     </div>
 </div>
 
 <p class="aim-hint">
-    💀 凹み台を「最優先 / 優先 / その他」に振り分けます。<br>
+    💀 凹み台を「最優先 / 優先 / その他」に振り分けます。基準日のデータ（直近N日累積）で凹み台を判定します。<br>
     ・<b>PC</b>: カード／💀チップをドラッグ。カードをクリックで行き先メニューも出ます<br>
     ・<b>スマホ</b>: カード／チップを<b>長押し</b>するとドラッグ開始（軽く動かすと画面スクロール）<br>
     ・カードを<b>タップ</b> → 「最優先/優先/その他へ」メニューで一発移動<br>
@@ -29,10 +27,19 @@
     </select>
     <button class="btn-reset" id="aimCloudDeleteBtn">🗑️ 選択シートを削除</button>
     <button class="btn-apply" id="aimExportImageBtn">🖼️ 1枚画像を出力</button>
+    <button class="btn-small" id="aimBadgeToggle">🐙💀 凹み判定設定</button>
     <button class="btn-small" id="aimHiddenToggle">🛑 機種の表示/除外</button>
     <button class="btn-small" id="aimRank3Toggle">💀🥉 3位を隠す</button>
     <button class="btn-reset" id="aimResetBtn">↺ 初期配置</button>
     <span class="aim-meta" id="aimMeta"></span>
+</div>
+
+<!-- 凹み判定（バッジ）設定パネル（トグルで開閉） -->
+<div class="aim-badge-panel" id="aimBadgePanel">
+    <div class="aim-badge-panel-head">
+        基準日を含む直近N日間の累積差枚（またはG数）で凹み台（💀）を判定します。変更すると即座に再計算されます。
+    </div>
+    <div id="aimBadgeSettings"></div>
 </div>
 
 <!-- 機種の表示/除外パネル（トグルで開閉） -->
@@ -42,9 +49,9 @@
     <div class="aim-hidden-list" id="aimHiddenList"></div>
 </div>
 
-<!-- バッジ未計算時のガイド（render が出し分け） -->
+<!-- バッジ未計算/該当なし時のガイド（render が出し分け） -->
 <div class="aim-empty-guide" id="aimEmptyGuide" style="display:none;">
-    凹み台（💀バッジ）が見つかりません。日別データページの「バッジ設定」で「バッジを計算」を実行してから開いてください。
+    この基準日には凹み台（💀バッジ）が見つかりません。基準日を変えるか、「凹み判定設定」で集計期間や基準列を見直してください。
 </div>
 
 <!-- 3区分ボード（操作用） -->
