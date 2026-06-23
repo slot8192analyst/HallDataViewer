@@ -1,44 +1,17 @@
-下記ディレクトリ構成でパチンコ店の情報をまとめる静的サイトを作成しています。
+やりたいこと
 
-C:.
-│  .gitignore
-│  events.json
-│  files.json
-│  index.html
-│  prompt.txt
-│  README.md
-│
-├─.vscode
-│      settings.json
-│
-├─css
-│      style.css
-│
-├─data
-│      2025_01.json
-│      2025_02.json
-│      2025_03.json
-│      2025_04.json
-│      2025_05.json
-│      2025_06.json
-│      2025_07.json
-│      2025_08.json
-│      2025_09.json
-│      2025_10.json
-│      2025_11.json
-│      2025_12.json
-│      2026_01.json
-│      2026_02.json
-│      position.csv
-│
-└─js
-        app.js
-        calendar.js
-        compare.js
-        chart.js
-        config.js
-        daily.js
-        data.js
-        stats.js
-        trend.js
-        utils.js
+・取材ページ
+各取材日における差枚TOP20の台や、機種平均差枚TOP5、機種合計差枚TOP5の表示
+
+・取材ページ
+取材全体をまとめて、各取材のマトリクスを全体マトリクスとして表示したい。
+各取材カラーで色分けがあるとよいと考えている。
+
+・機種フィルター
+ねらい目設定ページで行っているようにプリセットごとで選択非選択を選べると嬉しい。
+
+・日付タブ
+メモ列が機能していない。
+
+・メモタブ
+スマホで使うときに、入力欄が画面からはみ出るほど伸びている。
