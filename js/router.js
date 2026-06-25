@@ -110,11 +110,12 @@ var Router = (function() {
         },
 
         // ===== 取材（promotion） =====
-        // 取材ハブ（各取材へのリンク + ハブ掲示板）
+        // 取材ハブ（各取材へのリンク + 全体マトリクス + ハブ掲示板）
         promotion: {
             tabId: 'promotion',
             init: null,
             onShow: function() {
+                if (typeof Promotion !== 'undefined') Promotion.renderOverview();
                 if (typeof Board !== 'undefined') Board.render('hub');
             }
         },

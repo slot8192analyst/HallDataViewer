@@ -1764,3 +1764,12 @@ td:has(.position-tags) {
     border-radius: 8px; color: inherit;
 }
 .back-to-home:hover { border-color: #6366f1; }
+
+/* ===== その日の全台ランキング ===== */
+.promo-ranking-section { margin-top: 24px; }
+.promo-rank-no { text-align: center; font-weight: 700; opacity: .8; }
+.promo-rank-machines {
+    display: flex; flex-wrap: wrap; gap: 16px; margin-top: 16px;
+}
+.promo-rank-machine-block { flex: 1 1 320px; min-width: 280px; }
+.promo-rank-table th { white-space: nowrap; }

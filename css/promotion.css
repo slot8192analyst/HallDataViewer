@@ -322,3 +322,34 @@
 .board-author::placeholder {
     color: var(--text-muted, #94a3b8);
 }
+
+/* ===== 全体マトリクス（3取材一覧） ===== */
+.promo-overview-section { margin-top: 24px; }
+
+.promo-overview-legend {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    align-items: center; margin-bottom: 10px;
+}
+.promo-legend-item { display: inline-flex; align-items: center; gap: 4px; }
+.promo-legend-swatch {
+    display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+}
+.promo-legend-note { opacity: .7; font-size: 12px; }
+
+.promo-overview-table th,
+.promo-overview-table td { text-align: center; white-space: nowrap; }
+.promo-overview-table .promo-matrix-machine { text-align: left; }
+
+.promo-overview-promohead { font-weight: 700; }
+
+.promo-overview-count { white-space: nowrap; }
+.promo-overview-countitem { font-weight: 700; margin-right: 6px; }
+
+.promo-cell-on   { font-weight: 700; }
+.promo-cell-cand { font-weight: 700; }
+
+.promo-overview-day {
+    font-weight: 700;
+    padding-left: 8px;
+    padding-right: 8px;
+}

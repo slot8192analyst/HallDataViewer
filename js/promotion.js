@@ -5,6 +5,8 @@
 //   - date はアンダースコア区切り（例: 2026_06_06）
 //   - 対象機種は機種名 完全一致で日別データ(dataCache)から抽出
 //   - 未来の開催日（今日より後）はデータを読みに行かない（404防止）
+//   - 取材ハブには3取材を1枚にまとめた全体マトリクス（buildOverviewMatrix）を描画
+//   - 各取材の日付詳細にはその日の全台ランキング（buildDayRanking）を描画
 // ===================
 var Promotion = (function() {
     'use strict';
@@ -13,6 +15,20 @@ var Promotion = (function() {
         tenun:  '天運総撃',
         ougi:   '奥義ノ矢',
         zombie: 'ゾンビ狩り取材'
+    };
+
+    // 取材カラー定義（全体マトリクス用）。キーは router の data-nav / ページキーと一致
+    var PROMO_COLORS = {
+        tenun:  { name: '天運総撃',   accent: '#ef4444' },  // 赤
+        ougi:   { name: '奥義の矢',   accent: '#3b82f6' },  // 青
+        zombie: { name: 'ゾンビ狩り', accent: '#22c55e' }   // 緑
+    };
+
+    // 表示用ラベル（カード/凡例と揃える。PROMO_NAMES は events.json の name 値なので別物）
+    var PROMO_LABELS = {
+        tenun:  '天運総撃',
+        ougi:   '奥義の矢',
+        zombie: 'ゾンビ狩り'
     };
 
     var COLUMNS = [
@@ -24,6 +40,11 @@ var Promotion = (function() {
 
     // 開催日カードに出す機種名の上限
     var PREVIEW_LIMIT = 3;
+
+    // ランキング設定
+    var MACHINE_MIN_COUNT = 3;   // 機種ランキングの最低設置台数（これ未満は除外）
+    var TOP_N_UNITS = 20;        // 差枚TOP（台単位）
+    var TOP_N_MACHINES = 5;      // 機種ランキングTOP
 
     // ===================
     // events 取得（ストア優先 → 無ければ自前 fetch してキャッシュ）
@@ -111,6 +132,12 @@ var Promotion = (function() {
         };
     }
 
+    // その開催日の全台レコード（ホール全台）。未ロードなら null
+    function getDayRecords(dateStr) {
+        var key = dateToCacheKey(dateStr);
+        return (typeof dataCache !== 'undefined' && dataCache[key]) || null;
+    }
+
     // ===================
     // 集計ヘルパー
     // ===================
@@ -142,6 +169,51 @@ var Promotion = (function() {
             + '<span>平均G数 <b>' + s.avgG.toLocaleString() + '</b></span>'
             + '<span>勝率 <b>' + s.winRate + '%</b></span>'
             + '</div>';
+    }
+
+    // ===================
+    // その日の全台ランキング集計
+    //   topUnits  : 差枚TOP20（全台、差枚降順）
+    //   topAvg    : 機種 平均差枚 TOP5（3台以上の機種のみ）
+    //   topTotal  : 機種 合計差枚 TOP5（3台以上の機種のみ）
+    // ===================
+    function buildDayRanking(records) {
+        if (!records || !records.length) return null;
+
+        // --- 差枚TOP20（その日の全台、差枚降順） ---
+        var topUnits = records.slice().sort(function(a, b) {
+            return (parseInt(b['差枚'], 10) || 0) - (parseInt(a['差枚'], 10) || 0);
+        }).slice(0, TOP_N_UNITS);
+
+        // --- 機種別集計 ---
+        var byMachine = {};
+        records.forEach(function(r) {
+            var name = r['機種名'];
+            if (!name) return;
+            if (!byMachine[name]) byMachine[name] = { name: name, count: 0, total: 0 };
+            byMachine[name].count += 1;
+            byMachine[name].total += parseInt(r['差枚'], 10) || 0;
+        });
+
+        // 3台以上のみ対象に平均を算出
+        var machines = [];
+        for (var n in byMachine) {
+            if (!byMachine.hasOwnProperty(n)) continue;
+            var m = byMachine[n];
+            if (m.count < MACHINE_MIN_COUNT) continue;
+            m.avg = Math.round(m.total / m.count);
+            machines.push(m);
+        }
+
+        var topAvg = machines.slice().sort(function(a, b) {
+            return b.avg - a.avg;
+        }).slice(0, TOP_N_MACHINES);
+
+        var topTotal = machines.slice().sort(function(a, b) {
+            return b.total - a.total;
+        }).slice(0, TOP_N_MACHINES);
+
+        return { topUnits: topUnits, topAvg: topAvg, topTotal: topTotal };
     }
 
     // 開催日カードに出す機種名（target優先、なければcandidate）。先頭N件＋省略
@@ -361,6 +433,176 @@ var Promotion = (function() {
     }
 
     // ===================
+    // 全体マトリクス（3取材を1枚に統合）
+    //   縦: 機種名 / 横: 開催日（全取材を日付昇順で「通し」に並べる）
+    //   各開催日（列）に取材カラーを付与。セルは target=濃(●) / candidate=薄(○)
+    //   events.json の target_machines / candidate_machines から組むので
+    //   日別データのロード状況に依存しない（未来日も描ける）
+    // ===================
+    function buildOverviewMatrix(allEvents) {
+        var keys = ['tenun', 'ougi', 'zombie'];
+
+        // 1) 取材ごとの開催日イベントを集める（date + promoKey を持たせる）
+        var dayEvents = [];
+        keys.forEach(function(k) {
+            filterEventsFor(allEvents, k).forEach(function(ev) {
+                dayEvents.push({ promo: k, ev: ev });
+            });
+        });
+        if (!dayEvents.length) {
+            return '<p class="promo-empty">登録された開催日がありません。</p>';
+        }
+
+        // 2) 横軸（列）= 全取材を「日付昇順」で通しに並べる
+        //    同日に複数取材があれば keys の順で安定させる
+        var columns = dayEvents.slice().sort(function(a, b) {
+            if (a.ev.date !== b.ev.date) return a.ev.date < b.ev.date ? -1 : 1;
+            return keys.indexOf(a.promo) - keys.indexOf(b.promo);
+        });
+
+        // 3) matrix[機種名][列index] = 'target' | 'candidate'
+        //    取材別ピック回数も集計
+        var matrix = {};     // { 機種名: { colIndex: type } }
+        var order  = [];     // 機種出現順
+        var promoCount = {}; // { 機種名: { tenun:{t,c}, ougi:{...}, zombie:{...} } }
+
+        columns.forEach(function(col, ci) {
+            function mark(names, type) {
+                (names || []).forEach(function(n) {
+                    if (!n) return;
+                    if (!matrix[n]) {
+                        matrix[n] = {};
+                        order.push(n);
+                        promoCount[n] = {
+                            tenun:  { t: 0, c: 0 },
+                            ougi:   { t: 0, c: 0 },
+                            zombie: { t: 0, c: 0 }
+                        };
+                    }
+                    // target は candidate より優先（上書きしない）
+                    if (matrix[n][ci] !== 'target') matrix[n][ci] = type;
+                    if (type === 'target') promoCount[n][col.promo].t++;
+                    else                   promoCount[n][col.promo].c++;
+                });
+            }
+            mark(col.ev.target_machines, 'target');
+            mark(col.ev.candidate_machines, 'candidate');
+        });
+
+        if (!order.length) return '';
+
+        // 4) 並び順: 全取材合計の target 回数が多い順 → 全件数
+        function totalCount(name, onlyTarget) {
+            var pc = promoCount[name], c = 0;
+            keys.forEach(function(k) { c += pc[k].t + (onlyTarget ? 0 : pc[k].c); });
+            return c;
+        }
+        function totalTarget(name) {
+            var pc = promoCount[name], c = 0;
+            keys.forEach(function(k) { c += pc[k].t; });
+            return c;
+        }
+        order.sort(function(a, b) {
+            return totalTarget(b) - totalTarget(a) || totalCount(b) - totalCount(a);
+        });
+
+        // 5) HTML 組み立て
+        var html = '<div class="promo-matrix-section promo-overview-section">';
+        html += '<h3 class="promo-matrix-title">全体マトリクス（3取材一覧）</h3>';
+
+        // 凡例（取材カラー）
+        html += '<div class="promo-matrix-legend promo-overview-legend">';
+        keys.forEach(function(k) {
+            html += '<span class="promo-legend-item">'
+                 +  '<i class="promo-legend-swatch" style="background:'
+                 +  PROMO_COLORS[k].accent + '"></i>'
+                 +  escapeHtml(PROMO_LABELS[k]) + '</span>';
+        });
+        html += '<span class="promo-legend-note">●=対象 / ○=候補</span>';
+        html += '</div>';
+
+        html += '<div class="table-wrapper"><table class="promo-matrix-table promo-overview-table"><thead>';
+
+        // 1段ヘッダー: 機種名 / 回数 / 各開催日（日付に取材カラー）
+        html += '<tr>';
+        html += '<th class="promo-matrix-machine">機種名</th>';
+        html += '<th class="promo-matrix-count">回数</th>';
+        columns.forEach(function(col) {
+            var color = PROMO_COLORS[col.promo].accent;
+            var label = col.ev.date.replace(/^\d{4}_/, '').replace(/_/g, '/'); // MM/DD
+            html += '<th class="promo-matrix-day promo-overview-day"'
+                 +  ' style="color:' + color
+                 +  ';border-bottom:3px solid ' + color + '"'
+                 +  ' title="' + escapeHtml(PROMO_LABELS[col.promo]) + '">'
+                 +  label + '</th>';
+        });
+        html += '</tr></thead><tbody>';
+
+        // 本体
+        order.forEach(function(name) {
+            html += '<tr>';
+            html += '<td class="promo-matrix-machine">' + escapeHtml(name) + '</td>';
+
+            // 回数セル: 取材別の内訳を色付きで
+            html += '<td class="promo-matrix-count promo-overview-count">';
+            keys.forEach(function(k) {
+                var pc = promoCount[name][k];
+                if (pc.t || pc.c) {
+                    html += '<span class="promo-overview-countitem" style="color:'
+                         +  PROMO_COLORS[k].accent + '">' + pc.t
+                         +  (pc.c ? '(+' + pc.c + ')' : '') + '</span>';
+                }
+            });
+            html += '</td>';
+
+            // 各列セル
+            columns.forEach(function(col, ci) {
+                var type = matrix[name][ci];
+                if (!type) {
+                    html += '<td class="promo-matrix-cell"></td>';
+                    return;
+                }
+                var color = PROMO_COLORS[col.promo].accent;
+                if (type === 'target') {
+                    html += '<td class="promo-matrix-cell promo-cell-on"'
+                         +  ' style="background:' + color + ';color:#fff">●</td>';
+                } else {
+                    html += '<td class="promo-matrix-cell promo-cell-cand"'
+                         +  ' style="background:' + hexToRgba(color, 0.18)
+                         +  ';color:' + color + '">○</td>';
+                }
+            });
+            html += '</tr>';
+        });
+
+        html += '</tbody></table></div></div>';
+        return html;
+    }
+
+    // hex(#rrggbb) → rgba 文字列（candidate の薄塗り用）
+    function hexToRgba(hex, alpha) {
+        var h = hex.replace('#', '');
+        if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+        var r = parseInt(h.substr(0, 2), 16);
+        var g = parseInt(h.substr(2, 2), 16);
+        var b = parseInt(h.substr(4, 2), 16);
+        return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+    }
+
+    // ハブ用: events を取得して全体マトリクスを描く
+    //   描画先は promotion ページ内の .promo-overview-mount
+    function renderOverview() {
+        var container = document.getElementById('promotion');
+        if (!container) return;
+        var mount = container.querySelector('.promo-overview-mount');
+        if (!mount) return;
+
+        getAllEvents().then(function(allEvents) {
+            mount.innerHTML = buildOverviewMatrix(allEvents);
+        });
+    }
+
+    // ===================
     // 詳細ページ（テーブル＋サマリーバー）
     // ===================
     function tableBlock(title, rows) {
@@ -385,6 +627,79 @@ var Promotion = (function() {
             t += '</tr>';
         });
         return t + '</tbody></table></div>';
+    }
+
+    // ===================
+    // その日の全台ランキング描画
+    // ===================
+    function buildRankingSection(ranking) {
+        if (!ranking) return '';
+        var html = '<div class="promo-ranking-section">';
+        html += '<h3 class="promo-matrix-title">その日の全台ランキング</h3>';
+
+        // 差枚TOP20（全台）
+        if (ranking.topUnits.length) {
+            html += '<h4 class="promo-group-title">差枚 TOP' + ranking.topUnits.length + '（全台）</h4>';
+            html += rankTableUnits(ranking.topUnits);
+        }
+
+        // 機種ランキング（3台以上）を横並び
+        html += '<div class="promo-rank-machines">';
+        html += machineRankBlock('機種 平均差枚 TOP5（3台以上）', ranking.topAvg, 'avg');
+        html += machineRankBlock('機種 合計差枚 TOP5（3台以上）', ranking.topTotal, 'total');
+        html += '</div>';
+
+        html += '</div>';
+        return html;
+    }
+
+    // 差枚TOP20テーブル（順位付き）
+    function rankTableUnits(rows) {
+        var t = '<div class="table-wrapper"><table class="promo-table promo-rank-table"><thead><tr>';
+        t += '<th>順位</th>';
+        COLUMNS.forEach(function(c) { t += '<th>' + c.label + '</th>'; });
+        t += '</tr></thead><tbody>';
+        rows.forEach(function(r, i) {
+            t += '<tr><td class="promo-rank-no">' + (i + 1) + '</td>';
+            COLUMNS.forEach(function(c) {
+                var v = (r[c.key] != null ? r[c.key] : '-');
+                var cls = '';
+                if (c.key === '差枚') {
+                    var n = parseInt(r[c.key], 10) || 0;
+                    cls = n > 0 ? ' class="plus"' : (n < 0 ? ' class="minus"' : ' class="zero"');
+                    if (n > 0) v = '+' + v;
+                }
+                t += '<td' + cls + '>' + escapeHtml(String(v)) + '</td>';
+            });
+            t += '</tr>';
+        });
+        return t + '</tbody></table></div>';
+    }
+
+    // 機種ランキング（avg or total を主値に表示）
+    function machineRankBlock(title, rows, valueKey) {
+        if (!rows || !rows.length) {
+            return '<div class="promo-rank-machine-block">'
+                 + '<h4 class="promo-group-title">' + escapeHtml(title) + '</h4>'
+                 + '<p class="promo-empty">対象機種（3台以上）がありません。</p></div>';
+        }
+        var t = '<div class="promo-rank-machine-block">';
+        t += '<h4 class="promo-group-title">' + escapeHtml(title) + '</h4>';
+        t += '<div class="table-wrapper"><table class="promo-table promo-rank-table"><thead><tr>';
+        t += '<th>順位</th><th>機種名</th><th>台数</th><th>'
+           + (valueKey === 'avg' ? '平均差枚' : '合計差枚') + '</th></tr></thead><tbody>';
+        rows.forEach(function(m, i) {
+            var val = m[valueKey];
+            var cls = val > 0 ? ' class="plus"' : (val < 0 ? ' class="minus"' : ' class="zero"');
+            var str = (val > 0 ? '+' : '') + val.toLocaleString();
+            t += '<tr>'
+               + '<td class="promo-rank-no">' + (i + 1) + '</td>'
+               + '<td>' + escapeHtml(m.name) + '</td>'
+               + '<td>' + m.count + '</td>'
+               + '<td' + cls + '>' + str + '</td>'
+               + '</tr>';
+        });
+        return t + '</tbody></table></div></div>';
     }
 
     function renderDetail(promoKey, dateStr, body, events) {
@@ -432,6 +747,14 @@ var Promotion = (function() {
             html += tableBlock('対象機種', groups.target);
             html += tableBlock('候補（推定）機種', groups.candidate);
         }
+
+        // その日の全台ランキング（差枚TOP20 / 機種平均TOP5 / 機種合計TOP5）
+        //   母集団はその日のホール全台。groups が取れている＝データはロード済み
+        var dayRecords = getDayRecords(dateStr);
+        if (dayRecords && dayRecords.length) {
+            html += buildRankingSection(buildDayRanking(dayRecords));
+        }
+
         body.innerHTML = html;
     }
 
@@ -455,6 +778,12 @@ var Promotion = (function() {
             .replace(/"/g, '&quot;');
     }
 
-    return { render: render, PROMO_NAMES: PROMO_NAMES };
+    return {
+        render: render,
+        renderOverview: renderOverview,
+        PROMO_NAMES: PROMO_NAMES,
+        PROMO_COLORS: PROMO_COLORS,
+        PROMO_LABELS: PROMO_LABELS
+    };
 })();
 window.Promotion = Promotion;
