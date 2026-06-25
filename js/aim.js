@@ -1188,13 +1188,37 @@ var AimSheet = (function() {
 
     function exportImage() {
         if (typeof html2canvas === 'undefined') { alert('画像ライブラリ(html2canvas)が読み込まれていません。'); return; }
+    
         var holder = document.createElement('div');
-        holder.style.position = 'fixed'; holder.style.left = '-99999px'; holder.style.top = '0'; holder.style.zIndex = '-1';
+        // -99999px ではなく、画面内だが見えない位置に置く（html2canvasの描画範囲対策）
+        holder.style.position = 'fixed';
+        holder.style.left = '0';
+        holder.style.top = '0';
+        holder.style.opacity = '0';
+        holder.style.pointerEvents = 'none';
+        holder.style.zIndex = '-1';
+    
         var listEl = buildExportListEl();
         holder.appendChild(listEl);
         document.body.appendChild(holder);
-        var bg = getComputedStyle(document.body).backgroundColor || '#1a1a2e';
-        html2canvas(listEl, { backgroundColor: bg, scale: 2, useCORS: true, logging: false })
+    
+        // CSS変数を実値に解決してインラインへ焼き込む（html2canvasのvar()未解決対策）
+        inlineComputedColors(listEl);
+    
+        // 背景色を実値で取得（listEl自身から取る方が確実）
+        var bg = getComputedStyle(listEl).backgroundColor;
+        if (!bg || bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent') bg = '#1a1a2e';
+    
+        html2canvas(listEl, {
+            backgroundColor: bg,
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            width: listEl.offsetWidth,
+            height: listEl.offsetHeight,
+            windowWidth: listEl.offsetWidth,
+            windowHeight: listEl.offsetHeight
+        })
         .then(function(canvas) {
             document.body.removeChild(holder);
             var dateStr = currentFile ? currentFile.replace('data/', '').replace('.csv', '') : 'aim';
@@ -1212,6 +1236,20 @@ var AimSheet = (function() {
             alert('画像の出力に失敗しました。');
         });
     }
+    
+    // .aim-export-list 配下の要素について、computed な色を実値でインライン化する。
+    // html2canvas が var(--...) を解決できないケースの保険。
+    function inlineComputedColors(root) {
+        var nodes = [root].concat(Array.prototype.slice.call(root.querySelectorAll('*')));
+        nodes.forEach(function(el) {
+            var cs = getComputedStyle(el);
+            // 既に rgb()/rgba() に解決済みの computed 値をそのまま焼き込む
+            el.style.color = cs.color;
+            el.style.backgroundColor = cs.backgroundColor;
+            if (cs.borderColor) el.style.borderColor = cs.borderColor;
+        });
+    }
+    
 
     // ========== 振り返り（答え合わせ） ==========
 
