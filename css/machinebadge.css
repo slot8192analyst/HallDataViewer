@@ -156,3 +156,8 @@
         border-color: #cbd5e1;
     }
 }
+
+.mb-days-input { width: 64px; padding: 4px 6px; }
+.mb-days-unit { font-size: 0.85em; opacity: 0.8; margin-left: 4px; }
+.mb-exclude-item .mb-exclude-checks { display: flex; gap: 12px; flex-wrap: wrap; }
+.mb-exclude-label { display: inline-flex; align-items: center; gap: 4px; }

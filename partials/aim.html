@@ -14,33 +14,31 @@
 <!-- ============================================ -->
 <div class="aim-view aim-create-view" id="aimCreateView">
 
-    <div class="aim-date-picker">
-        <label for="aimDateSelect">基準日:</label>
-        <select id="aimDateSelect"></select>
-        <span class="aim-date-day" id="aimCurrentDateLabel"></span>
-    </div>
-
     <p class="aim-hint">
         💀 凹み台を「最優先 / 優先 / その他」に振り分けます。基準日のデータ（直近N日累積）で凹み台を判定します。<br>
         ・<b>PC</b>: カード／💀チップをドラッグ。カードをクリックで行き先メニューも出ます<br>
         ・<b>スマホ</b>: カード／チップを<b>長押し</b>するとドラッグ開始（軽く動かすと画面スクロール）<br>
-        ・カードを<b>タップ</b> → 「最優先/優先/その他へ」メニューで一発移動<br>
+        ・カードを<b>タップ</b> → 「最優先/優先/その他/未配置へ」メニューで一発移動<br>
         ・💀チップを<b>タップ</b> → 「狙わない（グレーアウト）」をトグル<br>
         ・「機種の表示/除外」で座らない機種を外せます（プリセット一括も可）
     </p>
 
     <div class="aim-toolbar">
-        <input type="text" id="aimAuthorInput" class="aim-author-input" placeholder="作成者名" maxlength="20">
-        <button class="btn-apply" id="aimCloudSaveBtn">☁️ クラウド保存</button>
-        <select id="aimCloudList" class="aim-cloud-list">
+        <div class="aim-date-picker">
+            <label for="aimDateSelect">基準日:</label>
+            <input type="date" id="aimDateSelect" class="aim-date-input">
+            <span class="aim-date-day" id="aimCurrentDateLabel"></span>
+        </div>
+        <input type="text" id="aimAuthorInput" class="aim-author-input aim-btn" placeholder="作成者名" maxlength="20">
+        <button class="aim-btn btn-apply" id="aimCloudSaveBtn">☁️ クラウド保存</button>
+        <select id="aimCloudList" class="aim-cloud-list aim-btn">
             <option value="">他の人のシートを開く...</option>
         </select>
-        <button class="btn-reset" id="aimCloudDeleteBtn">🗑️ 選択シートを削除</button>
-        <button class="btn-apply" id="aimExportImageBtn">🖼️ 1枚画像を出力</button>
-        <button class="btn-small" id="aimBadgeToggle">🐙💀 凹み判定設定</button>
-        <button class="btn-small" id="aimHiddenToggle">🛑 機種の表示/除外</button>
-        <button class="btn-small" id="aimRank3Toggle">💀🥉 3位を隠す</button>
-        <button class="btn-reset" id="aimResetBtn">↺ 初期配置</button>
+        <button class="aim-btn btn-reset" id="aimCloudDeleteBtn">🗑️ 選択シートを削除</button>
+        <button class="aim-btn btn-apply" id="aimExportImageBtn">🖼️ 1枚画像を出力</button>
+        <button class="aim-btn btn-small" id="aimBadgeToggle">🐙💀 凹み判定設定</button>
+        <button class="aim-btn btn-small" id="aimHiddenToggle">🛑 機種の表示/除外</button>
+        <button class="aim-btn btn-reset" id="aimResetBtn">↺ 初期配置</button>
         <span class="aim-meta" id="aimMeta"></span>
     </div>
 
@@ -64,7 +62,7 @@
         この基準日には凹み台（💀バッジ）が見つかりません。基準日を変えるか、「凹み判定設定」で集計期間や基準列を見直してください。
     </div>
 
-    <!-- 3区分ボード（操作用） -->
+    <!-- 3区分ボード＋未配置（操作用） -->
     <div class="aim-board" id="aimBoard"></div>
 </div>
 
@@ -79,11 +77,11 @@
             <select id="aimReviewSheetSelect">
                 <option value="__current__">現在の作成タブの配置</option>
             </select>
-            <button class="btn-small" id="aimReviewReloadBtn" title="シート一覧を再取得">🔄</button>
+            <button class="aim-btn btn-small" id="aimReviewReloadBtn" title="シート一覧を再取得">🔄</button>
         </div>
         <div class="aim-date-picker">
             <label for="aimReviewDateSelect">答え合わせ日:</label>
-            <select id="aimReviewDateSelect"></select>
+            <input type="date" id="aimReviewDateSelect" class="aim-date-input">
             <span class="aim-date-day" id="aimReviewDateLabel"></span>
         </div>
     </div>
@@ -101,4 +99,3 @@
     <!-- 区分ごとの結果 -->
     <div class="aim-review-body" id="aimReviewBody"></div>
 </div>
-

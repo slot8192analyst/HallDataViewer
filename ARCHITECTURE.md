@@ -5,7 +5,7 @@
 > コードを編集する前にこのファイルだけを読めば、「どのファイルに何が書いてあるか」「どこを直せばよいか」が分かることを目指す。
 > AI / 人間どちらも対象読者。**機能を追加・変更したらこのファイルも更新すること。**
 
-最終更新: 2026-06-22（ナビゲーション構造を全面刷新：従来のタブUIを廃止し、URLハッシュベースのルーター（js/router.js）＋ターミナル（ホーム）ページ起点の画面遷移に移行。各タブのHTMLは index.html から partials/*.html へ分割し、初回表示時に fetch して挿入する遅延ロード方式に変更。状態保持（DailyState・各エンジン・常駐JS）は従来どおりで、ページ間移動でフィルター等は維持される。2026-06-18: タブは4種に確定、compare 廃止、trend→analysis 改称、aim 追加 等）
+最終更新: 2026-06-25（メモ機能を独立ページから日別タブの「メモ」列インライン入力（セルタップ→小モーダル）に統合。memo ページ・ホームのメモカード・partials/memo.html を廃止（js/memo.js の SeatMemo 自体は日別タブ用に残置）。あわせて、追加済み最新データの「翌日」を仮想的に1日ぶん日別タブに表示する機能を追加（差枚等は空、台番号・機種名は最新実データ日を流用。稼働中でもその場でメモ可）。
 
 ---
 
@@ -28,7 +28,9 @@
 4. 残りの月は**バックグラウンドで遅延ロード**（`loadRemainingDataInBackground`）
 5. 起動直後は**ホーム（ターミナル）ページ**を表示。ホームのカード（または各ページの「← ホーム」ボタン）で画面遷移する。遷移はURLハッシュ（`#daily` 等）で表現され、リロードしても同じページが開く
 6. 各ページのHTMLは初回アクセス時に `partials/*.html` から fetch されて挿入される（2回目以降はDOMを残したまま表示切替。状態も維持）
-7. 日別ページからは「狙い台作成」モーダルを開き、💀凹み台を区分けして1枚画像出力・クラウド共有ができる（`aim.js`）
+7. 日別ページでは、各台の「メモ」列セルをタップすると小さなメモ入力モーダル（SeatMemo.openEditor）が開き、「誰が座っていたか」「設定」をその場で記録・共有できる（旧・独立メモタブは廃止）
+8. 日別ページの日付リストには、追加済み最新データの**翌日（仮想日）**が先頭に並ぶ。仮想日は差枚等が空・台番号と機種名のみ（最新実データ日を流用）で、稼働中でも当日のメモを先取りで打てる。後日その日の実データが入ると、同じ日付キーで保存されたメモがそのまま引き継がれる
+9. 日別ページからは「狙い台作成」モーダルを開き、💀凹み台を区分けして1枚画像出力・クラウド共有ができる（`aim.js`）
 
 ---
 
@@ -49,6 +51,7 @@ webapp/
 │   ├── components.css          … 共通部品（テーブル/モーダル/ボタン/トースト）最大
 │   ├── daily.css / analysis.css / calendar.css / island.css
 │   ├── machinebadge.css / aim.css
+│   ├── memo.css                … 着席メモのバッジ／メモ列セル／メモ入力モーダルのスタイル
 │   └── tagmatch.css            … （※index.htmlで未読み込み・無効）
 │
 ├── data/
@@ -60,21 +63,21 @@ webapp/
 ├── js/                         … アプリ本体（§4で各ファイル詳述）
 │   ├── config.js  utils.js  data.js  chart.js
 │   ├── preset.js  hstag.js  machinebadge.js
-│   ├── daily-state.js  daily.js  aim.js  analysis.js
+│   ├── daily-state.js  daily.js  aim.js  memo.js  analysis.js
 │   ├── calendar.js  island.js  router.js  app.js
 │   └── tagmatch.js             … （※index.htmlで未読み込み・無効）
 │
 ├── partials/                   … 各ページのHTML断片（初回アクセス時に router.js が fetch して挿入）
 │   ├── daily.html              … 日別データページの中身（外側の #daily ラッパーは含めない）
-│   ├── memo.html               … メモページの中身
 │   ├── analysis.html           … 解析ページの中身
 │   ├── calendar.html           … カレンダーページの中身
 │   ├── island.html             … ヒートマップ（島図）ページの中身
+│   ├── aim.html                … 狙い台作成ページの中身
 │   └── promotion/              … 取材（promotion）ページ群
 │       ├── promotion.html      … 取材ハブ（3種への入口）
-│       ├── promotion-a.html    … 取材A（現状タイトルのみ）
-│       ├── promotion-b.html    … 取材B（現状タイトルのみ）
-│       └── promotion-c.html    … 取材C（現状タイトルのみ）
+│       ├── tenun.html          … 取材「天運総撃」
+│       ├── ougi.html           … 取材「奥義の矢」
+│       └── zombie.html         … 取材「ゾンビ狩り」
 │
 └── converter/
     └── convert_csv_to_json.py  … HTML/CSV → 月別JSON 変換スクリプト（更新時に使う）

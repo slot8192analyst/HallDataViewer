@@ -1,15 +1,19 @@
-/* =================== */
-/* 狙い台作成（AimSheet） */
-/* =================== */
+/* ========================================================================
+   狙い台ページ（AimSheet）スタイル
+   構成:
+     1. ツールバー / ヒント / 各種設定パネル
+     2. ボード（3ゾーン）＋未配置エリア
+     3. 機種カード / 凹みチップ
+     4. ドラッグ関連（マーカー / ゴースト / タップメニュー）
+     5. 画像出力レイアウト
+     6. 機種除外リスト（プリセットグループ）
+     7. ページヘッダ / タブ / 日付ピッカー
+     8. 振り返りビュー
+     9. レスポンシブ
+   ======================================================================== */
 
-#aimModal .app-modal-content {
-    max-width: 1100px;
-    width: 96%;
-    max-height: 92vh;
-}
-#aimModal .app-modal-body { overflow: auto; }
+/* ============ 1. ツールバー / ヒント / 設定パネル ============ */
 
-/* 操作バー */
 .aim-toolbar {
     display: flex;
     flex-wrap: wrap;
@@ -29,7 +33,24 @@
     line-height: 1.5;
 }
 
-/* 機種除外パネル */
+/* ボタン共通サイズ（色は役割クラス btn-apply / btn-reset / btn-small に委ねる） */
+.aim-btn {
+    height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
+    border-radius: 6px;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+}
+button.aim-btn { border: 1px solid var(--border-light, #3a3a5a); }
+
+/* 凹み判定（バッジ）設定パネル */
+.aim-badge-panel,
 .aim-hidden-panel {
     margin-bottom: 10px;
     border: 1px solid var(--border-light, #3a3a5a);
@@ -37,53 +58,59 @@
     overflow: hidden;
     display: none;
 }
+.aim-badge-panel.open,
 .aim-hidden-panel.open { display: block; }
+.aim-badge-panel-head,
 .aim-hidden-panel-head {
     padding: 6px 10px;
     font-size: 12px;
     color: var(--text-muted, #9ca3af);
-    background: rgba(0,0,0,0.15);
+    background: rgba(0, 0, 0, 0.15);
 }
-.aim-hidden-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 4px 10px;
-    padding: 10px;
-    max-height: 220px;
-    overflow: auto;
-}
-.aim-hidden-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    cursor: pointer;
-    color: var(--text-color, #e5e7eb);
-}
-.aim-hidden-item input { cursor: pointer; }
-.aim-hidden-count {
-    margin-left: auto;
-    font-size: 10px;
+.aim-badge-panel #aimBadgeSettings { padding: 10px; }
+
+/* 空ガイド */
+.aim-empty-guide {
+    padding: 24px 16px;
+    text-align: center;
     color: var(--text-muted, #9ca3af);
+    border: 1px dashed var(--border-light, #3a3a5a);
+    border-radius: 8px;
 }
 
-/* 3カラムのボード */
+/* ============ 2. ボード（3ゾーン）＋未配置エリア ============ */
+
 .aim-board {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 50vh;
+}
+
+/* 3ゾーンは横並び3カラム */
+.aim-board-zones {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
-    align-items: start;
+    align-items: stretch;
 }
+
+/* 未配置エリアは下にフル幅 */
+.aim-unplaced-wrap { width: 100%; }
+
 .aim-zone {
+    display: flex;
+    flex-direction: column;
     background: var(--card-bg, #232342);
     border: 1px solid var(--border-light, #3a3a5a);
     border-radius: 8px;
     overflow: hidden;
     min-height: 120px;
 }
-.aim-zone-top   { border-top: 3px solid #ef4444; }
-.aim-zone-high  { border-top: 3px solid #fbbf24; }
-.aim-zone-other { border-top: 3px solid #6b7280; }
+.aim-zone-top      { border-top: 3px solid #ef4444; }
+.aim-zone-high     { border-top: 3px solid #fbbf24; }
+.aim-zone-other    { border-top: 3px solid #6b7280; }
+.aim-zone-unplaced { border-top: 3px solid #4b5563; opacity: 0.97; }
 
 .aim-zone-head {
     display: flex;
@@ -91,25 +118,42 @@
     align-items: center;
     padding: 8px 10px;
     font-weight: bold;
-    background: rgba(0,0,0,0.15);
+    background: rgba(0, 0, 0, 0.15);
 }
 .aim-zone-label { font-size: 14px; }
-.aim-zone-count { font-size: 11px; color: var(--text-muted, #9ca3af); font-weight: normal; }
+.aim-zone-count {
+    font-size: 11px;
+    color: var(--text-muted, #9ca3af);
+    font-weight: normal;
+}
 
 .aim-zone-body {
+    flex: 1;
     padding: 8px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    min-height: 80px;
+    min-height: 120px;
     transition: background 0.15s;
 }
+/* 3ゾーンは縦に長めにして枠外ドロップを減らす */
+.aim-board-zones .aim-zone-body { min-height: 40vh; }
+/* 未配置は中身ぶんだけ（横に並べる） */
+.aim-zone-unplaced .aim-zone-body {
+    flex-direction: row;
+    flex-wrap: wrap;
+    min-height: 80px;
+    align-content: flex-start;
+}
+.aim-zone-unplaced .aim-card { width: 200px; }
+
 .aim-zone-over {
     background: rgba(251, 191, 36, 0.12);
     outline: 2px dashed var(--hall-accent, #fbbf24);
     outline-offset: -4px;
 }
 .aim-zone-empty {
+    width: 100%;
     font-size: 12px;
     color: var(--text-muted, #9ca3af);
     text-align: center;
@@ -118,22 +162,31 @@
     border-radius: 6px;
 }
 
-/* 機種カード */
+/* ============ 3. 機種カード / 凹みチップ ============ */
+
 .aim-card {
     background: var(--bg-color, #1a1a2e);
     border: 1px solid var(--border-light, #3a3a5a);
     border-radius: 6px;
     padding: 6px 8px;
-    cursor: grab;
+    cursor: pointer;          /* 軽く触ればスクロール、長押しでドラッグ */
     user-select: none;
+    touch-action: auto;
 }
 .aim-card:active { cursor: grabbing; }
-.aim-card.aim-dragging { opacity: 0.5; }
+.aim-card.aim-dragging { opacity: 0.4; }
+
 .aim-card-head {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 4px;
     margin-bottom: 5px;
+}
+.aim-card-grip {
+    color: var(--text-muted, #9ca3af);
+    font-size: 12px;
+    cursor: grab;
+    user-select: none;
 }
 .aim-card-name {
     font-size: 13px;
@@ -142,12 +195,10 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 75%;
+    text-align: left;
 }
-.aim-card-count { font-size: 10px; color: var(--text-muted, #9ca3af); }
 .aim-card-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 
-/* 凹みチップ */
 .aim-chip {
     display: inline-flex;
     align-items: center;
@@ -170,7 +221,6 @@
 .aim-chip-num  { font-variant-numeric: tabular-nums; }
 .aim-chip-val  { color: var(--text-muted, #cbd5e1); font-variant-numeric: tabular-nums; }
 
-/* 除外（狙わない）チップ = グレーアウト */
 .aim-chip-excluded {
     background: rgba(107, 114, 128, 0.18) !important;
     border-color: #4b5563 !important;
@@ -179,158 +229,22 @@
     opacity: 0.6;
 }
 
-/* ========== 画像出力用リスト形式 ========== */
-.aim-export-list {
-    width: 820px;                 /* 720 → 820 に拡幅して余裕を持たせる */
-    background: var(--bg-color, #1a1a2e);
-    color: var(--text-color, #e5e7eb);
-    padding: 26px 30px;
-    box-sizing: border-box;
-    font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
-}
-.aim-export-head { margin-bottom: 18px; }
-.aim-export-title { font-size: 28px; font-weight: bold; }      /* 20 → 28 */
-.aim-export-sub { font-size: 16px; color: var(--text-muted, #9ca3af); margin-top: 4px; } /* 13 → 16 */
+/* ============ 4. ドラッグ関連 ============ */
 
-.aim-export-section { margin-bottom: 18px; }
-.aim-export-zone-label {
-    font-size: 19px;              /* 14 → 19 */
-    font-weight: bold;
-    padding: 6px 14px;
-    border-radius: 5px;
-    margin-bottom: 10px;
-}
-.aim-export-top   .aim-export-zone-label,
-.aim-export-section.aim-export-top   .aim-export-zone-label { background: rgba(239,68,68,0.25);  border-left: 5px solid #ef4444; }
-.aim-export-section.aim-export-high  .aim-export-zone-label { background: rgba(251,191,36,0.22); border-left: 5px solid #fbbf24; }
-.aim-export-section.aim-export-other .aim-export-zone-label { background: rgba(107,114,128,0.22); border-left: 5px solid #6b7280; }
-
-.aim-export-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;          /* baseline → center で絵文字と数字が揃う */
-    gap: 8px 16px;
-    padding: 9px 12px;
-    border-bottom: 1px solid var(--border-light, #3a3a5a);
-}
-.aim-export-name {
-    font-size: 18px;             /* 14 → 18 */
-    font-weight: bold;
-    min-width: 200px;
-}
-.aim-export-unit {
-    font-size: 19px;            /* 13 → 19 台番号を大きく */
-    font-weight: bold;          /* 太字で視認性アップ */
-    font-variant-numeric: tabular-nums;
-    padding: 3px 10px;
-    border-radius: 6px;
-    letter-spacing: 0.5px;       /* 絵文字と番号を少し離す */
-    white-space: nowrap;
-}
-/* 台番号の数字部分をさらに強調する枠（kubi別の色は維持） */
-.aim-export-kubi-1 { background: rgba(239, 68, 68, 0.28); border: 1px solid rgba(239,68,68,0.6); }
-.aim-export-kubi-2 { background: rgba(245, 158, 11, 0.26); border: 1px solid rgba(245,158,11,0.6); }
-.aim-export-kubi-3 { background: rgba(59, 130, 246, 0.24); border: 1px solid rgba(59,130,246,0.6); }
-.aim-export-empty { font-size: 15px; color: var(--text-muted, #9ca3af); padding: 6px 12px; }
-
-/* レスポンシブ */
-@media (max-width: 720px) {
-    .aim-board { grid-template-columns: 1fr; }
-    #aimModal .app-modal-content { width: 98%; }
-}
-
-/* ========== 3位トグルボタン ========== */
-.aim-rank3-off { opacity: 0.6; text-decoration: line-through; }
-
-/* ========== プリセット一括フィルタ ========== */
-.aim-preset-filters {
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--border-light, #3a3a5a);
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.aim-preset-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-}
-.aim-preset-name {
-    flex: 1;
-    color: var(--text-color, #e5e7eb);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.aim-preset-show, .aim-preset-hide { padding: 2px 8px; font-size: 11px; }
-.aim-preset-hide { color: #fca5a5; }
-
-/* ========== カードを掴みやすく（高さ確保） ========== */
-.aim-board { min-height: 60vh; }
-.aim-zone { display: flex; flex-direction: column; }
-.aim-zone-body {
-    flex: 1;
-    min-height: 50vh;          /* ゾーン枠を縦いっぱいにして枠外ドロップを減らす */
-    touch-action: none;        /* タッチ時のスクロールとドラッグの競合を防ぐ */
-}
-.aim-card { touch-action: none; }
-
-/* ドロップ位置マーカー */
 .aim-card.aim-drop-before { box-shadow: 0 -3px 0 0 var(--hall-accent, #fbbf24); }
 .aim-card.aim-drop-after  { box-shadow: 0 3px 0 0 var(--hall-accent, #fbbf24); }
 
-/* タッチドラッグ中のゴースト */
-.aim-touch-ghost {
-    position: fixed;
-    pointer-events: none;
-    opacity: 0.85;
-    z-index: 99999;
-    transform: rotate(-2deg);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.5);
-    max-width: 280px;
-}
-
-
-/* ========== 長押しドラッグ対応：カードはスクロール可、ゾーンは縦広く ========== */
-.aim-board { min-height: 60vh; }
-.aim-zone { display: flex; flex-direction: column; }
-.aim-zone-body {
-    flex: 1;
-    min-height: 45vh;
-    /* touch-action は none にしない（スクロールできるように） */
-}
-.aim-card {
-    touch-action: auto;   /* 軽く触って動かせばスクロール。長押しでドラッグ */
-    cursor: pointer;
-}
-
-/* グリップ（掴み目印） */
-.aim-card-grip {
-    color: var(--text-muted, #9ca3af);
-    font-size: 12px;
-    margin-right: 4px;
-    cursor: grab;
-    user-select: none;
-}
-
-/* ドロップ位置マーカー */
-.aim-card.aim-drop-before { box-shadow: 0 -3px 0 0 var(--hall-accent, #fbbf24); }
-.aim-card.aim-drop-after  { box-shadow: 0 3px 0 0 var(--hall-accent, #fbbf24); }
-
-/* タッチドラッグ中のゴースト */
 .aim-touch-ghost {
     position: fixed;
     pointer-events: none;
     opacity: 0.9;
     z-index: 99999;
     transform: rotate(-2deg) scale(1.03);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.55);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.55);
     max-width: 280px;
 }
-.aim-card.aim-dragging { opacity: 0.4; }
 
-/* ========== カードのタップメニュー（行き先選択） ========== */
+/* カードのタップメニュー（行き先選択） */
 .aim-card-menu {
     position: fixed;
     z-index: 100000;
@@ -338,7 +252,7 @@
     background: var(--card-bg, #232342);
     border: 1px solid var(--border-light, #3a3a5a);
     border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     overflow: hidden;
     padding: 4px;
 }
@@ -354,7 +268,7 @@
     display: block;
     width: 100%;
     text-align: left;
-    padding: 10px 10px;
+    padding: 10px;
     background: transparent;
     border: none;
     color: var(--text-color, #e5e7eb);
@@ -362,36 +276,127 @@
     cursor: pointer;
     border-radius: 6px;
 }
-.aim-card-menu-item:hover { background: rgba(255,255,255,0.08); }
+.aim-card-menu-item:hover { background: rgba(255, 255, 255, 0.08); }
 .aim-card-menu-item.current { color: var(--hall-accent, #fbbf24); font-weight: bold; }
 
-/* 機種名は左詰めで固定 */
-.aim-card-name { text-align: left; }
-.aim-export-name { text-align: left; }
+/* ============ 5. 画像出力レイアウト ============ */
 
-/* ========== 作成者欄・クラウド ========== */
-.aim-author-input {
-    padding: 5px 8px;
-    border: 1px solid var(--border-light, #3a3a5a);
-    border-radius: 6px;
+.aim-export-list {
+    width: 820px;
     background: var(--bg-color, #1a1a2e);
     color: var(--text-color, #e5e7eb);
-    font-size: 13px;
-    width: 110px;
+    padding: 26px 30px;
+    box-sizing: border-box;
+    font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
 }
-.aim-cloud-list {
-    padding: 5px 8px;
-    border: 1px solid var(--border-light, #3a3a5a);
+.aim-export-head { margin-bottom: 18px; }
+.aim-export-title { font-size: 28px; font-weight: bold; }
+.aim-export-sub { font-size: 16px; color: var(--text-muted, #9ca3af); margin-top: 4px; }
+
+.aim-export-section { margin-bottom: 18px; }
+.aim-export-zone-label {
+    font-size: 19px;
+    font-weight: bold;
+    padding: 6px 14px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+.aim-export-section.aim-export-top   .aim-export-zone-label { background: rgba(239, 68, 68, 0.25);  border-left: 5px solid #ef4444; }
+.aim-export-section.aim-export-high  .aim-export-zone-label { background: rgba(251, 191, 36, 0.22); border-left: 5px solid #fbbf24; }
+.aim-export-section.aim-export-other .aim-export-zone-label { background: rgba(107, 114, 128, 0.22); border-left: 5px solid #6b7280; }
+
+.aim-export-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border-light, #3a3a5a);
+}
+.aim-export-name {
+    font-size: 18px;
+    font-weight: bold;
+    min-width: 200px;
+    text-align: left;
+}
+.aim-export-unit {
+    font-size: 19px;
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+    padding: 3px 10px;
     border-radius: 6px;
-    background: var(--bg-color, #1a1a2e);
-    color: var(--text-color, #e5e7eb);
-    font-size: 13px;
-    max-width: 200px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+.aim-export-kubi-1 { background: rgba(239, 68, 68, 0.28);  border: 1px solid rgba(239, 68, 68, 0.6); }
+.aim-export-kubi-2 { background: rgba(245, 158, 11, 0.26); border: 1px solid rgba(245, 158, 11, 0.6); }
+.aim-export-kubi-3 { background: rgba(59, 130, 246, 0.24); border: 1px solid rgba(59, 130, 246, 0.6); }
+.aim-export-empty { font-size: 15px; color: var(--text-muted, #9ca3af); padding: 6px 12px; }
+
+/* ============ 6. 機種除外リスト（プリセットグループ） ============ */
+
+.aim-preset-filters {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-light, #3a3a5a);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
-/* =================== */
-/* 狙い台ページ化（独立ページ用の追加スタイル） */
-/* =================== */
+.aim-hidden-list {
+    display: block;          /* グループ単位の縦積み */
+    padding: 10px;
+    max-height: 260px;
+    overflow: auto;
+}
+.aim-hidden-group { margin-bottom: 12px; }
+.aim-hidden-group-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 4px 2px;
+    border-bottom: 1px solid var(--border-light, #3a3a5a);
+    margin-bottom: 6px;
+}
+.aim-hidden-group-name {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--hall-accent, #fbbf24);
+}
+.aim-hidden-group-btns {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+}
+.aim-hidden-group-btns .aim-preset-hide { color: #fca5a5; }
+.aim-hidden-group-btns .aim-group-rank3.aim-rank3-off {
+    opacity: 0.6;
+    text-decoration: line-through;
+}
+.aim-hidden-group-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 4px 10px;
+}
+.aim-hidden-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text-color, #e5e7eb);
+}
+.aim-hidden-item input { cursor: pointer; }
+.aim-hidden-count {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-muted, #9ca3af);
+}
+.aim-preset-show, .aim-preset-hide { padding: 2px 8px; font-size: 11px; }
+.aim-rank3-off { opacity: 0.6; text-decoration: line-through; }
+
+/* ============ 7. ページヘッダ / タブ / 日付ピッカー ============ */
 
 .aim-page-header {
     display: flex;
@@ -402,58 +407,7 @@
 }
 .aim-page-header h2 { margin: 0; }
 
-.aim-date-picker {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-}
-.aim-date-picker label { color: var(--text-muted, #9ca3af); }
-.aim-date-picker select {
-    padding: 6px 10px;
-    border: 1px solid var(--border-light, #3a3a5a);
-    border-radius: 6px;
-    background: var(--bg-color, #1a1a2e);
-    color: var(--text-color, #e5e7eb);
-    font-size: 14px;
-}
-.aim-date-day { color: var(--text-muted, #9ca3af); font-size: 13px; }
-
-/* 凹み判定（バッジ）設定パネル */
-.aim-badge-panel {
-    margin-bottom: 10px;
-    border: 1px solid var(--border-light, #3a3a5a);
-    border-radius: 8px;
-    overflow: hidden;
-    display: none;
-}
-.aim-badge-panel.open { display: block; }
-.aim-badge-panel-head {
-    padding: 6px 10px;
-    font-size: 12px;
-    color: var(--text-muted, #9ca3af);
-    background: rgba(0,0,0,0.15);
-}
-.aim-badge-panel #aimBadgeSettings { padding: 10px; }
-
-/* 空ガイド */
-.aim-empty-guide {
-    padding: 24px 16px;
-    text-align: center;
-    color: var(--text-muted, #9ca3af);
-    border: 1px dashed var(--border-light, #3a3a5a);
-    border-radius: 8px;
-}
-
-/* =================== */
-/* 狙い台ページ内タブ + 振り返り */
-/* =================== */
-
-.aim-tabs {
-    display: flex;
-    gap: 4px;
-    margin-left: 8px;
-}
+.aim-tabs { display: flex; gap: 4px; margin-left: 8px; }
 .aim-tab {
     padding: 6px 16px;
     border: 1px solid var(--border-light, #3a3a5a);
@@ -470,7 +424,59 @@
     border-color: var(--hall-accent, #fbbf24);
 }
 
-/* 振り返りサマリー */
+.aim-date-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+.aim-date-picker label { color: var(--text-muted, #9ca3af); }
+.aim-date-day { color: var(--text-muted, #9ca3af); font-size: 13px; }
+
+/* 入力系コンポーネントの共通見た目（高さを aim-btn と揃える） */
+.aim-date-input,
+.aim-author-input,
+.aim-cloud-list {
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--border-light, #3a3a5a);
+    border-radius: 6px;
+    background: var(--bg-color, #1a1a2e);
+    color: var(--text-color, #e5e7eb);
+    font-size: 13px;
+    box-sizing: border-box;
+}
+.aim-author-input { width: 110px; }
+.aim-cloud-list { max-width: 200px; }
+
+/* ============ 8. 振り返りビュー ============ */
+
+.aim-review-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.aim-sheet-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+.aim-sheet-picker label { color: var(--text-muted, #9ca3af); }
+.aim-sheet-picker select {
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--border-light, #3a3a5a);
+    border-radius: 6px;
+    background: var(--bg-color, #1a1a2e);
+    color: var(--text-color, #e5e7eb);
+    font-size: 14px;
+    max-width: 220px;
+    box-sizing: border-box;
+}
+
 .aim-review-summary { margin-bottom: 16px; }
 .aim-review-stats {
     display: grid;
@@ -491,13 +497,8 @@
 .aim-review-stat-label { font-size: 12px; color: var(--text-muted, #9ca3af); }
 .aim-review-stat-value { font-size: 26px; font-weight: bold; margin: 4px 0; }
 .aim-review-stat-sub   { font-size: 11px; color: var(--text-muted, #9ca3af); }
-.aim-review-note {
-    margin-top: 8px;
-    font-size: 11px;
-    color: var(--text-muted, #9ca3af);
-}
+.aim-review-note { margin-top: 8px; font-size: 11px; color: var(--text-muted, #9ca3af); }
 
-/* 振り返り 区分テーブル */
 .aim-review-zone { margin-bottom: 18px; }
 .aim-review-zone-head {
     display: flex;
@@ -507,10 +508,9 @@
     border-radius: 6px 6px 0 0;
     font-weight: bold;
 }
-.aim-review-zone-top   .aim-review-zone-head,
-.aim-review-zone.aim-review-zone-top   .aim-review-zone-head { background: rgba(239,68,68,0.20);  border-left: 4px solid #ef4444; }
-.aim-review-zone.aim-review-zone-high  .aim-review-zone-head { background: rgba(251,191,36,0.18); border-left: 4px solid #fbbf24; }
-.aim-review-zone.aim-review-zone-other .aim-review-zone-head { background: rgba(107,114,128,0.18); border-left: 4px solid #6b7280; }
+.aim-review-zone.aim-review-zone-top   .aim-review-zone-head { background: rgba(239, 68, 68, 0.20);  border-left: 4px solid #ef4444; }
+.aim-review-zone.aim-review-zone-high  .aim-review-zone-head { background: rgba(251, 191, 36, 0.18); border-left: 4px solid #fbbf24; }
+.aim-review-zone.aim-review-zone-other .aim-review-zone-head { background: rgba(107, 114, 128, 0.18); border-left: 4px solid #6b7280; }
 .aim-review-zone-label { font-size: 14px; }
 .aim-review-zone-hit { font-size: 12px; color: var(--text-muted, #cbd5e1); font-weight: normal; }
 
@@ -521,7 +521,7 @@
     text-align: center;
     white-space: nowrap;
 }
-.aim-review-table th { background: rgba(0,0,0,0.15); font-size: 12px; color: var(--text-muted, #9ca3af); }
+.aim-review-table th { background: rgba(0, 0, 0, 0.15); font-size: 12px; color: var(--text-muted, #9ca3af); }
 .aim-review-table td.plus  { color: #34d399; font-variant-numeric: tabular-nums; }
 .aim-review-table td.minus { color: #f87171; font-variant-numeric: tabular-nums; }
 .aim-review-nodata { opacity: 0.55; }
@@ -530,95 +530,15 @@
     font-size: 12px;
     font-style: italic;
 }
-
 .aim-hit-badge { font-size: 12px; font-weight: bold; }
 .aim-hit-badge.hit  { color: #34d399; }
 .aim-hit-badge.miss { color: #6b7280; }
 
+/* ============ 9. レスポンシブ ============ */
+
 @media (max-width: 720px) {
+    .aim-board-zones { grid-template-columns: 1fr; }
+    .aim-board-zones .aim-zone-body { min-height: 25vh; }
+    .aim-zone-unplaced .aim-card { width: 100%; }
     .aim-review-stats { grid-template-columns: repeat(2, 1fr); }
-}
-
-/* 振り返りコントロール（シート選択＋日付） */
-.aim-review-controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    align-items: center;
-    margin-bottom: 10px;
-}
-.aim-sheet-picker {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-}
-.aim-sheet-picker label { color: var(--text-muted, #9ca3af); }
-.aim-sheet-picker select {
-    padding: 6px 10px;
-    border: 1px solid var(--border-light, #3a3a5a);
-    border-radius: 6px;
-    background: var(--bg-color, #1a1a2e);
-    color: var(--text-color, #e5e7eb);
-    font-size: 14px;
-    max-width: 220px;
-}
-
-/* 機種除外リストのプリセットグループ見出し */
-.aim-hidden-list {
-    /* 既存の grid を group 単位の縦積みに変更 */
-    display: block;
-}
-.aim-hidden-group {
-    margin-bottom: 10px;
-}
-.aim-hidden-group-head {
-    font-size: 12px;
-    font-weight: bold;
-    color: var(--hall-accent, #fbbf24);
-    padding: 4px 2px;
-    border-bottom: 1px solid var(--border-light, #3a3a5a);
-    margin-bottom: 6px;
-}
-.aim-hidden-group-body {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 4px 10px;
-}
-
-/* 機種除外リストのプリセットグループ */
-.aim-hidden-list {
-    display: block; /* 既存の grid を上書きして縦積みに */
-}
-.aim-hidden-group {
-    margin-bottom: 12px;
-}
-.aim-hidden-group-head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    padding: 4px 2px;
-    border-bottom: 1px solid var(--border-light, #3a3a5a);
-    margin-bottom: 6px;
-}
-.aim-hidden-group-name {
-    font-size: 13px;
-    font-weight: bold;
-    color: var(--hall-accent, #fbbf24);
-}
-.aim-hidden-group-btns {
-    display: flex;
-    gap: 6px;
-    margin-left: auto; /* ボタン群を右寄せ */
-}
-.aim-hidden-group-btns .aim-preset-hide { color: #fca5a5; }
-.aim-hidden-group-btns .aim-group-rank3.aim-rank3-off {
-    opacity: 0.6;
-    text-decoration: line-through;
-}
-.aim-hidden-group-body {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 4px 10px;
 }

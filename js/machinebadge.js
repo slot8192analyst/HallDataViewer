@@ -3,7 +3,11 @@
 // タコだし（高差枚）🐙1,2,3位 / 死に台（低差枚）💀1,2,3位
 //
 // 【計算ベース】
-//   日別タブ: 表示中の日を含む過去7日間の累積差枚（機種内・フィルター後）
+//   日別タブ: 表示中の日を基準に、集計期間（日数）ぶんの累積差枚（機種内・フィルター後）
+//             - 当日含む / 前日基準 を選択
+//             - イベント日除外 / 末尾0・5の日除外 を選択
+//             - 除外時の窓の取り方: fill（有効日がN日たまるまで遡る）/ trim（直近Nカレンダー日から抜くだけ）
+//             - 仮想日（最新+1日）では基準設定にかかわらず常に前日基準で計算
 //   トレンドタブ: 選択期間の合計値（既存の動作と同じ）
 //
 // 【変更点】
@@ -21,16 +25,26 @@ var MachineBadge = (function() {
     var STORAGE_KEY_BASE      = 'machineBadgeBase';      // 'current'=当日基準 / 'prev'=前日基準
     var STORAGE_KEY_TAKO_RANKS = 'machineBadgeTakoRanks'; // タコだし表示順位 (例: [1,2,3])
     var STORAGE_KEY_KUBI_RANKS = 'machineBadgeKubiRanks'; // 死に台表示順位 (例: [1,2,3])
+    var STORAGE_KEY_EX_EVENT  = 'machineBadgeExEvent';   // イベント日除外 'true'/'false'
+    var STORAGE_KEY_EX_TAIL05 = 'machineBadgeExTail05';  // 末尾0・5の日除外 'true'/'false'
+    var STORAGE_KEY_FILL_MODE = 'machineBadgeFillMode';  // 'fill'=遡って補う / 'trim'=抜くだけ
 
     var enabled   = true;       // 常にオン（チェックボックス廃止）
     var target    = 'diff';     // 'diff' | 'games'
     var showTako  = true;       // 常にオン（チェックボックス廃止）
     var showKubi  = true;       // 常にオン（チェックボックス廃止）
-    var badgeDays = 7;          // 過去何日分累積するか
+    var badgeDays = 7;          // 過去何日分累積するか（1〜31）
     var badgeBase = 'current';  // 'current'=当日含む / 'prev'=前日から遡る
     var topN      = 3;          // 上位・下位何位まで
     var takoRanks = [1, 2, 3];  // タコだし表示する順位リスト（デフォルト全表示）
     var kubiRanks = [1, 2, 3];  // 死に台表示する順位リスト（デフォルト全表示）
+    var exEvent   = false;      // イベント日を除外するか
+    var exTail05  = false;      // 末尾0・5の日を除外するか
+    var fillMode  = 'fill';     // 'fill'=有効日がN日たまるまで遡る / 'trim'=直近Nカレンダー日から抜くだけ
+
+    var MIN_DAYS = 1;
+    var MAX_DAYS = 31;
+    var DEFAULT_DAYS = 7;
 
     // ========== ストレージ ==========
 
@@ -44,7 +58,7 @@ var MachineBadge = (function() {
             target = localStorage.getItem(STORAGE_KEY_TARGET) || 'diff';
 
             var d = parseInt(localStorage.getItem(STORAGE_KEY_DAYS));
-            if (!isNaN(d) && d >= 1 && d <= 30) badgeDays = d;
+            if (!isNaN(d) && d >= MIN_DAYS && d <= MAX_DAYS) badgeDays = d;
 
             var b = localStorage.getItem(STORAGE_KEY_BASE);
             if (b === 'prev' || b === 'current') badgeBase = b;
@@ -54,6 +68,12 @@ var MachineBadge = (function() {
             if (tr) { try { takoRanks = JSON.parse(tr); } catch(e) {} }
             var kr = localStorage.getItem(STORAGE_KEY_KUBI_RANKS);
             if (kr) { try { kubiRanks = JSON.parse(kr); } catch(e) {} }
+
+            // 除外設定・補完モード
+            exEvent  = localStorage.getItem(STORAGE_KEY_EX_EVENT)  === 'true';
+            exTail05 = localStorage.getItem(STORAGE_KEY_EX_TAIL05) === 'true';
+            var fm = localStorage.getItem(STORAGE_KEY_FILL_MODE);
+            if (fm === 'fill' || fm === 'trim') fillMode = fm;
         } catch (e) {}
     }
 
@@ -64,29 +84,106 @@ var MachineBadge = (function() {
             localStorage.setItem(STORAGE_KEY_BASE,   badgeBase);
             localStorage.setItem(STORAGE_KEY_TAKO_RANKS, JSON.stringify(takoRanks));
             localStorage.setItem(STORAGE_KEY_KUBI_RANKS, JSON.stringify(kubiRanks));
+            localStorage.setItem(STORAGE_KEY_EX_EVENT,  exEvent  ? 'true' : 'false');
+            localStorage.setItem(STORAGE_KEY_EX_TAIL05, exTail05 ? 'true' : 'false');
+            localStorage.setItem(STORAGE_KEY_FILL_MODE, fillMode);
         } catch (e) {}
     }
 
-    // ========== 7日累積計算 ==========
+    // ========== 日付・除外判定ヘルパ ==========
+
+    // ファイル名（data/YYYY_MM_DD.csv）→ 日付キー（YYYY_MM_DD）
+    function fileToDateKey(file) {
+        if (!file) return '';
+        if (typeof getDateKeyFromFilename === 'function') {
+            try { var k = getDateKeyFromFilename(file); if (k) return k; } catch (e) {}
+        }
+        return String(file).replace('data/', '').replace('.csv', '');
+    }
+
+    // その日付キーがイベント日か（events.json に1件でも載っていれば true）
+    function isEventDate(dateKey) {
+        if (!dateKey) return false;
+        // 優先: グローバルの getEventsForDate（events.json をロード済み前提）
+        if (typeof getEventsForDate === 'function') {
+            try {
+                var evs = getEventsForDate(dateKey);
+                return !!(evs && evs.length > 0);
+            } catch (e) {}
+        }
+        // フォールバック: HallData.store.events を直接見る
+        try {
+            if (typeof HallData !== 'undefined' && HallData.store && HallData.store.events) {
+                var store = HallData.store.events;
+                if (Array.isArray(store)) {
+                    return store.some(function(ev) {
+                        return ev && (ev.date === dateKey || String(ev.date).replace(/-/g, '_') === dateKey);
+                    });
+                }
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    // その日付キーの末尾が0または5か（YYYY_MM_DD の DD の末尾1桁）
+    function isTail05Date(dateKey) {
+        if (!dateKey) return false;
+        var parts = String(dateKey).split('_');
+        var dd = parts[parts.length - 1] || '';
+        var lastDigit = dd.slice(-1);
+        return lastDigit === '0' || lastDigit === '5';
+    }
+
+    // 除外対象の日付キーか（イベント除外 or 末尾05除外の設定に従う）
+    function isExcludedDate(dateKey) {
+        if (exEvent && isEventDate(dateKey)) return true;
+        if (exTail05 && isTail05Date(dateKey)) return true;
+        return false;
+    }
+
+    // ========== 累積計算 ==========
 
     /**
-     * currentFile: 今表示中のファイル名（例: "data/2026_05_27.csv"）
-     * dataCache: グローバルの dataCache オブジェクト
-     * targetCol: '差枚' or 'G数'
-     * 戻り値: { '機種名_台番号': 累積値, ... }
+     * baseFile  : 集計の起点となる「当日」ファイル名（仮想日のときは最新実データ日を渡す）
+     * dataCacheRef: グローバルの dataCache オブジェクト
+     * targetCol : '差枚' or 'G数'
+     * opts      : { forcePrev: boolean }  仮想日などで強制的に前日基準にする
+     *
+     * 戻り値: { values: {key: 累積値}, windowFiles: [...] }
+     *
+     * 窓の決め方:
+     *   開始 = forcePrev/prev のとき baseIdx+1（前日から）、current のとき baseIdx（当日から）
+     *   そこから過去へ向かって日を見ていき、除外日を扱いながら badgeDays 日ぶん集める。
+     *     fillMode='fill' : 除外日はスキップして「有効日が badgeDays たまるまで」遡る
+     *     fillMode='trim' : 連続した badgeDays カレンダー日を取り、その中の除外日を抜く
      */
-    function calcCumulativeValues(currentFile, dataCacheRef, targetCol) {
+    function calcCumulativeValues(baseFile, dataCacheRef, targetCol, opts) {
+        opts = opts || {};
         var col = targetCol || '差枚';
 
         var allSorted = sortFilesByDate(CSV_FILES, true); // 新しい順
-        var currentIdx = allSorted.indexOf(currentFile);
-        if (currentIdx === -1) return {};
+        var baseIdx = allSorted.indexOf(baseFile);
+        if (baseIdx === -1) return { values: {}, windowFiles: [] };
 
-        // 基準モードに応じてウィンドウ開始位置を決定
-        //   current : 当日含む → [currentIdx, currentIdx+badgeDays)
-        //   prev    : 前日基準 → [currentIdx+1, currentIdx+1+badgeDays)
-        var startIdx = (badgeBase === 'prev') ? currentIdx + 1 : currentIdx;
-        var windowFiles = allSorted.slice(startIdx, startIdx + badgeDays);
+        var usePrev = opts.forcePrev || (badgeBase === 'prev');
+        var startIdx = usePrev ? baseIdx + 1 : baseIdx;
+
+        var windowFiles = [];
+
+        if (fillMode === 'trim') {
+            // 直近 badgeDays カレンダー日を取り、その中から除外日を抜く
+            var slice = allSorted.slice(startIdx, startIdx + badgeDays);
+            slice.forEach(function(file) {
+                if (!isExcludedDate(fileToDateKey(file))) windowFiles.push(file);
+            });
+        } else {
+            // fill: 除外日はスキップしつつ、有効日が badgeDays たまるまで遡る
+            for (var i = startIdx; i < allSorted.length && windowFiles.length < badgeDays; i++) {
+                var f = allSorted[i];
+                if (isExcludedDate(fileToDateKey(f))) continue;
+                windowFiles.push(f);
+            }
+        }
 
         var cumulative = {}; // key: '機種名_台番号' → 累積値
 
@@ -146,24 +243,33 @@ var MachineBadge = (function() {
         return result;
     }
 
-    // ========== 日別タブ用: 7日累積でバッジ付与 ==========
+    // ========== 日別タブ用: 累積でバッジ付与 ==========
 
     /**
      * data        : フィルター適用済みの行配列（表示中の1日分）
-     * currentFile : 表示中ファイル名
+     * currentFile : 表示中ファイル名（仮想日のときは仮想ファイル名でも可。集計起点は baseFileOverride で渡す）
      * dataCacheRef: グローバル dataCache
      * targetCol   : '差枚' or 'G数'
+     * opts        : { baseFileOverride: 集計起点ファイル, forcePrev: 前日基準を強制 }
      *
-     * 戻り値: 各行に _machineBadge: { tako, kubi, cumVal, windowDays } を付与したデータ
+     * 戻り値: 各行に _machineBadge: { tako, kubi, cumVal, windowDays, baseMode } を付与したデータ
      */
-        function assignBadges(data, currentFile, dataCacheRef, targetCol) {
+    function assignBadges(data, currentFile, dataCacheRef, targetCol, opts) {
         if (!enabled || !data || data.length === 0) return data;
+        opts = opts || {};
         var col = targetCol || getTargetColumn();
 
-        // --- 7日累積値を計算 ---
-        var cumResult = calcCumulativeValues(currentFile, dataCacheRef, col);
+        // 集計の起点ファイル（仮想日のときは最新実データ日を渡してもらう）
+        var baseFile = opts.baseFileOverride || currentFile;
+        var forcePrev = !!opts.forcePrev;
+
+        // --- 累積値を計算 ---
+        var cumResult = calcCumulativeValues(baseFile, dataCacheRef, col, { forcePrev: forcePrev });
         var cumValues = cumResult.values || {};
         var windowFiles = cumResult.windowFiles || [];
+
+        // 実際に使われた基準モード（仮想日は前日基準固定）
+        var effectiveBase = (forcePrev || badgeBase === 'prev') ? 'prev' : 'current';
 
         // --- フィルター後の表示台のみで機種ごとにグループ化 ---
         var machineGroups = {};
@@ -217,7 +323,7 @@ var MachineBadge = (function() {
                 {
                     cumVal:     cumValues[key] !== undefined ? cumValues[key] : null,
                     windowDays: windowFiles.length,
-                    baseMode:   badgeBase
+                    baseMode:   effectiveBase
                 }
             );
             return Object.assign({}, row, { _machineBadge: badge });
@@ -301,7 +407,7 @@ var MachineBadge = (function() {
 
     // ========== 設定UI ==========
     // チェックボックス（バッジ表示・タコだし・死に台）は廃止。
-    // 集計期間・基準日・基準列・順位表示のみ表示する。
+    // 集計期間（数値入力）・基準日・基準列・除外設定・補完モード・順位表示を表示する。
 
     function renderRankCheckboxes(idPrefix, kind, ranks) {
         return [1, 2, 3].map(function(n) {
@@ -316,16 +422,16 @@ var MachineBadge = (function() {
 
     function renderSettingsHtml(idPrefix) {
         idPrefix = idPrefix || 'mb';
-        var daysOpts = [1, 3, 5, 7, 10, 14].map(function(d) {
-            var label = d === 1 ? '前日（1日）' : d + '日';
-            return '<option value="' + d + '"' + (badgeDays === d ? ' selected' : '') + '>' + label + '</option>';
-        }).join('');
 
         return '<div class="mb-settings">'
+            // 集計期間（数値入力 1〜31）
             + '<div class="mb-settings-item">'
             + '<span>集計期間:</span>'
-            + '<select id="' + idPrefix + 'Days" class="mb-target-select">' + daysOpts + '</select>'
+            + '<input type="number" id="' + idPrefix + 'Days" class="mb-days-input" '
+            +   'min="' + MIN_DAYS + '" max="' + MAX_DAYS + '" step="1" value="' + badgeDays + '">'
+            + '<span class="mb-days-unit">日（1〜' + MAX_DAYS + '）</span>'
             + '</div>'
+            // 基準日
             + '<div class="mb-settings-item">'
             + '<span>基準日:</span>'
             + '<select id="' + idPrefix + 'Base" class="mb-target-select">'
@@ -333,6 +439,7 @@ var MachineBadge = (function() {
             + '<option value="prev"'    + (badgeBase === 'prev'    ? ' selected' : '') + '>前日基準</option>'
             + '</select>'
             + '</div>'
+            // 基準列
             + '<div class="mb-settings-item">'
             + '<span>基準列:</span>'
             + '<select id="' + idPrefix + 'Target" class="mb-target-select">'
@@ -340,6 +447,29 @@ var MachineBadge = (function() {
             + '<option value="games"' + (target === 'games' ? ' selected' : '') + '>G数</option>'
             + '</select>'
             + '</div>'
+            // 除外設定
+            + '<div class="mb-settings-item mb-exclude-item">'
+            + '<span>集計から除外:</span>'
+            + '<div class="mb-exclude-checks">'
+            +   '<label class="mb-exclude-label">'
+            +     '<input type="checkbox" id="' + idPrefix + 'ExEvent"' + (exEvent ? ' checked' : '') + '>'
+            +     'イベント日'
+            +   '</label>'
+            +   '<label class="mb-exclude-label">'
+            +     '<input type="checkbox" id="' + idPrefix + 'ExTail05"' + (exTail05 ? ' checked' : '') + '>'
+            +     '末尾0・5の日'
+            +   '</label>'
+            + '</div>'
+            + '</div>'
+            // 補完モード（除外時の窓の取り方）
+            + '<div class="mb-settings-item">'
+            + '<span>除外時の集計:</span>'
+            + '<select id="' + idPrefix + 'FillMode" class="mb-target-select">'
+            + '<option value="fill"' + (fillMode === 'fill' ? ' selected' : '') + '>遡って日数を補う</option>'
+            + '<option value="trim"' + (fillMode === 'trim' ? ' selected' : '') + '>抜くだけ（補わない）</option>'
+            + '</select>'
+            + '</div>'
+            // 表示順位
             + '<div class="mb-settings-item mb-rank-item">'
             + '<span>🐙 表示順位:</span>'
             + '<div class="mb-rank-checks">' + renderRankCheckboxes(idPrefix, 'Tako', takoRanks) + '</div>'
@@ -353,14 +483,28 @@ var MachineBadge = (function() {
 
     function setupSettingsEvents(idPrefix, onChange) {
         idPrefix = idPrefix || 'mb';
-        var daysEl   = document.getElementById(idPrefix + 'Days');
-        var baseEl   = document.getElementById(idPrefix + 'Base');
-        var targetEl = document.getElementById(idPrefix + 'Target');
+        var daysEl     = document.getElementById(idPrefix + 'Days');
+        var baseEl     = document.getElementById(idPrefix + 'Base');
+        var targetEl   = document.getElementById(idPrefix + 'Target');
+        var exEventEl  = document.getElementById(idPrefix + 'ExEvent');
+        var exTail05El = document.getElementById(idPrefix + 'ExTail05');
+        var fillModeEl = document.getElementById(idPrefix + 'FillMode');
 
         function update() {
-            if (daysEl)   badgeDays = parseInt(daysEl.value) || 7;
-            if (baseEl)   badgeBase = baseEl.value;
-            if (targetEl) target    = targetEl.value;
+            if (daysEl) {
+                var d = parseInt(daysEl.value);
+                if (isNaN(d)) d = DEFAULT_DAYS;
+                if (d < MIN_DAYS) d = MIN_DAYS;
+                if (d > MAX_DAYS) d = MAX_DAYS;
+                badgeDays = d;
+                // 入力欄もクランプ後の値に反映
+                daysEl.value = d;
+            }
+            if (baseEl)     badgeBase = baseEl.value;
+            if (targetEl)   target    = targetEl.value;
+            if (exEventEl)  exEvent   = exEventEl.checked;
+            if (exTail05El) exTail05  = exTail05El.checked;
+            if (fillModeEl) fillMode  = fillModeEl.value;
 
             // タコだし/死に台順位チェックボックスを読み取る
             takoRanks = [1, 2, 3].filter(function(n) {
@@ -379,9 +523,15 @@ var MachineBadge = (function() {
             if (onChange) onChange();
         }
 
-        if (daysEl)   daysEl.addEventListener('change', update);
-        if (baseEl)   baseEl.addEventListener('change', update);
-        if (targetEl) targetEl.addEventListener('change', update);
+        if (daysEl) {
+            daysEl.addEventListener('change', update);
+            daysEl.addEventListener('input', update);
+        }
+        if (baseEl)     baseEl.addEventListener('change', update);
+        if (targetEl)   targetEl.addEventListener('change', update);
+        if (exEventEl)  exEventEl.addEventListener('change', update);
+        if (exTail05El) exTail05El.addEventListener('change', update);
+        if (fillModeEl) fillModeEl.addEventListener('change', update);
 
         // 順位チェックボックス
         [1, 2, 3].forEach(function(n) {
@@ -403,6 +553,9 @@ var MachineBadge = (function() {
     function getBadgeBase()   { return badgeBase; }
     function getTakoRanks()   { return takoRanks.slice(); }
     function getKubiRanks()   { return kubiRanks.slice(); }
+    function isExEvent()      { return exEvent;   }
+    function isExTail05()     { return exTail05;  }
+    function getFillMode()    { return fillMode;  }
 
     function getTargetColumn() {
         return target === 'games' ? 'G数' : '差枚';
@@ -431,6 +584,9 @@ var MachineBadge = (function() {
         getBadgeDays:           getBadgeDays,
         getBadgeBase:           getBadgeBase,
         getTakoRanks:           getTakoRanks,
-        getKubiRanks:           getKubiRanks
+        getKubiRanks:           getKubiRanks,
+        isExEvent:              isExEvent,
+        isExTail05:             isExTail05,
+        getFillMode:            getFillMode
     };
 })();

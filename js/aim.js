@@ -1,20 +1,28 @@
 // ===================
 // 狙い台ページ（AimSheet）
 //
-// ホーム（ターミナル）から独立ページ #aim として起動。
-// ページ内タブ: 「作成」と「振り返り」。
+// 【方針A: 手で配置した機種だけをシートに載せる】
+//   - placement[機種名] に値がある機種だけがシート（3ゾーン）に載る。
+//   - 自動初期配置は廃止。基準日で新たに凹んだ機種は「未配置エリア」に出るだけ。
+//     ユーザーがそこから3ゾーンへドラッグして初めてシートに載る（placementに記録）。
+//   - ゾーンから「未配置」へ戻すと placement から削除＝シートから外れる。
+//   - 未配置エリアは擬似ゾーン unplaced。画像出力・保存（掲載機種）には含めない。
 //
-// 【作成】基準日（独立管理・デフォルト最新日）の凹み台を 3ゾーンに振り分け。
-// 【振り返り】選んだシート（現在の作成配置 or クラウドの他人/自分のシート）を
-//            「答え合わせ日」のデータで答え合わせ。
-//            凹み判定は答え合わせ日の前日基準でN日累積。的中=機械割105%以上。
-//            振り返りは reviewState を使い、作成タブの state は壊さない。
-//            3位を隠す設定（rank3ByPreset / 後方互換 showRank3）はシートごとに従う。
+// 【状態キー】
+//   placement[機種名]      … 機種ごとのゾーン（top/high/other）。キー集合=掲載機種。
+//   perUnit[機種名_kubi]    … 個別バッジの手動ゾーン上書き（基準日をまたいで保持）
+//   excluded[機種名_kubi]   … 個別バッジの「狙わない」グレーアウト
+//   order[zoneId]          … ゾーン内の機種並び順（機種名ベース）
+//   同一機種で同一kubiの台は存在しない前提（kubiキーは衝突しない）。
 //
+//   loadState() はページ初期化時（setupEvents）に一度だけ。render() では呼ばない。
+//   旧データ（schemaVersion 無し）はローカル state を一度だけ白紙化する。
+//     クラウド保存済みシートは cloudLoad で復元可能。
+//
+// 基準日はバッジ計算の基準日。基準日を変えるとその日でバッジ再計算し、
+//   各台を機種ルール(placement)＋個別上書き(perUnit)に従って再割り当てする。
 // PC: HTML5 Drag&Drop / スマホ: 長押しドラッグ＋タップメニュー。
-// 凹みは 💀🥇💀🥈💀🥉。3位トグルはプリセット単位。機種除外（プリセット一括）。
-// 凹み判定（バッジ）設定もこのページで可能（MachineBadge 設定を共有 / このページでは即再計算）。
-// 保存: localStorage（自動）＋ Cloudflare D1（作成者ごと upsert / 他人のシート読込・削除）。
+// 保存: localStorage（自動）＋ Cloudflare D1（作成者ごと upsert）。
 // ===================
 
 var AimSheet = (function() {
@@ -25,11 +33,11 @@ var AimSheet = (function() {
 
     var STORAGE_KEY = 'aimSheetState';
     var AUTHOR_KEY  = 'aimSheetAuthor';
+    var SCHEMA_VERSION = 2;   // 方針A導入。1未満（=印なし）の旧データはローカルを白紙化する
 
-    // バッジ設定の localStorage キー（前日基準への一時切替に使用）
     var MB_BASE_KEY = 'machineBadgeBase';
 
-    var WIN_RATE = 105; // 的中とみなす機械割(%)。設定4相当
+    var WIN_RATE = 105;
 
     var ZONES = [
         { id: 'top',    label: '最優先', presetId: 'at_main' },
@@ -37,16 +45,39 @@ var AimSheet = (function() {
         { id: 'other',  label: 'その他', presetId: null      }
     ];
 
+    // 未配置エリア（擬似ゾーン）。placement には記録しない＝シート非掲載。
+    var UNPLACED = 'unplaced';
+
     var KUBI_RANKS = [1, 2, 3];
     var LONGPRESS_MS = 350;
     var MOVE_TOLERANCE = 10;
 
-    // 機種除外リストのグループ表示順（プリセットIDで指定）
-    // メイン → サブ → バラエティ → ジャグ・ハナ・沖スロ → アクロス
     var HIDDEN_GROUP_ORDER = ['at_main', 'at_sub', 'variety', 'jug_hana_oki', 'acros'];
-
-    // プリセット未所属（その他グループ）の rank3ByPreset 用キー
     var OTHER_PRESET_KEY = '__other__';
+
+    // ファイル名(data/2026_06_22.json 等) → 'YYYY-MM-DD'（date input 用）
+    function fileToInputDate(file) {
+        if (!file) return '';
+        var dk = (typeof getDateKeyFromFilename === 'function') ? getDateKeyFromFilename(file) : null;
+        if (!dk) {
+            var m = String(file).match(/(\d{4})_(\d{2})_(\d{2})/);
+            if (!m) return '';
+            return m[1] + '-' + m[2] + '-' + m[3];
+        }
+        return dk.replace(/_/g, '-');
+    }
+
+    // 'YYYY-MM-DD' → 対応するファイル（存在しなければ null）
+    function inputDateToFile(val) {
+        if (!val) return null;
+        var key = val.replace(/-/g, '_'); // 2026_06_22
+        var files = aimSortedFiles();
+        for (var i = 0; i < files.length; i++) {
+            var dk = (typeof getDateKeyFromFilename === 'function') ? getDateKeyFromFilename(files[i]) : null;
+            if (dk === key) return files[i];
+        }
+        return null;
+    }
 
     function kubiMedal(kubi) {
         if (kubi === 1) return '💀🥇';
@@ -61,24 +92,23 @@ var AimSheet = (function() {
         perUnit: {},
         excluded: {},
         hiddenMachines: {},
-        showRank3: true,          // 後方互換・デフォルト値として使用
-        rank3ByPreset: {},        // { presetId(or __other__): true/false } 未設定は showRank3 を採用
-        order: {}
+        showRank3: true,
+        rank3ByPreset: {},
+        order: {},
+        schemaVersion: SCHEMA_VERSION
     };
 
     var author = '';
     var builtRaw = {};
     var built = {};
     var currentFile = null;
-    var aimDateFile = null;        // 作成: 基準日（daily と独立。デフォルト最新日）
-    var reviewDateFile = null;     // 振り返り: 答え合わせ日（デフォルト最新日）
-    var activeTab = 'create';      // 'create' | 'review'
+    var aimDateFile = null;
+    var reviewDateFile = null;
+    var activeTab = 'create';
     var initialized = false;
 
-    // 機種 -> プリセットID（or __other__）のキャッシュ。buildData / 設置台数変化時に再計算
     var machinePresetMap = null;
 
-    // ★ 振り返り専用の一時状態（作成タブの state を壊さない）
     var reviewState = {
         placement: {},
         perUnit: {},
@@ -87,10 +117,9 @@ var AimSheet = (function() {
         showRank3: true,
         rank3ByPreset: {}
     };
-    var reviewSheetSel = '__current__';   // 選択中シート（'__current__' または作成者名）
-    var reviewCloudCache = {};            // author -> data のキャッシュ
+    var reviewSheetSel = '__current__';
+    var reviewCloudCache = {};
 
-    // クラウド保存対象だけを抜き出す（死に台の数値は含めない）
     function pickPersist() {
         return {
             placement: state.placement,
@@ -99,7 +128,8 @@ var AimSheet = (function() {
             hiddenMachines: state.hiddenMachines,
             showRank3: state.showRank3,
             rank3ByPreset: state.rank3ByPreset,
-            order: state.order
+            order: state.order,
+            schemaVersion: SCHEMA_VERSION
         };
     }
     function applyPersist(p) {
@@ -111,6 +141,14 @@ var AimSheet = (function() {
         state.showRank3      = (p.showRank3 !== undefined) ? p.showRank3 : true;
         state.rank3ByPreset  = p.rank3ByPreset  || {};
         state.order          = p.order          || {};
+        state.schemaVersion  = SCHEMA_VERSION;   // 取り込んだら最新版として扱う
+    }
+
+    function blankState() {
+        state.placement = {}; state.perUnit = {}; state.excluded = {};
+        state.hiddenMachines = {}; state.showRank3 = true;
+        state.rank3ByPreset = {}; state.order = {};
+        state.schemaVersion = SCHEMA_VERSION;
     }
 
     // ========== ストレージ（ローカル） ==========
@@ -118,7 +156,17 @@ var AimSheet = (function() {
     function loadState() {
         try {
             var raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) applyPersist(JSON.parse(raw));
+            if (raw) {
+                var parsed = JSON.parse(raw);
+                // 旧データ（方針A以前 / schemaVersion 無し）はローカルを一度だけ白紙化。
+                // クラウド保存済みシートは cloudLoad で復元できる。
+                if (!parsed || (parsed.schemaVersion || 0) < SCHEMA_VERSION) {
+                    blankState();
+                    saveState();
+                } else {
+                    applyPersist(parsed);
+                }
+            }
         } catch (e) {}
         try {
             author = localStorage.getItem(AUTHOR_KEY) || '';
@@ -220,7 +268,6 @@ var AimSheet = (function() {
                 toast('🗑️ ' + targetAuthor + ' さんのシートを削除しました');
                 sel.value = '';
                 refreshCloudList();
-                // 振り返りキャッシュからも除去
                 delete reviewCloudCache[targetAuthor];
             } else {
                 alert('削除に失敗しました: ' + (res && res.error ? res.error : '不明なエラー'));
@@ -248,7 +295,7 @@ var AimSheet = (function() {
             });
             sel.innerHTML = opts.join('');
         })
-        .catch(function() { /* オフライン時は黙って無視 */ });
+        .catch(function() { });
     }
 
     function toast(msg) {
@@ -280,7 +327,6 @@ var AimSheet = (function() {
         return reviewDateFile;
     }
 
-    // 指定ファイル＋累積期間ぶんの月別JSONが未キャッシュなら読み込む
     function ensureDataLoaded(file) {
         var loaders = [];
         if (!file) return Promise.resolve();
@@ -311,7 +357,6 @@ var AimSheet = (function() {
 
     // ========== プリセット振り分け（共通） ==========
 
-    // プリセットを HIDDEN_GROUP_ORDER の順に並べ替えて返す（ID指定）
     function orderedPresetsForHidden() {
         if (typeof MachinePreset === 'undefined') return [];
         var presets = MachinePreset.getAll() || [];
@@ -329,15 +374,12 @@ var AimSheet = (function() {
         return ordered;
     }
 
-    // 基準日の machineOptions（value -> count を持つ）
     function currentMachineOptions() {
         return (typeof getMachineOptionsForDate === 'function')
             ? getMachineOptionsForDate(currentFile)
             : Object.keys(builtRaw).map(function(m) { return { value: m, count: builtRaw[m].length }; });
     }
 
-    // builtRaw の各機種を「最初にマッチしたプリセットID（or __other__）」へ対応付けて返す。
-    // 並びは HIDDEN_GROUP_ORDER 準拠。1機種は1グループのみ所属。
     function computeMachinePresetMap() {
         var map = {};
         var allMachines = Object.keys(builtRaw);
@@ -374,7 +416,6 @@ var AimSheet = (function() {
         return map[machine] || OTHER_PRESET_KEY;
     }
 
-    // そのプリセットキーで「3位を表示するか」。未設定は showRank3 をデフォルトに。
     function isRank3VisibleForPresetKey(presetKey, st) {
         st = st || state;
         var byPreset = st.rank3ByPreset || {};
@@ -382,7 +423,6 @@ var AimSheet = (function() {
         return (st.showRank3 !== undefined) ? st.showRank3 : true;
     }
 
-    // 機種単位で 3位を表示するか（作成 state ベース）
     function isRank3VisibleForMachine(machine) {
         return isRank3VisibleForPresetKey(presetKeyOfMachine(machine), state);
     }
@@ -391,7 +431,7 @@ var AimSheet = (function() {
 
     function buildData() {
         builtRaw = {};
-        machinePresetMap = null; // 再計算させる
+        machinePresetMap = null;
         if (typeof MachineBadge === 'undefined') { built = {}; return; }
 
         currentFile = resolveAimDateFile();
@@ -433,63 +473,46 @@ var AimSheet = (function() {
         });
     }
 
-    function applyDefaultPlacement() {
-        var machineOptions = currentMachineOptions();
-
-        var allBuilt = Object.keys(builtRaw);
-
-        if (typeof MachinePreset !== 'undefined') {
-            ZONES.forEach(function(zone) {
-                if (!zone.presetId) return;
-                var preset = MachinePreset.getAll().filter(function(p) { return p.id === zone.presetId; })[0];
-                if (!preset) return;
-                var resolved = MachinePreset.resolve(preset, machineOptions, machineOptions);
-                resolved.forEach(function(machine) {
-                    if (allBuilt.indexOf(machine) === -1) return;
-                    if (state.placement[machine] === undefined) state.placement[machine] = zone.id;
-                });
-            });
-        }
-        allBuilt.forEach(function(machine) {
-            if (state.placement[machine] === undefined) state.placement[machine] = 'other';
-        });
+    // 機種が「シートに載っている」か = placement にキーがあるか
+    function isPlaced(machine) {
+        return state.placement[machine] !== undefined;
     }
 
     // ========== 区分振り分け（共通） ==========
 
-    function chipKey(machine, num) { return machine + '_' + num; }
+    function chipKey(machine, kubi) { return machine + '_' + kubi; }
 
-    // 機種ごとの 3位表示フラグに従って3位を除外
     function visibleItems(machine, items) {
         if (isRank3VisibleForMachine(machine)) return items;
         return items.filter(function(it) { return it.kubi !== 3; });
     }
 
+    // 機種の「基準ゾーン」。未配置なら UNPLACED。
+    function baseZoneOf(machine) {
+        return isPlaced(machine) ? state.placement[machine] : UNPLACED;
+    }
+
     function itemsForMachineInZone(machine, zoneId) {
         var items = built[machine] || [];
-        var base = state.placement[machine] || 'other';
+        var base = baseZoneOf(machine);
         var filtered = items.filter(function(it) {
-            var pk = chipKey(machine, it.num);
-            var z = (state.perUnit[pk] !== undefined) ? state.perUnit[pk] : base;
+            var pk = chipKey(machine, it.kubi);
+            // perUnit は配置済み機種のみ有効（未配置機種に個別上書きは使わない）
+            var z = (isPlaced(machine) && state.perUnit[pk] !== undefined) ? state.perUnit[pk] : base;
             return z === zoneId;
         });
         return visibleItems(machine, filtered);
     }
 
-    // 作成用: 台→ゾーン解決（state ベース）
-    function resolveZoneOf(machine, num) {
-        var pk = chipKey(machine, num);
-        if (state.perUnit[pk] !== undefined) return state.perUnit[pk];
-        return state.placement[machine] || 'other';
-    }
-
-    // 振り返り用: reviewState からゾーン解決
-    function reviewZoneOf(machine, num) {
-        var pk = chipKey(machine, num);
+    function reviewZoneOf(machine, kubi) {
+        // 振り返りは保存シート（配置済み）が対象。placement に無ければ表示対象外。
+        if (reviewState.placement[machine] === undefined) return null;
+        var pk = chipKey(machine, kubi);
         if (reviewState.perUnit[pk] !== undefined) return reviewState.perUnit[pk];
         return reviewState.placement[machine] || 'other';
     }
 
+    // 指定ゾーン（top/high/other/unplaced）に表示する機種一覧
     function machinesInZone(zoneId) {
         var present = Object.keys(built).filter(function(m) {
             return itemsForMachineInZone(m, zoneId).length > 0;
@@ -518,12 +541,12 @@ var AimSheet = (function() {
         return (v >= 0 ? '+' : '') + v.toLocaleString();
     }
 
-    function zoneOfMachine(machine) { return state.placement[machine] || 'other'; }
+    function zoneOfMachine(machine) { return baseZoneOf(machine); }
 
     // ========== 作成: 描画 ==========
 
     function renderChip(item) {
-        var key = chipKey(item.machine, item.num);
+        var key = chipKey(item.machine, item.kubi);
         var isExcluded = !!state.excluded[key];
         var cls = 'aim-chip aim-chip-kubi-' + item.kubi + (isExcluded ? ' aim-chip-excluded' : '');
         return '<span class="' + cls + '"'
@@ -548,24 +571,41 @@ var AimSheet = (function() {
             + '</div>';
     }
 
+    function renderZoneHtml(zone) {
+        var machines = machinesInZone(zone.id);
+        var cards = machines.map(function(m) { return renderCard(m, zone.id); }).join('');
+        var emptyHint = machines.length === 0 ? '<div class="aim-zone-empty">' + zone.emptyText + '</div>' : '';
+        return '<div class="aim-zone aim-zone-' + zone.id + '" data-zone="' + zone.id + '">'
+            + '<div class="aim-zone-head">'
+            + '<span class="aim-zone-label">' + zone.label + '</span>'
+            + '<span class="aim-zone-count">' + machines.length + '機種</span>'
+            + '</div>'
+            + '<div class="aim-zone-body" data-zone="' + zone.id + '">'
+            + cards + emptyHint
+            + '</div>'
+            + '</div>';
+    }
+
     function renderBoard() {
         var board = document.getElementById('aimBoard');
         if (!board) return;
-        var html = ZONES.map(function(zone) {
-            var machines = machinesInZone(zone.id);
-            var cards = machines.map(function(m) { return renderCard(m, zone.id); }).join('');
-            var emptyHint = machines.length === 0 ? '<div class="aim-zone-empty">ここにドラッグ</div>' : '';
-            return '<div class="aim-zone aim-zone-' + zone.id + '" data-zone="' + zone.id + '">'
-                + '<div class="aim-zone-head">'
-                + '<span class="aim-zone-label">' + zone.label + '</span>'
-                + '<span class="aim-zone-count">' + machines.length + '機種</span>'
-                + '</div>'
-                + '<div class="aim-zone-body" data-zone="' + zone.id + '">'
-                + cards + emptyHint
-                + '</div>'
-                + '</div>';
+
+        // 3ゾーン
+        var zonesHtml = ZONES.map(function(zone) {
+            return renderZoneHtml({ id: zone.id, label: zone.label, emptyText: 'ここにドラッグ' });
         }).join('');
-        board.innerHTML = html;
+
+        // 未配置エリア（4つ目の擬似ゾーン）
+        var unplacedHtml = renderZoneHtml({
+            id: UNPLACED,
+            label: '未配置（狙い対象外）',
+            emptyText: '未配置の凹み台はありません'
+        });
+
+        board.innerHTML =
+            '<div class="aim-board-zones">' + zonesHtml + '</div>'
+            + '<div class="aim-unplaced-wrap">' + unplacedHtml + '</div>';
+
         bindDrag();
         bindChipToggle();
         bindCardTapMenu();
@@ -581,13 +621,12 @@ var AimSheet = (function() {
         if (meta) meta.textContent = dateLabel + ' / 凹み判定: ' + days + '日累積・' + base + '・' + col;
     }
 
-    // プリセットキー単位で3位表示をトグル
     function toggleRank3ForPreset(presetKey) {
         var cur = isRank3VisibleForPresetKey(presetKey, state);
         state.rank3ByPreset[presetKey] = !cur;
         saveState();
-        renderHiddenList(); // ボタン表記更新
-        renderBoard();      // 盤面に反映
+        renderHiddenList();
+        renderBoard();
     }
 
     // ========== 凹み判定（バッジ）設定パネル ==========
@@ -619,7 +658,6 @@ var AimSheet = (function() {
 
     function applyPresetToHidden(presetId, hide) {
         if (presetId === OTHER_PRESET_KEY) {
-            // 「その他」グループはプリセット未所属機種を直接操作
             var map = getMachinePresetMap();
             Object.keys(builtRaw).forEach(function(machine) {
                 if (map[machine] !== OTHER_PRESET_KEY) return;
@@ -649,8 +687,6 @@ var AimSheet = (function() {
         renderBoard();
     }
 
-    // 機種除外リスト：プリセットグループ順＋各グループ内は基準日の設置台数の降順で描画。
-    // 各グループ見出しに「表示／除外」「3位表示/非表示」ボタンを配置。
     function renderHiddenList() {
         var panel = document.getElementById('aimHiddenList');
         if (!panel) return;
@@ -670,12 +706,10 @@ var AimSheet = (function() {
             return (countMap[m] !== undefined) ? countMap[m] : builtRaw[m].length;
         }
 
-        // 機種 -> プリセットキーのマップで振り分け
         var map = getMachinePresetMap();
         var presets = orderedPresetsForHidden();
 
-        // グループ枠を順番どおりに用意（プリセット順 → その他）
-        var groups = []; // { key, name, machines:[] }
+        var groups = [];
         presets.forEach(function(p) {
             groups.push({ key: p.id, name: p.name, machines: [] });
         });
@@ -690,10 +724,8 @@ var AimSheet = (function() {
         });
         if (otherGroup.machines.length > 0) groups.push(otherGroup);
 
-        // 空グループは描画しない
         groups = groups.filter(function(g) { return g.machines.length > 0; });
 
-        // 各グループ内を設置台数の降順（同数なら短縮名順）でソート
         groups.forEach(function(g) {
             g.machines.sort(function(a, b) {
                 var diff = installCount(b) - installCount(a);
@@ -702,7 +734,6 @@ var AimSheet = (function() {
             });
         });
 
-        // 描画
         var html = groups.map(function(g) {
             var rank3On = isRank3VisibleForPresetKey(g.key, state);
             var rank3Label = rank3On ? '💀🥉 3位を隠す' : '💀🥉 3位を表示';
@@ -736,7 +767,6 @@ var AimSheet = (function() {
 
         panel.innerHTML = html;
 
-        // 機種チェックボックス
         panel.querySelectorAll('.aim-hidden-cb').forEach(function(cb) {
             cb.addEventListener('change', function() {
                 var m = this.dataset.machine;
@@ -748,15 +778,12 @@ var AimSheet = (function() {
             });
         });
 
-        // グループ「表示」ボタン
         panel.querySelectorAll('.aim-preset-show').forEach(function(btn) {
             btn.addEventListener('click', function() { applyPresetToHidden(this.dataset.preset, false); });
         });
-        // グループ「除外」ボタン
         panel.querySelectorAll('.aim-preset-hide').forEach(function(btn) {
             btn.addEventListener('click', function() { applyPresetToHidden(this.dataset.preset, true); });
         });
-        // グループ「3位表示/非表示」ボタン
         panel.querySelectorAll('.aim-group-rank3').forEach(function(btn) {
             btn.addEventListener('click', function() { toggleRank3ForPreset(this.dataset.preset); });
         });
@@ -897,7 +924,7 @@ var AimSheet = (function() {
             drag = null; lp = null; return;
         }
         if (wasTap && el) {
-            if (kind === 'chip') toggleChipExcluded(el.dataset.machine, el.dataset.num);
+            if (kind === 'chip') toggleChipExcluded(el.dataset.machine, parseInt(el.dataset.kubi));
             else openCardMenu(el, point);
         }
         lp = null;
@@ -971,23 +998,24 @@ var AimSheet = (function() {
     function openCardMenu(cardEl, point) {
         closeCardMenu();
         var machine = cardEl.dataset.machine;
-        var curZone = zoneOfMachine(machine);
+        var curZone = baseZoneOf(machine);
         var menu = document.createElement('div');
         menu.className = 'aim-card-menu'; menu.id = 'aimCardMenu';
         var title = document.createElement('div');
         title.className = 'aim-card-menu-title'; title.textContent = shortNameOf(machine) + ' を移動';
         menu.appendChild(title);
-        ZONES.forEach(function(z) {
+
+        // 3ゾーン + 未配置へ戻す
+        var targets = ZONES.concat([{ id: UNPLACED, label: '未配置（外す）' }]);
+        targets.forEach(function(z) {
             var btn = document.createElement('button');
             btn.className = 'aim-card-menu-item' + (z.id === curZone ? ' current' : '');
-            btn.textContent = (z.id === curZone ? '✓ ' : '') + z.label + 'へ';
+            var arrow = (z.id === UNPLACED) ? 'へ戻す' : 'へ';
+            btn.textContent = (z.id === curZone ? '✓ ' : '') + z.label + arrow;
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 if (z.id !== curZone) {
-                    state.placement[machine] = z.id;
-                    clearPerUnit(machine);
-                    reorderInZone(z.id, machine, null);
-                    saveState(); renderBoard();
+                    moveMachineToZone(machine, z.id, null);
                 }
                 closeCardMenu();
             });
@@ -1015,23 +1043,48 @@ var AimSheet = (function() {
         document.removeEventListener('touchstart', onDocClickCloseMenu, true);
     }
 
-    // ========== ドロップ確定 ==========
-
-    function applyDrop(payload, targetZone, beforeMachine) {
-        if (payload.type === 'card') {
-            state.placement[payload.machine] = targetZone;
-            clearPerUnit(payload.machine);
-            reorderInZone(targetZone, payload.machine, beforeMachine);
-        } else if (payload.type === 'chip') {
-            state.perUnit[chipKey(payload.machine, payload.num)] = targetZone;
-            reorderInZone(targetZone, payload.machine, beforeMachine);
+    // 機種をゾーンへ（unplaced なら placement から削除＝シートから外す）
+    function moveMachineToZone(machine, targetZone, beforeMachine) {
+        if (targetZone === UNPLACED) {
+            delete state.placement[machine];
+            clearPerUnit(machine);
+            removeFromAllOrders(machine);
+        } else {
+            state.placement[machine] = targetZone;
+            clearPerUnit(machine);
+            reorderInZone(targetZone, machine, beforeMachine);
         }
         saveState();
         renderBoard();
     }
 
+    // ========== ドロップ確定 ==========
+
+    function applyDrop(payload, targetZone, beforeMachine) {
+        if (payload.type === 'card') {
+            moveMachineToZone(payload.machine, targetZone, beforeMachine);
+            return;
+        }
+        // チップ単体
+        if (payload.type === 'chip') {
+            if (targetZone === UNPLACED) {
+                // チップ単体を未配置へ：その機種ごと未配置に戻す（個別だけ未配置は表現できないため）
+                moveMachineToZone(payload.machine, UNPLACED, null);
+                return;
+            }
+            // 未配置機種のチップをゾーンへ落としたら、まず機種を配置済みにする
+            if (!isPlaced(payload.machine)) {
+                state.placement[payload.machine] = targetZone;
+            }
+            state.perUnit[chipKey(payload.machine, payload.kubi)] = targetZone;
+            reorderInZone(targetZone, payload.machine, beforeMachine);
+            saveState();
+            renderBoard();
+        }
+    }
+
     function reorderInZone(zoneId, machine, beforeMachine) {
-        ZONES.forEach(function(z) {
+        ZONES.concat([{ id: UNPLACED }]).forEach(function(z) {
             if (!state.order[z.id]) return;
             state.order[z.id] = state.order[z.id].filter(function(m) { return m !== machine; });
         });
@@ -1040,6 +1093,12 @@ var AimSheet = (function() {
         if (beforeMachine && beforeMachine !== machine && arr.indexOf(beforeMachine) !== -1) {
             arr.splice(arr.indexOf(beforeMachine), 0, machine);
         } else { arr.push(machine); }
+    }
+
+    function removeFromAllOrders(machine) {
+        Object.keys(state.order).forEach(function(zid) {
+            state.order[zid] = (state.order[zid] || []).filter(function(m) { return m !== machine; });
+        });
     }
 
     function clearPerUnit(machine) {
@@ -1060,20 +1119,22 @@ var AimSheet = (function() {
             chip.addEventListener('click', function(e) {
                 if (moved) { moved = false; return; }
                 e.stopPropagation();
-                toggleChipExcluded(chip.dataset.machine, chip.dataset.num);
+                toggleChipExcluded(chip.dataset.machine, parseInt(chip.dataset.kubi));
             });
         });
     }
 
-    function toggleChipExcluded(machine, num) {
-        var key = chipKey(machine, num);
+    function toggleChipExcluded(machine, kubi) {
+        // 未配置機種はグレーアウト対象外（シートに載ってないため）
+        if (!isPlaced(machine)) return;
+        var key = chipKey(machine, kubi);
         if (state.excluded[key]) delete state.excluded[key];
         else state.excluded[key] = true;
         saveState();
         renderBoard();
     }
 
-    // ========== 画像出力 ==========
+    // ========== 画像出力（3ゾーンのみ。未配置は含めない） ==========
 
     function buildExportListEl() {
         var wrap = document.createElement('div');
@@ -1097,7 +1158,7 @@ var AimSheet = (function() {
             var anyRow = false;
             machines.forEach(function(machine) {
                 var items = itemsForMachineInZone(machine, zone.id).filter(function(it) {
-                    return !state.excluded[chipKey(machine, it.num)];
+                    return !state.excluded[chipKey(machine, it.kubi)];
                 });
                 if (items.length === 0) return;
                 anyRow = true;
@@ -1154,7 +1215,6 @@ var AimSheet = (function() {
 
     // ========== 振り返り（答え合わせ） ==========
 
-    // 振り返り用の機種→プリセットキー対応（答え合わせ日の設置台数で判定）
     var reviewPresetMap = null;
 
     function computeReviewPresetMap(reviewFile, machineSet) {
@@ -1187,7 +1247,6 @@ var AimSheet = (function() {
         return (reviewPresetMap && reviewPresetMap[machine]) ? reviewPresetMap[machine] : OTHER_PRESET_KEY;
     }
 
-    // 答え合わせ日を前日基準でバッジ計算し、凹み台を {machine, num, kubi} で返す。
     function buildReviewKubiList(reviewFile) {
         if (typeof MachineBadge === 'undefined') return [];
         if (!reviewFile || !dataCache || !dataCache[reviewFile]) return [];
@@ -1224,7 +1283,6 @@ var AimSheet = (function() {
         return list;
     }
 
-    // 答え合わせ日の台データを台番号でマップ化（G数/差枚/機械割）
     function reviewDayDataMap(reviewFile) {
         var map = {};
         if (!reviewFile || !dataCache || !dataCache[reviewFile]) return map;
@@ -1242,12 +1300,10 @@ var AimSheet = (function() {
         return map;
     }
 
-    // 振り返り結果を構築。ゾーンごとに対象台の実績を集計（reviewState を使用）。
     function buildReviewResult(reviewFile) {
         var kubiList = buildReviewKubiList(reviewFile);
         var dayMap = reviewDayDataMap(reviewFile);
 
-        // 振り返り対象機種のプリセットマップを答え合わせ日基準で作る
         var machineSet = {};
         kubiList.forEach(function(it) { machineSet[it.machine] = true; });
         reviewPresetMap = computeReviewPresetMap(reviewFile, machineSet);
@@ -1255,17 +1311,19 @@ var AimSheet = (function() {
         var byZone = { top: [], high: [], other: [] };
 
         kubiList.forEach(function(it) {
-            // 3位非表示はシートのプリセット単位設定に従う
+            // 振り返り対象はシートに載っている機種のみ（未配置は対象外）
+            var zone = reviewZoneOf(it.machine, it.kubi);
+            if (zone === null) return;
+
             if (it.kubi === 3) {
                 var pkey = reviewPresetKeyOf(it.machine);
                 if (!isRank3VisibleForPresetKey(pkey, reviewState)) return;
             }
 
-            var key = chipKey(it.machine, it.num);
+            var key = chipKey(it.machine, it.kubi);
             if (reviewState.excluded[key]) return;
             if (reviewState.hiddenMachines[it.machine]) return;
 
-            var zone = reviewZoneOf(it.machine, it.num);
             if (!byZone[zone]) byZone[zone] = [];
 
             var day = dayMap[String(it.num)];
@@ -1478,31 +1536,34 @@ var AimSheet = (function() {
     function syncReviewDateNav() {
         var files = aimSortedFiles();
         var cur = resolveReviewDateFile();
-        var idx = files.indexOf(cur);
-        if (idx === -1) idx = 0;
 
-        var sel = document.getElementById('aimReviewDateSelect');
-        if (sel) {
-            sel.innerHTML = files.map(function(f, i) {
-                var t = (typeof formatDate === 'function') ? formatDate(f) : f;
-                return '<option value="' + escapeAttr(f) + '"' + (i === idx ? ' selected' : '') + '>' + escapeHtml(t) + '</option>';
-            }).join('');
+        var input = document.getElementById('aimReviewDateSelect');
+        if (input) {
+            input.value = fileToInputDate(cur);
+            if (files.length) {
+                input.max = fileToInputDate(files[0]);
+                input.min = fileToInputDate(files[files.length - 1]);
+            }
         }
         var label = document.getElementById('aimReviewDateLabel');
         if (label) {
-            var f = files[idx];
             var txt = '';
-            if (f && typeof getDayOfWeek === 'function' && typeof getDayOfWeekName === 'function') {
-                try { txt = '（' + getDayOfWeekName(getDayOfWeek(f)) + '）'; } catch (e) {}
+            if (cur && typeof getDayOfWeek === 'function' && typeof getDayOfWeekName === 'function') {
+                try { txt = '（' + getDayOfWeekName(getDayOfWeek(cur)) + '）'; } catch (e) {}
             }
             label.textContent = txt;
         }
     }
 
-    function gotoReviewFile(file) {
-        if (!file) return;
-        reviewDateFile = file;
-        ensureDataLoaded(file).then(function() {
+    function gotoReviewFile(inputVal) {
+        var file = inputDateToFile(inputVal);
+        if (!file) {
+            toast('その日のデータが存在しません。最新日を表示します。');
+            reviewDateFile = aimSortedFiles()[0] || null;
+        } else {
+            reviewDateFile = file;
+        }
+        ensureDataLoaded(reviewDateFile).then(function() {
             renderReview();
         });
     }
@@ -1535,8 +1596,6 @@ var AimSheet = (function() {
     // ========== ページ表示（作成ビュー） ==========
 
     function render() {
-        loadState();
-
         var file = resolveAimDateFile();
         return ensureDataLoaded(file).then(function() {
             buildData();
@@ -1560,59 +1619,59 @@ var AimSheet = (function() {
                 return;
             }
 
-            applyDefaultPlacement();
-            renderBoard();
+            renderBoard();   // 方針A: 自動初期配置はしない。未配置は未配置エリアへ。
         });
     }
 
-    // 後方互換: 旧 open()/close() 呼び出し用の薄いラッパ
     function open()  { return render(); }
     function close() { closeCardMenu(); removeAllGhosts(); clearDropMarkers(); }
 
     function resetPlacement() {
-        if (!confirm('配置をプリセット初期状態に戻しますか?（除外・機種除外・並び順・3位設定もクリアされます）')) return;
-        state.placement = {}; state.perUnit = {}; state.excluded = {};
-        state.hiddenMachines = {}; state.showRank3 = true; state.rank3ByPreset = {}; state.order = {};
+        if (!confirm('シートを白紙に戻しますか?（配置・除外・機種除外・並び順・3位設定がすべてクリアされます）')) return;
+        blankState();
         saveState();
         buildData();
-        applyDefaultPlacement();
-        renderBoard();
+        renderBoard();   // 全機種が未配置エリアに並ぶ
     }
 
-    // ========== 日付ナビ（作成: 基準日セレクトのみ） ==========
+    // ========== 日付ナビ ==========
 
-    function gotoFile(file) {
-        if (!file) return;
-        aimDateFile = file;
+    // date input の値（YYYY-MM-DD）を受けて基準日を移動。
+    // 存在しない日・未来日は「データが存在しません」と通知して最新日にする。
+    function gotoFile(inputVal) {
+        var file = inputDateToFile(inputVal);
+        if (!file) {
+            toast('その日のデータが存在しません。最新日を表示します。');
+            aimDateFile = aimSortedFiles()[0] || null;
+        } else {
+            aimDateFile = file;
+        }
         render();
     }
 
     function syncDateNav() {
         var files = aimSortedFiles();
         var cur = resolveAimDateFile();
-        var idx = files.indexOf(cur);
-        if (idx === -1) idx = 0;
 
-        var sel = document.getElementById('aimDateSelect');
-        if (sel) {
-            sel.innerHTML = files.map(function(f, i) {
-                var t = (typeof formatDate === 'function') ? formatDate(f) : f;
-                return '<option value="' + escapeAttr(f) + '"' + (i === idx ? ' selected' : '') + '>' + escapeHtml(t) + '</option>';
-            }).join('');
+        var input = document.getElementById('aimDateSelect');
+        if (input) {
+            input.value = fileToInputDate(cur);
+            // 選べる範囲を実データの最古〜最新に制限（未来日は max で抑止）
+            if (files.length) {
+                input.max = fileToInputDate(files[0]);                 // 最新
+                input.min = fileToInputDate(files[files.length - 1]);  // 最古
+            }
         }
 
         var label = document.getElementById('aimCurrentDateLabel');
         if (label) {
-            var f = files[idx];
             var txt = '';
-            if (f && typeof getDayOfWeek === 'function' && typeof getDayOfWeekName === 'function') {
-                try { txt = '（' + getDayOfWeekName(getDayOfWeek(f)) + '）'; } catch (e) {}
+            if (cur && typeof getDayOfWeek === 'function' && typeof getDayOfWeekName === 'function') {
+                try { txt = '（' + getDayOfWeekName(getDayOfWeek(cur)) + '）'; } catch (e) {}
             }
             label.textContent = txt;
         }
     }
-
-    // ========== 作成者欄 ==========
 
     function syncAuthorInput() {
         var input = document.getElementById('aimAuthorInput');
@@ -1625,6 +1684,8 @@ var AimSheet = (function() {
         if (initialized) return;
         initialized = true;
 
+        loadState();
+
         var bind = function(id, fn) { var el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
         bind('aimExportImageBtn', exportImage);
         bind('aimResetBtn', resetPlacement);
@@ -1633,24 +1694,20 @@ var AimSheet = (function() {
         bind('aimCloudSaveBtn', cloudSave);
         bind('aimCloudDeleteBtn', cloudDelete);
 
-        // ---- タブ切替 ----
         document.querySelectorAll('.aim-tab').forEach(function(btn) {
             btn.addEventListener('click', function() { switchTab(this.dataset.aimTab); });
         });
 
-        // ---- 作成: 基準日セレクト ----
         var dateSel = document.getElementById('aimDateSelect');
         if (dateSel) {
             dateSel.addEventListener('change', function() { gotoFile(this.value); });
         }
 
-        // ---- 振り返り: 答え合わせ日セレクト ----
         var reviewSel = document.getElementById('aimReviewDateSelect');
         if (reviewSel) {
             reviewSel.addEventListener('change', function() { gotoReviewFile(this.value); });
         }
 
-        // ---- 振り返り: シート選択 ----
         var sheetSel = document.getElementById('aimReviewSheetSelect');
         if (sheetSel) {
             sheetSel.addEventListener('change', function() {
@@ -1659,7 +1716,6 @@ var AimSheet = (function() {
             });
         }
 
-        // ---- 振り返り: シート一覧 再取得 ----
         var reloadBtn = document.getElementById('aimReviewReloadBtn');
         if (reloadBtn) {
             reloadBtn.addEventListener('click', function() {
@@ -1668,7 +1724,6 @@ var AimSheet = (function() {
             });
         }
 
-        // 作成者入力
         var authorInput = document.getElementById('aimAuthorInput');
         if (authorInput) {
             authorInput.addEventListener('input', function() {
@@ -1677,7 +1732,6 @@ var AimSheet = (function() {
             });
         }
 
-        // 他の人のシート読み込み（作成タブ）
         var cloudList = document.getElementById('aimCloudList');
         if (cloudList) {
             cloudList.addEventListener('change', function() {
@@ -1685,7 +1739,6 @@ var AimSheet = (function() {
             });
         }
 
-        // Esc でカードメニューだけ閉じる
         document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeCardMenu(); });
     }
 

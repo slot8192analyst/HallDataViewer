@@ -51,13 +51,11 @@ var DAILY_FILTER_OPERATORS = [
 var DAILY_FILTER_STORAGE_KEY = 'dailyFilterGroups';
 
 function loadDailyFilterGroups() {
-    // DailyState 経由で復元済みのため、DailyState から読む
     if (typeof DailyState !== 'undefined') {
         var s = DailyState.get();
         dailyFilterGroups = s.filterGroups || [];
         return;
     }
-    // フォールバック: 旧 localStorage キー
     try {
         var raw = localStorage.getItem(DAILY_FILTER_STORAGE_KEY);
         if (raw) {
@@ -72,12 +70,10 @@ function loadDailyFilterGroups() {
 }
 
 function saveDailyFilterGroups() {
-    // DailyState に委譲（DailyState が localStorage + URL に書く）
     if (typeof DailyState !== 'undefined') {
         DailyState.setState({ filterGroups: dailyFilterGroups }, { silent: true });
         return;
     }
-    // フォールバック
     try {
         localStorage.setItem(DAILY_FILTER_STORAGE_KEY, JSON.stringify(dailyFilterGroups));
     } catch (e) {}
@@ -391,17 +387,11 @@ function renderDailyTagPreview() {
     preview.classList.add('active');
 }
 
-/**
- * タグモーダルの一括タグ付けUIを更新
- * - セレクトボックスを最新のタグ定義で再構築
- * - 現在の表示台数を更新
- */
 function updateTagBulkApplyUI() {
     var sel = document.getElementById('tagBulkTargetSelect');
     var cntEl = document.getElementById('tagBulkCount');
     if (!sel) return;
 
-    // タグ定義をセレクトに反映
     var defs = TagEngine.getAll();
     var prevVal = sel.value;
     sel.innerHTML = '<option value="">\u30bf\u30b0\u3092\u9078\u629e...</option>';
@@ -411,10 +401,8 @@ function updateTagBulkApplyUI() {
         opt.textContent = def.icon + ' ' + def.name + (def.unitNos && def.unitNos.length > 0 ? ' (' + def.unitNos.length + '\u53f0)' : '');
         sel.appendChild(opt);
     });
-    // 前回選択を復元
     if (prevVal) sel.value = prevVal;
 
-    // 現在表示台数を更新
     if (cntEl) cntEl.textContent = dailyCurrentFilteredData.length;
 }
 
@@ -438,7 +426,10 @@ function updateBadgePreview() {
     var days = MachineBadge.getBadgeDays();
     var base = MachineBadge.getBadgeBase() === 'prev' ? '前日基準' : '当日含む';
     var col = MachineBadge.getTargetColumn();
-    el.textContent = days + '日 / ' + base + ' / ' + col;
+    var ex = [];
+    if (MachineBadge.isExEvent && MachineBadge.isExEvent()) ex.push('ｲﾍﾞﾝﾄ除外');
+    if (MachineBadge.isExTail05 && MachineBadge.isExTail05()) ex.push('末尾05除外');
+    el.textContent = days + '日 / ' + base + ' / ' + col + (ex.length ? ' / ' + ex.join('・') : '');
     el.classList.add('active');
 }
 
@@ -507,12 +498,10 @@ function closeAppModal(modalId) {
 // ===================
 
 function initDailyMachineFilter() {
-    // コンテナがまだDOMに無い（daily未挿入）なら何もしない
     if (!document.getElementById('dailyMachineFilterContainer')) return;
 
     var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
     var currentFile = displayFiles[currentDateIndex];
-    // 仮想日の機種一覧は実データ最新日のものを使う
     var optionFile = (typeof isVirtualFile === 'function' && isVirtualFile(currentFile))
         ? getVirtualBaseFile() : currentFile;
     var machineOptions = getMachineOptionsForDate(optionFile);
@@ -522,7 +511,6 @@ function initDailyMachineFilter() {
         dailyMachineFilterSelect = initMultiSelectMachineFilter(
             'dailyMachineFilterContainer', machineOptions, '全機種',
             function(selectedValues) {
-                // 機種フィルター変更 → setState 経由で状態保存 + 再描画
                 if (typeof DailyState !== 'undefined') {
                     DailyState.setState({ selectedMachines: selectedValues });
                 } else {
@@ -531,8 +519,6 @@ function initDailyMachineFilter() {
             }
         );
 
-        // initMultiSelectMachineFilter が null を返す可能性に備えてガード
-        // DailyState に保存済みの機種選択を復元
         if (dailyMachineFilterSelect && typeof DailyState !== 'undefined') {
             var savedMachines = DailyState.get().selectedMachines;
             if (savedMachines && savedMachines.length > 0) {
@@ -582,7 +568,6 @@ function initColumnSelector() {
         allColumns.push('機種内順位');
     }
 
-    // ★メモ機能: メモ列を表示列の選択肢に追加
     if (allColumns.indexOf('メモ') === -1) {
         allColumns.push('メモ');
     }
@@ -593,11 +578,9 @@ function initColumnSelector() {
             var parsed = JSON.parse(savedColumns);
             parsed = parsed.map(function(col) { return col === '高設定タグ' ? 'タグ' : col; });
             visibleColumns = parsed.filter(function(col) { return allColumns.indexOf(col) !== -1; });
-            // 機種内順位列が既存設定にない場合は追加
             if (visibleColumns.length > 0 && visibleColumns.indexOf('機種内順位') === -1) {
                 visibleColumns.push('機種内順位');
             }
-            // メモ列が既存設定にない場合は追加
             if (visibleColumns.length > 0 && visibleColumns.indexOf('メモ') === -1) {
                 visibleColumns.push('メモ');
             }
@@ -619,6 +602,7 @@ function initColumnSelector() {
 /**
  * 指定日（またはカレントファイル）のバッジを計算してキャッシュに保存する。
  * filterAndRender は呼ばず、キャッシュだけを更新する。
+ * 仮想日のときは最新実データ日を集計起点にして「前日基準（forcePrev）」で計算する。
  * 戻り値: 更新したキャッシュのキー（currentFile）
  */
 function recalcBadgeCache(fileOverride) {
@@ -628,14 +612,34 @@ function recalcBadgeCache(fileOverride) {
     var targetFile = fileOverride
         || (_s.dateFile && displayFiles.indexOf(_s.dateFile) !== -1 ? _s.dateFile : null)
         || displayFiles[currentDateIndex];
-    // 仮想日はバッジ計算しない
-    if (!targetFile || (typeof isVirtualFile === 'function' && isVirtualFile(targetFile))) return;
-    if (!dataCache || !dataCache[targetFile]) return;
+    if (!targetFile) return;
+
+    var isVirtual = (typeof isVirtualFile === 'function') && isVirtualFile(targetFile);
+
+    // 集計起点ファイルと、表示する台レコードの取得元を決める
+    var baseFile;     // 集計（累積）の起点
+    var sourceRows;   // バッジを付与する対象の台一覧（最新実データ日の素データ）
+    if (isVirtual) {
+        baseFile = getVirtualBaseFile();           // 仮想日の集計起点＝最新実データ日
+        if (!baseFile || !dataCache[baseFile]) return;
+        sourceRows = dataCache[baseFile];
+    } else {
+        baseFile = targetFile;
+        if (!dataCache || !dataCache[baseFile]) return;
+        sourceRows = dataCache[baseFile];
+    }
 
     // フィルターなし・全台データでバッジを計算
-    var rawData = dataCache[targetFile].map(function(r) { return Object.assign({}, r); });
+    var rawData = sourceRows.map(function(r) { return Object.assign({}, r); });
     rawData = addMechanicalRateToData(rawData);
-    var badged = MachineBadge.assignBadges(rawData, targetFile, dataCache, MachineBadge.getTargetColumn());
+
+    var badged = MachineBadge.assignBadges(
+        rawData,
+        targetFile,
+        dataCache,
+        MachineBadge.getTargetColumn(),
+        { baseFileOverride: baseFile, forcePrev: isVirtual } // 仮想日は前日基準を強制
+    );
 
     // キャッシュに台番号をキーとして保存
     var cache = {};
@@ -650,12 +654,11 @@ function recalcBadgeCache(fileOverride) {
 
 /**
  * バッジキャッシュをキャッシュされた値から row に合成する。
- * キャッシュがなければ _machineBadge は付与しない（表示なし）。
  */
 function applyBadgeCacheToData(data, dateFile) {
     var cache = dailyBadgeCache[dateFile];
     return data.map(function(row) {
-        if (!cache) return row; // キャッシュ未計算 → バッジなし
+        if (!cache) return row;
         var unitKey = String(row['台番号']);
         var badgeInfo = cache[unitKey] || { tako: null, kubi: null };
         return Object.assign({}, row, { _machineBadge: badgeInfo });
@@ -669,15 +672,10 @@ function renderBadgeSettings() {
 
     container.innerHTML = MachineBadge.renderSettingsHtml('dailyMb');
 
-    // 設定変更時はプレビューのみ更新（自動再計算しない）
     MachineBadge.setupSettingsEvents('dailyMb', function() {
         updateBadgePreview();
-        // キャッシュを破棄して「再計算が必要」状態を示す
-        var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
-        var _s = (typeof DailyState !== 'undefined') ? DailyState.get() : {};
-        var cf = (_s.dateFile && displayFiles.indexOf(_s.dateFile) !== -1 ? _s.dateFile : null)
-                 || displayFiles[currentDateIndex];
-        if (cf) delete dailyBadgeCache[cf];
+        // 設定が変わったら全バッジキャッシュを破棄（再計算が必要）
+        dailyBadgeCache = {};
         updateBadgeRecalcButton();
     });
 }
@@ -707,14 +705,12 @@ function syncBadgeFilterCheckboxes() {
 // 表示列（統合グループ対応）
 // ===================
 
-// 統合グループ定義
 var COLUMN_GROUPS = [
     { id: '__group_atari_count', label: '当たり回数', members: ['BB', 'RB', 'ART'] },
     { id: '__group_atari_rate',  label: '当たり確率', members: ['合成確率', 'BB確率', 'RB確率', 'ART確率'] }
 ];
 
 function getGroupedColumnLayout() {
-    // allColumns を、グループに属する列はグループ化し、その他は単独項目として並べる
     var layout = [];
     var consumedGroupIds = {};
 
@@ -723,7 +719,6 @@ function getGroupedColumnLayout() {
         if (group) {
             if (!consumedGroupIds[group.id]) {
                 consumedGroupIds[group.id] = true;
-                // このグループに実在するメンバーだけを対象にする
                 var existingMembers = group.members.filter(function(m) {
                     return allColumns.indexOf(m) !== -1;
                 });
@@ -744,7 +739,6 @@ function renderColumnCheckboxes() {
 
     container.innerHTML = layout.map(function(item) {
         if (item.type === 'group') {
-            // グループ内のメンバーが1つでも表示中ならチェック
             var checked = item.members.some(function(m) {
                 return visibleColumns.indexOf(m) !== -1;
             }) ? 'checked' : '';
@@ -778,7 +772,6 @@ function updateVisibleColumns() {
 
     document.querySelectorAll('#columnCheckboxes input[type="checkbox"]:checked').forEach(function(cb) {
         if (cb.dataset.groupId) {
-            // グループ → メンバー実列を全て追加
             (cb.dataset.members || '').split(',').forEach(function(m) {
                 if (m) checkedCols[m] = true;
             });
@@ -787,12 +780,11 @@ function updateVisibleColumns() {
         }
     });
 
-    // allColumns の並び順を維持して visibleColumns を構築
     visibleColumns = allColumns.filter(function(col) { return checkedCols[col]; });
 
     if (visibleColumns.length === 0 && allColumns.length > 0) {
         visibleColumns = [allColumns[0]];
-        renderColumnCheckboxes(); // 最低1列を確実にチェック状態へ反映
+        renderColumnCheckboxes();
     }
 
     _persistVisibleColumns();
@@ -827,7 +819,6 @@ async function initDateSelectWithEvents() {
     }).join('');
 }
 
-// 仮想日に対応した日付セレクトのoption生成
 function createDateSelectOptionForDaily(file, isSelected) {
     if (typeof isVirtualFile === 'function' && isVirtualFile(file)) {
         var dateKey = virtualFileToDateKey(file);
@@ -837,7 +828,6 @@ function createDateSelectOptionForDaily(file, isSelected) {
     return createDateSelectOption(file, isSelected);
 }
 
-// 仮想日のラベル（曜日付き）
 function formatVirtualDateLabel(dateKey) {
     if (!dateKey) return '翌日';
     var file = 'data/' + dateKey + '.csv';
@@ -870,7 +860,6 @@ async function updateDateNavWithEvents() {
         }
     }
 
-    // イベント情報（仮想日は実データが無いので表示しない）
     var eventContainer = document.getElementById('dailyEventInfo');
     if (!eventContainer) {
         var dateNav = document.querySelector('#daily .date-nav');
@@ -893,7 +882,6 @@ async function updateDateNavWithEvents() {
 
     var prevBtn = document.getElementById('prevDate');
     var nextBtn = document.getElementById('nextDate');
-    // prev = より古い日へ（index増）、next = より新しい日へ（index減）
     if (prevBtn) prevBtn.disabled = currentDateIndex >= displayFiles.length - 1;
     if (nextBtn) nextBtn.disabled = currentDateIndex <= 0;
 
@@ -943,12 +931,6 @@ function updateDailyTagCountDisplay(data) {
 // テーブル スケルトン / スピナー
 // ===================
 
-/**
- * データがキャッシュにない（月跨ぎ等）ときにスケルトン行を表示する。
- * @param {string} tableId - テーブルの id
- * @param {number} rows    - スケルトン行数
- * @param {number} cols    - 列数
- */
 function showTableSkeleton(tableId, rows, cols) {
     var table = document.getElementById(tableId);
     if (!table) return;
@@ -972,9 +954,6 @@ function showTableSkeleton(tableId, rows, cols) {
     tbody.classList.add('skeleton-tbody');
 }
 
-/**
- * スケルトンを解除してテーブルを通常状態に戻す。
- */
 function hideTableSkeleton(tableId) {
     var table = document.getElementById(tableId);
     if (!table) return;
@@ -989,19 +968,16 @@ function hideTableSkeleton(tableId) {
 // ===================
 
 async function filterAndRender() {
-    // ===== 状態を DailyState から一元取得 =====
     var _s = (typeof DailyState !== 'undefined') ? DailyState.get() : {};
 
     var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
 
-    // dateFile が状態にあればそこから、なければ currentDateIndex を使う
     var currentFile;
     if (_s.dateFile && displayFiles.indexOf(_s.dateFile) !== -1) {
         currentFile = _s.dateFile;
         currentDateIndex = displayFiles.indexOf(currentFile);
     } else {
         currentFile = displayFiles[currentDateIndex];
-        // 逆方向同期: currentDateIndex → DailyState
         if (typeof DailyState !== 'undefined' && currentFile) {
             DailyState.setState({ dateFile: currentFile }, { silent: true });
         }
@@ -1011,10 +987,9 @@ async function filterAndRender() {
 
     var isVirtual = (typeof isVirtualFile === 'function') && isVirtualFile(currentFile);
 
-    dailyCurrentFile = currentFile;        // ★メモ機能: 現在ファイル
-    dailyCurrentIsVirtual = isVirtual;     // ★仮想日機能
+    dailyCurrentFile = currentFile;
+    dailyCurrentIsVirtual = isVirtual;
 
-    // ★メモ用の日付キー（仮想日は翌日キー、実日は通常キー）
     if (isVirtual) {
         dailyCurrentMemoDateKey = virtualFileToDateKey(currentFile);
     } else {
@@ -1022,14 +997,12 @@ async function filterAndRender() {
             ? (getDateKeyFromFilename(currentFile) || '') : '';
     }
 
-    // キャッシュ未ロードなら スケルトン表示 → 月別JSONを取得（仮想日はスキップ）
     var isCached = isVirtual || !!(dataCache && dataCache[currentFile]);
     if (!isCached) {
         showTableSkeleton('data-table', 14, visibleColumns.length || 6);
-        // 対象の月別JSONを特定してロード
         var dateKey = getDateKeyFromFilename(currentFile);
         if (dateKey) {
-            var ym = dateKey.substring(0, 7).replace('_', '_'); // "2025_06" 形式
+            var ym = dateKey.substring(0, 7).replace('_', '_');
             var monthFile = 'data/' + ym + '.json';
             try {
                 await loadMonthlyJSON(monthFile);
@@ -1037,7 +1010,6 @@ async function filterAndRender() {
         }
     }
 
-    // タグ基準日ファイルが未キャッシュなら事前ロード
     if (typeof TagEngine !== 'undefined') {
         var tagDefs0 = TagEngine.getAll();
         for (var ti = 0; ti < tagDefs0.length; ti++) {
@@ -1055,7 +1027,6 @@ async function filterAndRender() {
 
     var data = await loadCSV(currentFile);
 
-    // スケルトン解除
     if (!isCached) hideTableSkeleton('data-table');
 
     if (!data) {
@@ -1080,14 +1051,12 @@ async function filterAndRender() {
     if (!dailyMachineFilterSelect) initDailyMachineFilter();
     else updateDailyMachineFilterCounts();
 
-    // DailyState から機種フィルター選択を DOM コンポーネントに反映
     if (typeof DailyState !== 'undefined') {
         DailyState.syncDom();
     }
 
     data = [].concat(data);
 
-    // 複数タグ判定（仮想日は数値が空なので原則マッチしないが、台番号ベースのタグは効く）
     var tagDefs = TagEngine.getAll();
     data = data.map(function(row) {
         var newRow = Object.assign({}, row);
@@ -1095,7 +1064,6 @@ async function filterAndRender() {
         return newRow;
     });
 
-    // 機種フィルター（DailyState から取得）
     var selectedMachines = _s.selectedMachines && _s.selectedMachines.length > 0
         ? _s.selectedMachines
         : (dailyMachineFilterSelect ? dailyMachineFilterSelect.getSelectedValues() : []);
@@ -1103,28 +1071,23 @@ async function filterAndRender() {
         data = data.filter(function(row) { return selectedMachines.indexOf(row['機種名']) !== -1; });
     }
 
-    // 台番号検索（DailyState から取得、DOM は補完として残す）
     var searchTerm = (_s.search !== undefined ? _s.search
         : (document.getElementById('search') ? document.getElementById('search').value : '')).toLowerCase();
     if (searchTerm) {
         data = data.filter(function(row) { return (row['台番号'] || '').toLowerCase().indexOf(searchTerm) !== -1; });
     }
 
-    // ソート（DailyState から取得）
     var sortBy = (_s.sortBy !== undefined ? _s.sortBy
         : (document.getElementById('sortBy') ? document.getElementById('sortBy').value : ''));
 
-    // 数値フィルター（仮想日は数値が空なので実質効かないが、害もないので通す）
     data = applyDailyFilterGroups(data);
 
-    // タグ付きのみ表示（DailyState から取得）
     var showTaggedOnlyVal = (_s.showTaggedOnly !== undefined ? _s.showTaggedOnly
         : (document.getElementById('dailyShowTaggedOnly') ? document.getElementById('dailyShowTaggedOnly').checked : false));
     if (showTaggedOnlyVal) {
         data = data.filter(function(row) { return row['_matchedTags'] && row['_matchedTags'].length > 0; });
     }
 
-    // ソート
     if (sortBy) {
         switch (sortBy) {
             case 'mb_tako_asc': data.sort(function(a, b) {
@@ -1156,17 +1119,16 @@ async function filterAndRender() {
         }
     }
 
-    // ── バッジ合成（仮想日はスキップ）──
-    if (!isVirtual && typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled()) {
+    // ── バッジ合成（仮想日も含めて計算する。仮想日は前日基準で集計される）──
+    if (typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled()) {
         if (!dailyBadgeCache[currentFile]) {
-            // 初回表示（その日を初めて開いたとき）は自動計算してキャッシュ
             recalcBadgeCache(currentFile);
         }
         data = applyBadgeCacheToData(data, currentFile);
     }
 
-    // バッジ存在フィルター（仮想日は対象外）
-    if (!isVirtual && (dailyBadgeFilter.tako || dailyBadgeFilter.kubi)) {
+    // バッジ存在フィルター（仮想日でもバッジがあるので適用可）
+    if (dailyBadgeFilter.tako || dailyBadgeFilter.kubi) {
         var takoRanksSet = (typeof MachineBadge !== 'undefined') ? MachineBadge.getTakoRanks() : [1,2,3];
         var kubiRanksSet = (typeof MachineBadge !== 'undefined') ? MachineBadge.getKubiRanks() : [1,2,3];
         data = data.filter(function(row) {
@@ -1178,10 +1140,8 @@ async function filterAndRender() {
         });
     }
 
-    // 再計算ボタンの状態を更新
     updateBadgeRecalcButton();
 
-    // 現在の表示データを保存（一括タグ付け用）
     dailyCurrentFilteredData = data;
 
     renderTableWithColumns(data, 'data-table', 'summary', visibleColumns);
@@ -1191,13 +1151,11 @@ async function filterAndRender() {
     // 末尾統計は仮想日では非表示（数値が無いため）
     renderSuffixStatsTable(isVirtual ? [] : data);
 
-    // プレビュー更新
     updateNumFilterPreview();
     renderDailyTagPreview();
     updateColumnPreview();
     updateBadgePreview();
 
-    // アクティブフィルター チップバー更新
     renderActiveFilterChips();
 }
 
@@ -1205,10 +1163,6 @@ async function filterAndRender() {
 // アクティブフィルター チップバー
 // ===================
 
-/**
- * 現在適用中のフィルター／ソートをチップ（バッジ）として描画する。
- * 各チップの × ボタンを押すと個別に解除できる。
- */
 function renderActiveFilterChips() {
     var bar = document.getElementById('activeFilterBar');
     if (!bar) return;
@@ -1216,7 +1170,6 @@ function renderActiveFilterChips() {
     var _s = (typeof DailyState !== 'undefined') ? DailyState.get() : {};
     var chips = [];
 
-    // ---- 台番号検索 ----
     var searchVal = _s.search || '';
     if (searchVal) {
         chips.push({
@@ -1230,7 +1183,6 @@ function renderActiveFilterChips() {
         });
     }
 
-    // ---- 機種フィルター ----
     var machines = _s.selectedMachines || [];
     if (machines.length > 0) {
         var machineLabel = machines.length <= 2
@@ -1246,7 +1198,6 @@ function renderActiveFilterChips() {
         });
     }
 
-    // ---- 数値フィルター ----
     var filterCount = getActiveDailyFilterCount();
     if (filterCount > 0) {
         var numLabels = [];
@@ -1271,7 +1222,6 @@ function renderActiveFilterChips() {
         });
     }
 
-    // ---- タグ ----
     if (typeof TagEngine !== 'undefined') {
         var tagDefs = TagEngine.getAll ? TagEngine.getAll() : [];
         tagDefs.forEach(function(def) {
@@ -1289,7 +1239,6 @@ function renderActiveFilterChips() {
         });
     }
 
-    // ---- タグ付きのみ ----
     if (_s.showTaggedOnly) {
         chips.push({
             type: 'chip-taggedonly',
@@ -1302,7 +1251,6 @@ function renderActiveFilterChips() {
         });
     }
 
-    // ---- ソート ----
     var sortVal = _s.sortBy || '';
     if (sortVal) {
         var sortLabels = {
@@ -1329,7 +1277,6 @@ function renderActiveFilterChips() {
         });
     }
 
-    // ---- バッジフィルターチップ ----
     if (dailyBadgeFilter.tako || dailyBadgeFilter.kubi) {
         var badgeChipLabel = (dailyBadgeFilter.tako && dailyBadgeFilter.kubi)
             ? '🐙💀 バッジあり のみ'
@@ -1346,7 +1293,6 @@ function renderActiveFilterChips() {
         });
     }
 
-    // ---- 描画 ----
     if (chips.length === 0) {
         bar.innerHTML = '';
         bar.classList.remove('has-chips');
@@ -1366,7 +1312,6 @@ function renderActiveFilterChips() {
     bar.innerHTML = html;
     bar.classList.add('has-chips');
 
-    // イベント委譲で × クリックを処理
     bar.querySelectorAll('.filter-chip-remove').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -1378,26 +1323,19 @@ function renderActiveFilterChips() {
     var clearAll = document.getElementById('clearAllChips');
     if (clearAll) {
         clearAll.addEventListener('click', function() {
-            // 検索
             var el = document.getElementById('search');
             if (el) el.value = '';
-            // 機種
             if (dailyMachineFilterSelect) dailyMachineFilterSelect.reset();
-            // 数値フィルター
             resetDailyFilterGroups();
-            // タグ
             if (typeof TagEngine !== 'undefined' && TagEngine.clearAll) {
                 TagEngine.clearAll();
             }
-            // タグ付きのみ
             var tagEl = document.getElementById('dailyShowTaggedOnly');
             if (tagEl) tagEl.checked = false;
-            // ソート
             var sortEl = document.getElementById('sortBy');
             if (sortEl) sortEl.value = '';
             dailySortColumn = null;
             dailySortDir    = null;
-            // 状態リセット → 再描画
             DailyState.setState({
                 search: '',
                 selectedMachines: [],
@@ -1414,7 +1352,6 @@ function renderActiveFilterChips() {
 // テーブル描画
 // ===================
 
-// ソート可能な列と対応する sortBy キーのマッピング
 var SORTABLE_COLUMNS = {
     '差枚':   { asc: 'sa_asc',      desc: 'sa_desc' },
     'G数':    { asc: 'game_asc',    desc: 'game_desc' },
@@ -1434,10 +1371,8 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
     var tbody = table.querySelector('tbody');
     var displayColumns = columns.length > 0 ? columns : allColumns;
 
-    // ---- ヘッダ描画（ソート可能列にインジケーター付与・機種内順位はフィルタートグル） ----
     thead.innerHTML = '<tr>' + displayColumns.map(function(h) {
         if (h === '機種内順位') {
-            // バッジフィルター状態を反映したクリッカブルヘッダ
             var isFiltering = (dailyBadgeFilter.tako || dailyBadgeFilter.kubi);
             var filterClass = isFiltering ? ' badge-filter-active' : '';
             var icon = isFiltering ? '🔽' : '⇅';
@@ -1457,12 +1392,10 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
             + '</th>';
     }).join('') + '</tr>';
 
-    // ヘッダクリックでソート切り替え（機種内順位はバッジフィルタートグル）
     thead.querySelectorAll('th.sortable').forEach(function(th) {
         th.addEventListener('click', function() {
             var col = this.dataset.col;
 
-            // 機種内順位列: バッジ存在フィルターをトグル（🐙💀両方まとめて）
             if (col === '機種内順位') {
                 var isFiltering = (dailyBadgeFilter.tako || dailyBadgeFilter.kubi);
                 if (isFiltering) {
@@ -1503,8 +1436,6 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
 
     var tagDefs = TagEngine.getAll();
 
-    // ★メモ機能: メモ列を出すために、現在表示中の日付キーとメモを事前に取得
-    //   仮想日のときは dailyCurrentMemoDateKey（翌日キー）を使う
     var memoDateKey = dailyCurrentMemoDateKey || '';
     var memoForDate = {};
     if (typeof SeatMemo !== 'undefined' && memoDateKey) {
@@ -1515,7 +1446,6 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
         return '<tr>' + displayColumns.map(function(h) {
             var val = row[h];
 
-            // ★メモ機能: メモ列（クリックで入力モーダル）
             if (h === 'メモ') {
                 var memoBadges = '';
                 if (typeof SeatMemo !== 'undefined') {
@@ -1585,7 +1515,6 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
         }).join('') + '</tr>';
     }).join('');
 
-    // ★メモ列クリック → 入力モーダルを開く（イベント委譲）
     if (typeof SeatMemo !== 'undefined' && SeatMemo.openEditor) {
         tbody.querySelectorAll('.memo-col-clickable').forEach(function(cell) {
             cell.addEventListener('click', function() {
@@ -1601,11 +1530,10 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
     if (summaryId) {
         var summaryEl = document.getElementById(summaryId);
         if (summaryEl) {
-            // 仮想日（稼働中・メモ用）は数値サマリーを出さない
             if (dailyCurrentIsVirtual) {
                 summaryEl.innerHTML =
                     '<span class="virtual-day-note">📝 稼働中の日です。差枚などのデータはまだありません。'
-                    + 'メモ列をタップしてその場でメモを記録できます（' + data.length + '台）。</span>';
+                    + 'メモ列をタップしてその場でメモを記録できます。機種内順位バッジは前日基準で計算しています（' + data.length + '台）。</span>';
             } else {
                 var totalSa = data.reduce(function(sum, r) { return sum + (parseInt(String(r['差枚']).replace(/,/g, '')) || 0); }, 0);
                 var totalGames = data.reduce(function(sum, r) { return sum + (parseInt(String(r['G数']).replace(/,/g, '')) || 0); }, 0);
@@ -1716,7 +1644,6 @@ function downloadTableAsCSV() {
 // ===================
 
 function setupDailyModalEvents() {
-    // 数値フィルターモーダル
     bindModalOpen('openNumFilterModal', 'numFilterModal');
     bindModalClose('closeNumFilterModal', 'numFilterModal');
     var applyFilterBtn = document.getElementById('applyFilter');
@@ -1730,7 +1657,6 @@ function setupDailyModalEvents() {
         filterAndRender();
     });
 
-    // タグモーダル
     bindModalOpen('openDailyTagModal', 'dailyTagModal');
     bindModalClose('closeDailyTagModal', 'dailyTagModal');
     var applyTagBtn = document.getElementById('applyDailyTagModal');
@@ -1739,7 +1665,6 @@ function setupDailyModalEvents() {
         closeAppModal('dailyTagModal');
     });
 
-    // タグモーダルを開いたとき: 一括タグ付けセレクトと台数を更新
     var openTagModalBtn = document.getElementById('openDailyTagModal');
     if (openTagModalBtn) {
         openTagModalBtn.addEventListener('click', function() {
@@ -1747,7 +1672,6 @@ function setupDailyModalEvents() {
         });
     }
 
-    // 一括タグ付けボタン
     var tagBulkApplyBtn = document.getElementById('tagBulkApplyBtn');
     if (tagBulkApplyBtn) {
         tagBulkApplyBtn.addEventListener('click', function() {
@@ -1777,7 +1701,6 @@ function setupDailyModalEvents() {
         });
     }
 
-    // 表示列モーダル
     bindModalOpen('openColumnModal', 'columnModal');
     bindModalClose('closeColumnModal', 'columnModal');
     var applyColumnBtn = document.getElementById('applyColumnModal');
@@ -1785,7 +1708,6 @@ function setupDailyModalEvents() {
         closeAppModal('columnModal');
     });
 
-    // バッジ設定モーダル
     bindModalOpen('openBadgeModal', 'badgeModal');
     bindModalClose('closeBadgeModal', 'badgeModal');
     var applyBadgeBtn = document.getElementById('applyBadgeModal');
@@ -1793,7 +1715,6 @@ function setupDailyModalEvents() {
         closeAppModal('badgeModal');
     });
 
-    // 全モーダル共通: 背景クリック・Escで閉じる
     document.querySelectorAll('.app-modal').forEach(function(modal) {
         modal.addEventListener('click', function(e) {
             if (e.target === modal) modal.classList.remove('open');
@@ -1823,7 +1744,6 @@ function bindModalClose(btnId, modalId) {
 // ===================
 
 function setupDailyEventListeners() {
-    // ---- 前日ボタン（より古い日へ: index増） ----
     document.getElementById('prevDate') && document.getElementById('prevDate').addEventListener('click', function() {
         var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
         if (currentDateIndex < displayFiles.length - 1) {
@@ -1839,7 +1759,6 @@ function setupDailyEventListeners() {
         }
     });
 
-    // ---- 翌日ボタン（より新しい日へ: index減。仮想日が先頭にいる） ----
     document.getElementById('nextDate') && document.getElementById('nextDate').addEventListener('click', function() {
         var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
         if (currentDateIndex > 0) {
@@ -1855,7 +1774,6 @@ function setupDailyEventListeners() {
         }
     });
 
-    // ---- 最新日へジャンプ（仮想日を含む先頭） ----
     document.getElementById('latestDate') && document.getElementById('latestDate').addEventListener('click', function() {
         var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
         var latestFile = displayFiles[0];
@@ -1870,7 +1788,6 @@ function setupDailyEventListeners() {
         }
     });
 
-    // ---- 日付セレクト ----
     document.getElementById('dateSelect') && document.getElementById('dateSelect').addEventListener('change', function(e) {
         delete dailyBadgeCache[e.target.value];
         if (typeof DailyState !== 'undefined') {
@@ -1882,7 +1799,6 @@ function setupDailyEventListeners() {
         }
     });
 
-    // ---- 台番号検索 ----
     document.getElementById('search') && document.getElementById('search').addEventListener('input', function(e) {
         if (typeof DailyState !== 'undefined') {
             DailyState.setState({ search: e.target.value });
@@ -1891,7 +1807,6 @@ function setupDailyEventListeners() {
         }
     });
 
-    // ---- ソート ----
     document.getElementById('sortBy') && document.getElementById('sortBy').addEventListener('change', function(e) {
         if (typeof DailyState !== 'undefined') {
             DailyState.setState({ sortBy: e.target.value });
@@ -1900,7 +1815,6 @@ function setupDailyEventListeners() {
         }
     });
 
-    // ---- 数値フィルターグループ追加 ----
     var addGroupBtn = document.getElementById('dailyAddFilterGroup');
     if (addGroupBtn) {
         addGroupBtn.addEventListener('click', function() {
@@ -1913,7 +1827,6 @@ function setupDailyEventListeners() {
     document.getElementById('copyTableBtn') && document.getElementById('copyTableBtn').addEventListener('click', copyTableToClipboard);
     document.getElementById('downloadCsvBtn') && document.getElementById('downloadCsvBtn').addEventListener('click', downloadTableAsCSV);
 
-    // ---- タグ付きのみ ----
     var showTaggedOnlyEl = document.getElementById('dailyShowTaggedOnly');
     if (showTaggedOnlyEl) {
         showTaggedOnlyEl.addEventListener('change', function(e) {
@@ -1925,7 +1838,6 @@ function setupDailyEventListeners() {
         });
     }
 
-    // ---- バッジ再計算ボタン ----
     var badgeRecalcBtn = document.getElementById('badgeRecalcBtn');
     if (badgeRecalcBtn) {
         badgeRecalcBtn.addEventListener('click', function() {
@@ -1935,7 +1847,6 @@ function setupDailyEventListeners() {
         });
     }
 
-    // ---- バッジ存在フィルター: 🐙タコだしあり のみ ----
     var badgeFilterTakoEl = document.getElementById('badgeFilterTako');
     if (badgeFilterTakoEl) {
         badgeFilterTakoEl.addEventListener('change', function(e) {
@@ -1944,7 +1855,6 @@ function setupDailyEventListeners() {
         });
     }
 
-    // ---- バッジ存在フィルター: 💀死に台あり のみ ----
     var badgeFilterKubiEl = document.getElementById('badgeFilterKubi');
     if (badgeFilterKubiEl) {
         badgeFilterKubiEl.addEventListener('change', function(e) {
@@ -1953,7 +1863,6 @@ function setupDailyEventListeners() {
         });
     }
 
-    // DailyState から filterGroups を読み込む
     loadDailyFilterGroups();
     renderDailyFilterGroups();
 
@@ -1962,12 +1871,10 @@ function setupDailyEventListeners() {
     initDateSelectWithEvents();
     setupSuffixStatsEventListeners();
 
-    // ★メモ機能: クラウドから一度だけメモを取得（取得後に再描画される）
     if (typeof SeatMemo !== 'undefined' && SeatMemo.init) {
         SeatMemo.init();
     }
 
-    // 狙い台作成ページのイベント登録（AimSheet）
     if (typeof AimSheet !== 'undefined') {
         AimSheet.setupEvents();
     }
