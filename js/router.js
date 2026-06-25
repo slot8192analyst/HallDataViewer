@@ -39,18 +39,6 @@ var Router = (function() {
             onShow: null
         },
 
-        // メモ
-        memo: {
-            tabId: 'memo',
-            init: function() {
-                if (typeof SeatMemo !== 'undefined') {
-                    SeatMemo.setupEvents();
-                    SeatMemo.init();
-                }
-            },
-            onShow: null
-        },
-
         // 解析（トレンド）
         analysis: {
             tabId: 'analysis',

@@ -34,6 +34,113 @@ function syncFromStore() {
 var loadingState = HallData.store.loadingState;
 
 // ===================
+// 仮想翌日（稼働中メモ用）
+// ===================
+//
+// 最新の実データ日付の「翌日」を仮想的に1日ぶん作り、
+// 差枚などのデータがまだ入っていない稼働中でもメモを打てるようにする。
+// 仮想日の台一覧（台番号・機種名）は最新実データ日のものを流用する。
+
+// 仮想ファイル名のプレフィックス（実ファイルと区別するための目印）
+var VIRTUAL_FILE_PREFIX = 'data/__virtual__';
+
+/**
+ * 日付キー（YYYY_MM_DD）に +1日 した日付キーを返す（月またぎ・年またぎ対応）
+ */
+function addOneDayToDateKey(dateKey) {
+    if (!dateKey) return null;
+    var parts = String(dateKey).split('_');
+    if (parts.length !== 3) return null;
+    var y = parseInt(parts[0], 10);
+    var m = parseInt(parts[1], 10);
+    var d = parseInt(parts[2], 10);
+    if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
+    var dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() + 1);
+    var ny = dt.getFullYear();
+    var nm = ('0' + (dt.getMonth() + 1)).slice(-2);
+    var nd = ('0' + dt.getDate()).slice(-2);
+    return ny + '_' + nm + '_' + nd;
+}
+
+/**
+ * 最新実データ日のファイル名（仮想日の台一覧の参照元）を返す
+ */
+function getVirtualBaseFile() {
+    var sorted = sortFilesByDate(CSV_FILES, true);
+    return sorted[0] || null;
+}
+
+/**
+ * 仮想翌日の日付キーを返す（最新実データ日 +1日）
+ */
+function getVirtualNextDateKey() {
+    var baseFile = getVirtualBaseFile();
+    if (!baseFile) return null;
+    var baseKey = getDateKeyFromFilename(baseFile);
+    if (!baseKey) return null;
+    return addOneDayToDateKey(baseKey);
+}
+
+/**
+ * 仮想翌日の疑似ファイル名を返す（例: data/__virtual__2026_06_26.csv）
+ */
+function getVirtualNextFile() {
+    var nextKey = getVirtualNextDateKey();
+    if (!nextKey) return null;
+    return VIRTUAL_FILE_PREFIX + nextKey + '.csv';
+}
+
+/**
+ * 与えられたファイル名が仮想ファイルかどうか
+ */
+function isVirtualFile(file) {
+    return typeof file === 'string' && file.indexOf(VIRTUAL_FILE_PREFIX) === 0;
+}
+
+/**
+ * 仮想ファイル名 → 実際の日付キー（YYYY_MM_DD）を取り出す
+ */
+function virtualFileToDateKey(file) {
+    if (!isVirtualFile(file)) return null;
+    return file.replace(VIRTUAL_FILE_PREFIX, '').replace('.csv', '');
+}
+
+/**
+ * 表示用のファイルリスト（仮想翌日を先頭に足したもの・新しい順）を返す。
+ * 日別タブの日付セレクト/ナビ/描画はこれを参照する。
+ */
+function getDisplayFiles() {
+    var sorted = sortFilesByDate(CSV_FILES, true);
+    var virtualFile = getVirtualNextFile();
+    if (virtualFile) {
+        return [virtualFile].concat(sorted);
+    }
+    return sorted;
+}
+
+/**
+ * 仮想日表示時に使う台レコード（最新実データ日の台番号・機種名を流用し、
+ * 数値列は空にしたもの）を返す。
+ */
+function buildVirtualRows() {
+    var baseFile = getVirtualBaseFile();
+    if (!baseFile || !dataCache[baseFile]) return [];
+    var baseRows = dataCache[baseFile];
+
+    // 数値系の列は空にする（台番号・機種名・位置情報のみ残す）
+    var NUMERIC_BLANK_KEYS = ['G数', '差枚', 'BB', 'RB', 'ART', '合成確率', 'BB確率', 'RB確率', 'ART確率'];
+
+    return baseRows.map(function(row) {
+        var newRow = Object.assign({}, row);
+        NUMERIC_BLANK_KEYS.forEach(function(k) {
+            if (newRow[k] !== undefined) newRow[k] = '';
+        });
+        return newRow;
+    });
+}
+
+// ===================
 // ローディング制御
 // ===================
 
@@ -196,9 +303,13 @@ function loadMultipleJSONParallel(filepaths, onProgress) {
 }
 
 /**
- * キャッシュからデータを取得
+ * キャッシュからデータを取得（仮想日は動的生成）
  */
 function loadCSV(filename) {
+    // 仮想ファイルは最新実データ日の台一覧から動的生成
+    if (isVirtualFile(filename)) {
+        return Promise.resolve(buildVirtualRows());
+    }
     if (dataCache[filename]) {
         return Promise.resolve(dataCache[filename]);
     }

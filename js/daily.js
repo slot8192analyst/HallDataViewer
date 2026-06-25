@@ -9,6 +9,8 @@ var dailyTagUIInitialized = false;
 var dailyBadgeUIInitialized = false;
 
 var dailyCurrentFile = null; // ★メモ機能: メモ列描画で参照する現在表示中のファイル
+var dailyCurrentIsVirtual = false; // ★仮想日機能: 現在表示中が仮想翌日かどうか
+var dailyCurrentMemoDateKey = ''; // ★メモ機能: 現在表示中の「メモ保存に使う」日付キー
 
 // 列ヘッダクリックソート用状態
 var dailySortColumn = null;   // 現在ソート中の列名
@@ -508,9 +510,12 @@ function initDailyMachineFilter() {
     // コンテナがまだDOMに無い（daily未挿入）なら何もしない
     if (!document.getElementById('dailyMachineFilterContainer')) return;
 
-    var sortedFiles = sortFilesByDate(CSV_FILES, true);
-    var currentFile = sortedFiles[currentDateIndex];
-    var machineOptions = getMachineOptionsForDate(currentFile);
+    var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
+    var currentFile = displayFiles[currentDateIndex];
+    // 仮想日の機種一覧は実データ最新日のものを使う
+    var optionFile = (typeof isVirtualFile === 'function' && isVirtualFile(currentFile))
+        ? getVirtualBaseFile() : currentFile;
+    var machineOptions = getMachineOptionsForDate(optionFile);
     if (dailyMachineFilterSelect) {
         dailyMachineFilterSelect.updateOptions(machineOptions);
     } else {
@@ -538,9 +543,11 @@ function initDailyMachineFilter() {
 }
 
 function updateDailyMachineFilterCounts() {
-    var sortedFiles = sortFilesByDate(CSV_FILES, true);
-    var currentFile = sortedFiles[currentDateIndex];
-    var machineOptions = getMachineOptionsForDate(currentFile);
+    var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
+    var currentFile = displayFiles[currentDateIndex];
+    var optionFile = (typeof isVirtualFile === 'function' && isVirtualFile(currentFile))
+        ? getVirtualBaseFile() : currentFile;
+    var machineOptions = getMachineOptionsForDate(optionFile);
     if (dailyMachineFilterSelect) dailyMachineFilterSelect.updateOptions(machineOptions);
 }
 
@@ -590,6 +597,10 @@ function initColumnSelector() {
             if (visibleColumns.length > 0 && visibleColumns.indexOf('機種内順位') === -1) {
                 visibleColumns.push('機種内順位');
             }
+            // メモ列が既存設定にない場合は追加
+            if (visibleColumns.length > 0 && visibleColumns.indexOf('メモ') === -1) {
+                visibleColumns.push('メモ');
+            }
             if (visibleColumns.length === 0) visibleColumns = [].concat(allColumns);
         } catch (e) {
             visibleColumns = [].concat(allColumns);
@@ -612,12 +623,14 @@ function initColumnSelector() {
  */
 function recalcBadgeCache(fileOverride) {
     if (typeof MachineBadge === 'undefined' || !MachineBadge.isEnabled()) return;
-    var sortedFiles = sortFilesByDate(CSV_FILES, true);
+    var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
     var _s = (typeof DailyState !== 'undefined') ? DailyState.get() : {};
     var targetFile = fileOverride
-        || (_s.dateFile && sortedFiles.indexOf(_s.dateFile) !== -1 ? _s.dateFile : null)
-        || sortedFiles[currentDateIndex];
-    if (!targetFile || !dataCache || !dataCache[targetFile]) return;
+        || (_s.dateFile && displayFiles.indexOf(_s.dateFile) !== -1 ? _s.dateFile : null)
+        || displayFiles[currentDateIndex];
+    // 仮想日はバッジ計算しない
+    if (!targetFile || (typeof isVirtualFile === 'function' && isVirtualFile(targetFile))) return;
+    if (!dataCache || !dataCache[targetFile]) return;
 
     // フィルターなし・全台データでバッジを計算
     var rawData = dataCache[targetFile].map(function(r) { return Object.assign({}, r); });
@@ -660,10 +673,10 @@ function renderBadgeSettings() {
     MachineBadge.setupSettingsEvents('dailyMb', function() {
         updateBadgePreview();
         // キャッシュを破棄して「再計算が必要」状態を示す
-        var sortedFiles = sortFilesByDate(CSV_FILES, true);
+        var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
         var _s = (typeof DailyState !== 'undefined') ? DailyState.get() : {};
-        var cf = (_s.dateFile && sortedFiles.indexOf(_s.dateFile) !== -1 ? _s.dateFile : null)
-                 || sortedFiles[currentDateIndex];
+        var cf = (_s.dateFile && displayFiles.indexOf(_s.dateFile) !== -1 ? _s.dateFile : null)
+                 || displayFiles[currentDateIndex];
         if (cf) delete dailyBadgeCache[cf];
         updateBadgeRecalcButton();
     });
@@ -673,10 +686,10 @@ function renderBadgeSettings() {
 function updateBadgeRecalcButton() {
     var btn = document.getElementById('badgeRecalcBtn');
     if (!btn) return;
-    var sortedFiles = sortFilesByDate(CSV_FILES, true);
+    var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
     var _s = (typeof DailyState !== 'undefined') ? DailyState.get() : {};
-    var cf = (_s.dateFile && sortedFiles.indexOf(_s.dateFile) !== -1 ? _s.dateFile : null)
-             || sortedFiles[currentDateIndex];
+    var cf = (_s.dateFile && displayFiles.indexOf(_s.dateFile) !== -1 ? _s.dateFile : null)
+             || displayFiles[currentDateIndex];
     var hasCached = !!(cf && dailyBadgeCache[cf]);
     btn.textContent = hasCached ? '🔄 再計算' : '▶ バッジを計算';
     btn.classList.toggle('badge-needs-calc', !hasCached);
@@ -808,25 +821,56 @@ async function initDateSelectWithEvents() {
     await loadEventData();
     var dateSelect = document.getElementById('dateSelect');
     if (!dateSelect) return;
-    var sortedFiles = sortFilesByDate(CSV_FILES, true);
-    dateSelect.innerHTML = sortedFiles.map(function(file, index) {
-        return createDateSelectOption(file, index === currentDateIndex);
+    var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
+    dateSelect.innerHTML = displayFiles.map(function(file, index) {
+        return createDateSelectOptionForDaily(file, index === currentDateIndex);
     }).join('');
+}
+
+// 仮想日に対応した日付セレクトのoption生成
+function createDateSelectOptionForDaily(file, isSelected) {
+    if (typeof isVirtualFile === 'function' && isVirtualFile(file)) {
+        var dateKey = virtualFileToDateKey(file);
+        var label = formatVirtualDateLabel(dateKey) + '（稼働中・メモ用）';
+        return '<option value="' + file + '"' + (isSelected ? ' selected' : '') + '>📝 ' + label + '</option>';
+    }
+    return createDateSelectOption(file, isSelected);
+}
+
+// 仮想日のラベル（曜日付き）
+function formatVirtualDateLabel(dateKey) {
+    if (!dateKey) return '翌日';
+    var file = 'data/' + dateKey + '.csv';
+    var base = (typeof formatDate === 'function') ? formatDate(file) : dateKey.replace(/_/g, '/');
+    if (typeof getDayOfWeek === 'function' && typeof getDayOfWeekName === 'function') {
+        try {
+            var dow = getDayOfWeekName(getDayOfWeek(file));
+            if (dow) base += '（' + dow + '）';
+        } catch (e) {}
+    }
+    return base;
 }
 
 async function updateDateNavWithEvents() {
     await loadEventData();
-    var sortedFiles = sortFilesByDate(CSV_FILES, true);
-    var currentFile = sortedFiles[currentDateIndex];
+    var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
+    var currentFile = displayFiles[currentDateIndex];
     if (!currentFile) return;
+
+    var isVirtual = (typeof isVirtualFile === 'function') && isVirtualFile(currentFile);
+
     var dateLabel = document.getElementById('currentDateLabel');
     if (dateLabel) {
-        var formattedDate = formatDate(currentFile);
-        var dayOfWeek = getDayOfWeekName(getDayOfWeek(currentFile));
-        dateLabel.textContent = formattedDate + '（' + dayOfWeek + '）';
+        if (isVirtual) {
+            dateLabel.textContent = '📝 ' + formatVirtualDateLabel(virtualFileToDateKey(currentFile)) + ' 稼働中（メモ用）';
+        } else {
+            var formattedDate = formatDate(currentFile);
+            var dayOfWeek = getDayOfWeekName(getDayOfWeek(currentFile));
+            dateLabel.textContent = formattedDate + '（' + dayOfWeek + '）';
+        }
     }
-    var dateKey = getDateKeyFromFilename(currentFile);
-    var events = getEventsForDate(dateKey);
+
+    // イベント情報（仮想日は実データが無いので表示しない）
     var eventContainer = document.getElementById('dailyEventInfo');
     if (!eventContainer) {
         var dateNav = document.querySelector('#daily .date-nav');
@@ -837,11 +881,22 @@ async function updateDateNavWithEvents() {
             dateNav.after(eventContainer);
         }
     }
-    if (eventContainer) eventContainer.innerHTML = renderDailyEventBadges(events);
+    if (eventContainer) {
+        if (isVirtual) {
+            eventContainer.innerHTML = '';
+        } else {
+            var dateKey = getDateKeyFromFilename(currentFile);
+            var events = getEventsForDate(dateKey);
+            eventContainer.innerHTML = renderDailyEventBadges(events);
+        }
+    }
+
     var prevBtn = document.getElementById('prevDate');
     var nextBtn = document.getElementById('nextDate');
-    if (prevBtn) prevBtn.disabled = currentDateIndex >= sortedFiles.length - 1;
+    // prev = より古い日へ（index増）、next = より新しい日へ（index減）
+    if (prevBtn) prevBtn.disabled = currentDateIndex >= displayFiles.length - 1;
     if (nextBtn) nextBtn.disabled = currentDateIndex <= 0;
+
     var dateSelect = document.getElementById('dateSelect');
     if (dateSelect && dateSelect.value !== currentFile) dateSelect.value = currentFile;
 }
@@ -937,15 +992,15 @@ async function filterAndRender() {
     // ===== 状態を DailyState から一元取得 =====
     var _s = (typeof DailyState !== 'undefined') ? DailyState.get() : {};
 
-    var sortedFiles = sortFilesByDate(CSV_FILES, true);
+    var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
 
     // dateFile が状態にあればそこから、なければ currentDateIndex を使う
     var currentFile;
-    if (_s.dateFile && sortedFiles.indexOf(_s.dateFile) !== -1) {
+    if (_s.dateFile && displayFiles.indexOf(_s.dateFile) !== -1) {
         currentFile = _s.dateFile;
-        currentDateIndex = sortedFiles.indexOf(currentFile);
+        currentDateIndex = displayFiles.indexOf(currentFile);
     } else {
-        currentFile = sortedFiles[currentDateIndex];
+        currentFile = displayFiles[currentDateIndex];
         // 逆方向同期: currentDateIndex → DailyState
         if (typeof DailyState !== 'undefined' && currentFile) {
             DailyState.setState({ dateFile: currentFile }, { silent: true });
@@ -954,10 +1009,21 @@ async function filterAndRender() {
 
     if (!currentFile) return;
 
-    dailyCurrentFile = currentFile; // ★メモ機能: メモ列描画で参照する現在ファイルを保持
+    var isVirtual = (typeof isVirtualFile === 'function') && isVirtualFile(currentFile);
 
-    // キャッシュ未ロードなら スケルトン表示 → 月別JSONを取得
-    var isCached = !!(dataCache && dataCache[currentFile]);
+    dailyCurrentFile = currentFile;        // ★メモ機能: 現在ファイル
+    dailyCurrentIsVirtual = isVirtual;     // ★仮想日機能
+
+    // ★メモ用の日付キー（仮想日は翌日キー、実日は通常キー）
+    if (isVirtual) {
+        dailyCurrentMemoDateKey = virtualFileToDateKey(currentFile);
+    } else {
+        dailyCurrentMemoDateKey = (typeof getDateKeyFromFilename === 'function')
+            ? (getDateKeyFromFilename(currentFile) || '') : '';
+    }
+
+    // キャッシュ未ロードなら スケルトン表示 → 月別JSONを取得（仮想日はスキップ）
+    var isCached = isVirtual || !!(dataCache && dataCache[currentFile]);
     if (!isCached) {
         showTableSkeleton('data-table', 14, visibleColumns.length || 6);
         // 対象の月別JSONを特定してロード
@@ -973,9 +1039,9 @@ async function filterAndRender() {
 
     // タグ基準日ファイルが未キャッシュなら事前ロード
     if (typeof TagEngine !== 'undefined') {
-        var tagDefs = TagEngine.getAll();
-        for (var ti = 0; ti < tagDefs.length; ti++) {
-            var td = tagDefs[ti];
+        var tagDefs0 = TagEngine.getAll();
+        for (var ti = 0; ti < tagDefs0.length; ti++) {
+            var td = tagDefs0[ti];
             if (td.refDateMode === 'date' && td.refDateFile && !(dataCache && dataCache[td.refDateFile])) {
                 var refDateKey = getDateKeyFromFilename(td.refDateFile);
                 if (refDateKey) {
@@ -1021,7 +1087,7 @@ async function filterAndRender() {
 
     data = [].concat(data);
 
-    // 複数タグ判定（基準日モード対応: dataCache を渡して基準日行を引けるようにする）
+    // 複数タグ判定（仮想日は数値が空なので原則マッチしないが、台番号ベースのタグは効く）
     var tagDefs = TagEngine.getAll();
     data = data.map(function(row) {
         var newRow = Object.assign({}, row);
@@ -1048,7 +1114,7 @@ async function filterAndRender() {
     var sortBy = (_s.sortBy !== undefined ? _s.sortBy
         : (document.getElementById('sortBy') ? document.getElementById('sortBy').value : ''));
 
-    // 数値フィルター 1パス目：バッジ列を除いた通常列のみ
+    // 数値フィルター（仮想日は数値が空なので実質効かないが、害もないので通す）
     data = applyDailyFilterGroups(data);
 
     // タグ付きのみ表示（DailyState から取得）
@@ -1090,8 +1156,8 @@ async function filterAndRender() {
         }
     }
 
-    // ── バッジ合成（キャッシュから読む。キャッシュ未計算なら初回のみ計算）──
-    if (typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled()) {
+    // ── バッジ合成（仮想日はスキップ）──
+    if (!isVirtual && typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled()) {
         if (!dailyBadgeCache[currentFile]) {
             // 初回表示（その日を初めて開いたとき）は自動計算してキャッシュ
             recalcBadgeCache(currentFile);
@@ -1099,15 +1165,13 @@ async function filterAndRender() {
         data = applyBadgeCacheToData(data, currentFile);
     }
 
-    // バッジ存在フィルター（OR条件: 🐙あり OR 💀あり のいずれかを満たす台のみ）
-    // 順位フィルターも考慮（MachineBadge.getTakoRanks/getKubiRanks）
-    if (dailyBadgeFilter.tako || dailyBadgeFilter.kubi) {
+    // バッジ存在フィルター（仮想日は対象外）
+    if (!isVirtual && (dailyBadgeFilter.tako || dailyBadgeFilter.kubi)) {
         var takoRanksSet = (typeof MachineBadge !== 'undefined') ? MachineBadge.getTakoRanks() : [1,2,3];
         var kubiRanksSet = (typeof MachineBadge !== 'undefined') ? MachineBadge.getKubiRanks() : [1,2,3];
         data = data.filter(function(row) {
             var mb = row._machineBadge;
             if (!mb) return false;
-            // 🐙 OR 💀 のどちらかにバッジあり（かつ表示順位内）なら表示
             var hasTako = dailyBadgeFilter.tako && mb.tako !== null && takoRanksSet.indexOf(mb.tako) !== -1;
             var hasKubi = dailyBadgeFilter.kubi && mb.kubi !== null && kubiRanksSet.indexOf(mb.kubi) !== -1;
             return hasTako || hasKubi;
@@ -1123,7 +1187,9 @@ async function filterAndRender() {
     renderTableWithColumns(data, 'data-table', 'summary', visibleColumns);
     await updateDateNavWithEvents();
     updateDailyTagCountDisplay(data);
-    renderSuffixStatsTable(data);
+
+    // 末尾統計は仮想日では非表示（数値が無いため）
+    renderSuffixStatsTable(isVirtual ? [] : data);
 
     // プレビュー更新
     updateNumFilterPreview();
@@ -1400,11 +1466,9 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
             if (col === '機種内順位') {
                 var isFiltering = (dailyBadgeFilter.tako || dailyBadgeFilter.kubi);
                 if (isFiltering) {
-                    // OFF（解除）
                     dailyBadgeFilter.tako = false;
                     dailyBadgeFilter.kubi = false;
                 } else {
-                    // ON（両方バッジあり台のみを表示）
                     dailyBadgeFilter.tako = true;
                     dailyBadgeFilter.kubi = true;
                 }
@@ -1418,12 +1482,11 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
 
             var newDir;
             if (dailySortColumn === col) {
-                // 同じ列: asc → desc → 解除
                 if (dailySortDir === 'asc')       newDir = 'desc';
                 else if (dailySortDir === 'desc') newDir = null;
                 else                              newDir = 'asc';
             } else {
-                newDir = 'desc'; // 初回クリックは降順
+                newDir = 'desc';
             }
 
             dailySortColumn = newDir ? col : null;
@@ -1431,7 +1494,6 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
 
             var sortByVal = newDir ? keys[newDir] : '';
 
-            // select との連動
             var sortEl = document.getElementById('sortBy');
             if (sortEl) sortEl.value = sortByVal;
 
@@ -1441,12 +1503,11 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
 
     var tagDefs = TagEngine.getAll();
 
-    // ★メモ機能: メモ列を出すために、現在表示中ファイルの日付キーとメモを事前に取得
-    var memoDateKey = '';
+    // ★メモ機能: メモ列を出すために、現在表示中の日付キーとメモを事前に取得
+    //   仮想日のときは dailyCurrentMemoDateKey（翌日キー）を使う
+    var memoDateKey = dailyCurrentMemoDateKey || '';
     var memoForDate = {};
-    if (typeof SeatMemo !== 'undefined' && dailyCurrentFile) {
-        memoDateKey = (typeof getDateKeyFromFilename === 'function')
-            ? (getDateKeyFromFilename(dailyCurrentFile) || '') : '';
+    if (typeof SeatMemo !== 'undefined' && memoDateKey) {
         memoForDate = SeatMemo.getForDate(memoDateKey);
     }
 
@@ -1454,14 +1515,18 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
         return '<tr>' + displayColumns.map(function(h) {
             var val = row[h];
 
-            // ★メモ機能: メモ列の1セル要約描画
+            // ★メモ機能: メモ列（クリックで入力モーダル）
             if (h === 'メモ') {
                 var memoBadges = '';
                 if (typeof SeatMemo !== 'undefined') {
                     var memo = memoForDate[String(row['台番号'])];
                     memoBadges = SeatMemo.badgeHtml(memo);
                 }
-                return '<td class="memo-col-cell">' + (memoBadges || '<span class="text-muted">-</span>') + '</td>';
+                var inner = memoBadges || '<span class="memo-add-hint">＋メモ</span>';
+                return '<td class="memo-col-cell memo-col-clickable" data-daiban="'
+                    + escapeHtmlTag(String(row['台番号'] || ''))
+                    + '" data-machine="' + escapeHtmlTag(String(row['機種名'] || '')) + '">'
+                    + inner + '</td>';
             }
 
             if (h === '機種内順位') {
@@ -1492,57 +1557,83 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
 
             if (h === '機械割') {
                 var rate = val;
+                if (rate === null || rate === undefined || isNaN(rate)) {
+                    return '<td>-</td>';
+                }
                 var rateClass = getMechanicalRateClass(rate);
                 var rateText = formatMechanicalRate(rate);
                 return '<td class="' + rateClass + '">' + rateText + '</td>';
             }
 
             if (h === '差枚') {
+                if (val === '' || val === null || val === undefined) return '<td>-</td>';
                 var numVal = parseInt(String(val).replace(/,/g, '')) || 0;
                 var cls = numVal > 0 ? 'plus' : numVal < 0 ? 'minus' : '';
                 return '<td class="' + cls + '">' + (numVal >= 0 ? '+' : '') + numVal.toLocaleString() + '</td>';
             }
 
             if (h === 'G数') {
+                if (val === '' || val === null || val === undefined) return '<td>-</td>';
                 var gVal = parseInt(String(val).replace(/,/g, '')) || 0;
                 return '<td>' + gVal.toLocaleString() + '</td>';
             }
 
-            var strVal = val || '';
+            var strVal = (val === null || val === undefined) ? '' : val;
+            if (strVal === '') return '<td>-</td>';
             if (/^-?\d+$/.test(strVal)) return '<td>' + parseInt(strVal).toLocaleString() + '</td>';
             return '<td>' + strVal + '</td>';
         }).join('') + '</tr>';
     }).join('');
 
+    // ★メモ列クリック → 入力モーダルを開く（イベント委譲）
+    if (typeof SeatMemo !== 'undefined' && SeatMemo.openEditor) {
+        tbody.querySelectorAll('.memo-col-clickable').forEach(function(cell) {
+            cell.addEventListener('click', function() {
+                var daiban = this.dataset.daiban;
+                var machine = this.dataset.machine || '';
+                if (!daiban) return;
+                if (!dailyCurrentMemoDateKey) return;
+                SeatMemo.openEditor(dailyCurrentMemoDateKey, daiban, machine);
+            });
+        });
+    }
+
     if (summaryId) {
         var summaryEl = document.getElementById(summaryId);
         if (summaryEl) {
-            var totalSa = data.reduce(function(sum, r) { return sum + (parseInt(String(r['差枚']).replace(/,/g, '')) || 0); }, 0);
-            var totalGames = data.reduce(function(sum, r) { return sum + (parseInt(String(r['G数']).replace(/,/g, '')) || 0); }, 0);
-            var plusCount = data.filter(function(r) { return (parseInt(String(r['差枚']).replace(/,/g, '')) || 0) > 0; }).length;
-            var winRate = data.length > 0 ? ((plusCount / data.length) * 100).toFixed(1) : '0.0';
-            var saClass = totalSa > 0 ? 'plus' : totalSa < 0 ? 'minus' : '';
-            var avgRate = calculateMechanicalRate(totalGames, totalSa);
-            var avgRateText = formatMechanicalRate(avgRate);
-            var avgRateClass = getMechanicalRateClass(avgRate);
+            // 仮想日（稼働中・メモ用）は数値サマリーを出さない
+            if (dailyCurrentIsVirtual) {
+                summaryEl.innerHTML =
+                    '<span class="virtual-day-note">📝 稼働中の日です。差枚などのデータはまだありません。'
+                    + 'メモ列をタップしてその場でメモを記録できます（' + data.length + '台）。</span>';
+            } else {
+                var totalSa = data.reduce(function(sum, r) { return sum + (parseInt(String(r['差枚']).replace(/,/g, '')) || 0); }, 0);
+                var totalGames = data.reduce(function(sum, r) { return sum + (parseInt(String(r['G数']).replace(/,/g, '')) || 0); }, 0);
+                var plusCount = data.filter(function(r) { return (parseInt(String(r['差枚']).replace(/,/g, '')) || 0) > 0; }).length;
+                var winRate = data.length > 0 ? ((plusCount / data.length) * 100).toFixed(1) : '0.0';
+                var saClass = totalSa > 0 ? 'plus' : totalSa < 0 ? 'minus' : '';
+                var avgRate = calculateMechanicalRate(totalGames, totalSa);
+                var avgRateText = formatMechanicalRate(avgRate);
+                var avgRateClass = getMechanicalRateClass(avgRate);
 
-            var tagInfo = '';
-            if (TagEngine.hasAnyActiveConditions()) {
-                var taggedCount = data.filter(function(r) { return r['_matchedTags'] && r['_matchedTags'].length > 0; }).length;
-                tagInfo = ' | タグ付き: ' + taggedCount + '台';
+                var tagInfo = '';
+                if (TagEngine.hasAnyActiveConditions()) {
+                    var taggedCount = data.filter(function(r) { return r['_matchedTags'] && r['_matchedTags'].length > 0; }).length;
+                    tagInfo = ' | タグ付き: ' + taggedCount + '台';
+                }
+
+                var filterInfo = '';
+                if (hasActiveDailyFilters()) {
+                    filterInfo = ' | フィルター適用中';
+                }
+
+                summaryEl.innerHTML =
+                    '表示: ' + data.length + '台' + tagInfo + filterInfo + ' | ' +
+                    '総G数: ' + totalGames.toLocaleString() + ' | ' +
+                    '総差枚: <span class="' + saClass + '">' + (totalSa >= 0 ? '+' : '') + totalSa.toLocaleString() + '</span> | ' +
+                    '機械割: <span class="' + avgRateClass + '">' + avgRateText + '</span> | ' +
+                    '勝率: ' + winRate + '%';
             }
-
-            var filterInfo = '';
-            if (hasActiveDailyFilters()) {
-                filterInfo = ' | フィルター適用中';
-            }
-
-            summaryEl.innerHTML =
-                '表示: ' + data.length + '台' + tagInfo + filterInfo + ' | ' +
-                '総G数: ' + totalGames.toLocaleString() + ' | ' +
-                '総差枚: <span class="' + saClass + '">' + (totalSa >= 0 ? '+' : '') + totalSa.toLocaleString() + '</span> | ' +
-                '機械割: <span class="' + avgRateClass + '">' + avgRateText + '</span> | ' +
-                '勝率: ' + winRate + '%';
         }
     }
 }
@@ -1614,9 +1705,9 @@ async function copyTableToClipboard() {
 function downloadTableAsCSV() {
     var data = getDisplayedTableData();
     if (data.rows.length === 0) { showCopyToast('ダウンロードするデータがありません', true); return; }
-    var sortedFiles = sortFilesByDate(CSV_FILES, true);
-    var currentFile = sortedFiles[currentDateIndex];
-    var dateStr = currentFile ? currentFile.replace('.csv', '').replace('data/', '') : 'data';
+    var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
+    var currentFile = displayFiles[currentDateIndex];
+    var dateStr = currentFile ? currentFile.replace('.csv', '').replace('data/__virtual__', 'next_').replace('data/', '') : 'data';
     downloadAsCSV(data, dateStr + '_export.csv');
 }
 
@@ -1673,7 +1764,6 @@ function setupDailyModalEvents() {
                 alert('表示中の台がありません');
                 return;
             }
-            // 既存のuniNosとマージ（重複排除）
             var def = TagEngine.get(defId);
             if (!def) return;
             var existing = def.unitNos || [];
@@ -1733,12 +1823,11 @@ function bindModalClose(btnId, modalId) {
 // ===================
 
 function setupDailyEventListeners() {
-    // ---- 前日ボタン ----
+    // ---- 前日ボタン（より古い日へ: index増） ----
     document.getElementById('prevDate') && document.getElementById('prevDate').addEventListener('click', function() {
-        var sortedFiles = sortFilesByDate(CSV_FILES, true);
-        if (currentDateIndex < sortedFiles.length - 1) {
-            var newFile = sortedFiles[currentDateIndex + 1];
-            // 日付変更時はバッジキャッシュをクリア（新しい日付で必要なら再計算させる）
+        var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
+        if (currentDateIndex < displayFiles.length - 1) {
+            var newFile = displayFiles[currentDateIndex + 1];
             delete dailyBadgeCache[newFile];
             if (typeof DailyState !== 'undefined') {
                 DailyState.setState({ dateFile: newFile });
@@ -1750,12 +1839,11 @@ function setupDailyEventListeners() {
         }
     });
 
-    // ---- 翌日ボタン ----
+    // ---- 翌日ボタン（より新しい日へ: index減。仮想日が先頭にいる） ----
     document.getElementById('nextDate') && document.getElementById('nextDate').addEventListener('click', function() {
-        var sortedFiles = sortFilesByDate(CSV_FILES, true);
+        var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
         if (currentDateIndex > 0) {
-            var newFile = sortedFiles[currentDateIndex - 1];
-            // 日付変更時はバッジキャッシュをクリア
+            var newFile = displayFiles[currentDateIndex - 1];
             delete dailyBadgeCache[newFile];
             if (typeof DailyState !== 'undefined') {
                 DailyState.setState({ dateFile: newFile });
@@ -1767,10 +1855,10 @@ function setupDailyEventListeners() {
         }
     });
 
-    // ---- 最新日へジャンプ ----
+    // ---- 最新日へジャンプ（仮想日を含む先頭） ----
     document.getElementById('latestDate') && document.getElementById('latestDate').addEventListener('click', function() {
-        var sortedFiles = sortFilesByDate(CSV_FILES, true);
-        var latestFile = sortedFiles[0];
+        var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
+        var latestFile = displayFiles[0];
         if (!latestFile) return;
         delete dailyBadgeCache[latestFile];
         if (typeof DailyState !== 'undefined') {
@@ -1784,13 +1872,12 @@ function setupDailyEventListeners() {
 
     // ---- 日付セレクト ----
     document.getElementById('dateSelect') && document.getElementById('dateSelect').addEventListener('change', function(e) {
-        // 日付変更時はバッジキャッシュをクリア
         delete dailyBadgeCache[e.target.value];
         if (typeof DailyState !== 'undefined') {
             DailyState.setState({ dateFile: e.target.value });
         } else {
-            var sortedFiles = sortFilesByDate(CSV_FILES, true);
-            currentDateIndex = sortedFiles.indexOf(e.target.value);
+            var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
+            currentDateIndex = displayFiles.indexOf(e.target.value);
             filterAndRender();
         }
     });
@@ -1842,9 +1929,9 @@ function setupDailyEventListeners() {
     var badgeRecalcBtn = document.getElementById('badgeRecalcBtn');
     if (badgeRecalcBtn) {
         badgeRecalcBtn.addEventListener('click', function() {
-            recalcBadgeCache(); // カレントファイルのキャッシュを更新
+            recalcBadgeCache();
             updateBadgeRecalcButton();
-            filterAndRender(); // バッジを反映して再描画
+            filterAndRender();
         });
     }
 
@@ -1875,7 +1962,12 @@ function setupDailyEventListeners() {
     initDateSelectWithEvents();
     setupSuffixStatsEventListeners();
 
-     // 狙い台作成ページのイベント登録（AimSheet）
+    // ★メモ機能: クラウドから一度だけメモを取得（取得後に再描画される）
+    if (typeof SeatMemo !== 'undefined' && SeatMemo.init) {
+        SeatMemo.init();
+    }
+
+    // 狙い台作成ページのイベント登録（AimSheet）
     if (typeof AimSheet !== 'undefined') {
         AimSheet.setupEvents();
     }
@@ -1904,7 +1996,6 @@ function toggleSuffixStatsPanel() {
         toggle.querySelector('.toggle-icon').textContent = '▼';
     }
 
-    // DailyState に保存（フォールバックで旧キーも維持）
     if (typeof DailyState !== 'undefined') {
         DailyState.setState({ suffixPanelOpen: suffixStatsPanelOpen }, { silent: true });
     } else {
@@ -1913,7 +2004,6 @@ function toggleSuffixStatsPanel() {
 }
 
 function restoreSuffixStatsPanelState() {
-    // DailyState から復元を試みる
     var shouldOpen = false;
     if (typeof DailyState !== 'undefined') {
         shouldOpen = DailyState.get().suffixPanelOpen === true;
@@ -1921,13 +2011,12 @@ function restoreSuffixStatsPanelState() {
         shouldOpen = localStorage.getItem('suffixStatsPanelOpen') === 'true';
     }
     if (shouldOpen) {
-        suffixStatsPanelOpen = false; // toggle が反転させるのでfalseにしておく
+        suffixStatsPanelOpen = false;
         toggleSuffixStatsPanel();
     }
 }
 
 function calculateSuffixStats(data) {
-    // 末尾0〜9のデータを集計
     var stats = {};
     for (var i = 0; i <= 9; i++) {
         stats[i] = {
@@ -1976,7 +2065,6 @@ function renderSuffixStatsTable(data) {
 
     var stats = calculateSuffixStats(data);
 
-    // 全体合計の計算
     var grandTotal = {
         count: 0,
         totalSa: 0,
@@ -2043,7 +2131,6 @@ function renderSuffixStatsTable(data) {
         rows += '</tr>';
     }
 
-    // 合計行
     var grandAvgSa = grandTotal.count > 0 ? Math.round(grandTotal.totalSa / grandTotal.count) : 0;
     var grandAvgGames = grandTotal.count > 0 ? Math.round(grandTotal.totalGames / grandTotal.count) : 0;
     var grandWinRate = grandTotal.count > 0 ? ((grandTotal.winCount / grandTotal.count) * 100).toFixed(1) : '0.0';
@@ -2113,9 +2200,9 @@ function downloadSuffixStatsCSV() {
         showCopyToast('ダウンロードするデータがありません', true);
         return;
     }
-    var sortedFiles = sortFilesByDate(CSV_FILES, true);
-    var currentFile = sortedFiles[currentDateIndex];
-    var dateStr = currentFile ? currentFile.replace('.csv', '').replace('data/', '') : 'data';
+    var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
+    var currentFile = displayFiles[currentDateIndex];
+    var dateStr = currentFile ? currentFile.replace('.csv', '').replace('data/__virtual__', 'next_').replace('data/', '') : 'data';
     downloadAsCSV(data, dateStr + '_suffix_stats.csv');
 }
 

@@ -161,3 +161,12 @@
     white-space: nowrap;
 }
 #data-table td.memo-col-cell .memo-badge { font-size: 11px; }
+
+.memo-col-clickable { cursor: pointer; }
+.memo-add-hint { color: var(--text-muted, #888); font-size: 0.85em; opacity: 0.7; }
+.memo-edit-target { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+.memo-edit-daiban { font-weight:bold; font-size:1.1em; }
+.memo-edit-machine { color: var(--text-muted, #888); }
+.memo-edit-date { margin-left:auto; font-size:0.9em; opacity:0.8; }
+.memo-edit-row { display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+.virtual-day-note { color: var(--hall-accent, #f0a020); }
