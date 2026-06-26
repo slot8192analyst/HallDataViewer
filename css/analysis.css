@@ -763,3 +763,14 @@
         font-size: 18px;
     }
 }
+
+.analysis-subtabs { display: flex; gap: 8px; margin: 8px 0 12px; }
+.analysis-subtab { padding: 8px 16px; border: 1px solid var(--border-color, #444);
+    background: transparent; color: inherit; border-radius: 6px; cursor: pointer; }
+.analysis-subtab.active { background: var(--primary-color, #3b82f6); color: #fff; }
+.analysis-tab-panel { display: none; }
+.analysis-tab-panel.active { display: block; }
+
+.kubi-series-checks { display: flex; gap: 12px; flex-wrap: wrap; }
+.kubi-series-item { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+#kubi-table .kubi-grp-head { text-align: center; border-bottom: 2px solid var(--border-color, #444); }

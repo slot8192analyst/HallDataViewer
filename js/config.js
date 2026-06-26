@@ -67,14 +67,23 @@ const SITE_CONFIG = {
     // 台数フィルタ（選択中の日の設置台数で判定）:
     //   minCount = 下限（この台数以上）
     //   maxCount = 上限（この台数以下）
-    machinePresets: [
+        machinePresets: [
         {
             id: "at_main",
-            name: "主力AT機種(6台以上)",
+            name: "主力AT機種(10台以上)",
+            matchMode: "exclude",
+            keywords: [],
+            excludeMachines: NON_AT_MACHINES,
+            minCount: 10,
+        },
+        {
+            id: "at_sub2",
+            name: "サブAT機種(6〜9台)",
             matchMode: "exclude",
             keywords: [],
             excludeMachines: NON_AT_MACHINES,
             minCount: 6,
+            maxCount: 9,
         },
         {
             id: "jug_hana_oki",
@@ -94,7 +103,7 @@ const SITE_CONFIG = {
         },
         {
             id: "at_sub",
-            name: "サブAT機種(3〜5台)",
+            name: "少数設置機種(3〜5台)",
             matchMode: "exclude",
             keywords: [],
             excludeMachines: NON_AT_MACHINES,

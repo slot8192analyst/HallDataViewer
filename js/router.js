@@ -44,6 +44,8 @@ var Router = (function() {
             tabId: 'analysis',
             init: function() {
                 if (typeof setupTrendEventListeners === 'function') setupTrendEventListeners();
+                // ▼ 追加: 凹み推移タブのイベント設定（サブタブ切替含む）
+                if (typeof setupKubiEventListeners === 'function') setupKubiEventListeners();
                 var vm = document.getElementById('trendViewMode');
                 if (vm) {
                     vm.addEventListener('change', function() {

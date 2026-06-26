@@ -1216,3 +1216,333 @@ function setupTrendEventListeners() {
 function getTrendDisplayData() {
     return window.trendDisplayData || { results: [], targetFiles: [], mode: 'unit', config: getCurrentColumnConfig() };
 }
+// ===================
+// 凹み推移タブ
+// ===================
+
+var kubiMachineFilterSelect = null;
+var kubiWinRateChartInstance = null;
+var kubiAvgDiffChartInstance = null;
+
+// 系列の定義（key と表示ラベル・色）
+var KUBI_SERIES_DEFS = [
+    { key: 'all', label: '全体',   color: '#a78bfa' },
+    { key: '1',   label: '💀1位', color: '#f87171' },
+    { key: '2',   label: '💀2位', color: '#fb923c' },
+    { key: '3',   label: '💀3位', color: '#fbbf24' }
+];
+
+function getSelectedKubiSeries() {
+    var checked = Array.prototype.slice.call(
+        document.querySelectorAll('.kubiSeriesChk:checked')
+    ).map(function(c) { return c.value; });
+    if (checked.length === 0) checked = ['all']; // 何も選んでなければ全体
+    return checked;
+}
+
+function initKubiMachineFilter() {
+    var tf = (selectedTrendDates && selectedTrendDates.length > 0)
+        ? selectedTrendDates
+        : sortFilesByDate(CSV_FILES, true).slice(0, 7);
+    var opts = getMachineOptionsForLatestDate(tf);
+    if (kubiMachineFilterSelect) kubiMachineFilterSelect.updateOptions(opts);
+    else kubiMachineFilterSelect = initMultiSelectMachineFilter(
+        'kubiMachineFilterContainer', opts, '全機種', loadKubiData);
+}
+
+function updateKubiPeriodLabel() {
+    var label = document.getElementById('kubiPeriodLabel');
+    if (!label) return;
+    if (!selectedTrendDates || selectedTrendDates.length === 0) { label.textContent = '7日間（デフォルト）'; return; }
+    if (selectedTrendDates.length === 1) { label.textContent = formatDate(selectedTrendDates[0]); return; }
+    var s = sortFilesByDate(selectedTrendDates, false);
+    label.textContent = selectedTrendDates.length + '日間 (' + formatDateShort(s[0]) + '〜' + formatDateShort(s[s.length - 1]) + ')';
+}
+
+// ----- バッジ設定モーダル -----
+
+var _kubiBadgeUIReady = false;
+
+function openKubiBadgeModal() {
+    var container = document.getElementById('kubiBadgeSettingsContainer');
+    if (container && !_kubiBadgeUIReady) {
+        container.innerHTML = MachineBadge.renderSettingsHtml('kubiMb');
+        MachineBadge.setupSettingsEvents('kubiMb', function() {
+            updateKubiBadgeSummaryLabel();
+            loadKubiData(); // 設定変更のたびに凹みグラフを再計算
+        });
+        _kubiBadgeUIReady = true;
+    }
+    updateKubiBadgeSummaryLabel();
+    var m = document.getElementById('kubiBadgeModal');
+    if (m) m.classList.add('active');
+}
+
+function closeKubiBadgeModal() {
+    var m = document.getElementById('kubiBadgeModal');
+    if (m) m.classList.remove('active');
+}
+
+// 現在のバッジ設定を要約してラベルに表示
+function updateKubiBadgeSummaryLabel() {
+    var label = document.getElementById('kubiBadgeSummaryLabel');
+    if (!label) return;
+    var base = MachineBadge.getBadgeBase() === 'prev' ? '前日基準' : '当日基準';
+    var ex = [];
+    if (MachineBadge.isExEvent()) ex.push('ｲﾍﾞﾝﾄ除外');
+    if (MachineBadge.isExTail05()) ex.push('末尾0･5除外');
+    label.textContent = MachineBadge.getBadgeDays() + '日累積 / '
+        + base + ' / ' + MachineBadge.getTargetColumn()
+        + (ex.length ? ' / ' + ex.join('・') : '');
+}
+
+// 1日分の💀行配列 → { count, plus, winRate, avgDiff } を計算
+function summarizeKubiRows(rows) {
+    if (!rows || rows.length === 0) return { count: 0, plus: 0, winRate: null, avgDiff: null };
+    var plus = 0, sumDiff = 0;
+    rows.forEach(function(row) {
+        var d = parseInt(String(row['差枚']).replace(/,/g, '')) || 0;
+        if (d > 0) plus++;
+        sumDiff += d;
+    });
+    return {
+        count: rows.length,
+        plus: plus,
+        winRate: (plus / rows.length) * 100,
+        avgDiff: sumDiff / rows.length
+    };
+}
+
+// 各選択日について assignBadges を走らせ、その日の💀台を「全体／順位別」で集計
+// 戻り値: 各日 { file, all:{...}, '1':{...}, '2':{...}, '3':{...} }
+function computeKubiSeries(targetFiles, selectedMachines) {
+    var col = MachineBadge.getTargetColumn(); // バッジ判定に使う列（設定準拠）
+    return targetFiles.map(function(file) {
+        var data = dataCache[file];
+        var rec = {
+            file: file,
+            all: { count: 0, plus: 0, winRate: null, avgDiff: null },
+            '1': { count: 0, plus: 0, winRate: null, avgDiff: null },
+            '2': { count: 0, plus: 0, winRate: null, avgDiff: null },
+            '3': { count: 0, plus: 0, winRate: null, avgDiff: null }
+        };
+        if (!data || data.length === 0) return rec;
+
+        // その日のバッジを確定（集計期間・基準日などはバッジ設定に準拠）
+        var badged = MachineBadge.assignBadges(data, file, dataCache, col, {});
+
+        // 💀が付いた台を抽出
+        var kubiRows = badged.filter(function(row) {
+            return row._machineBadge && row._machineBadge.kubi !== null;
+        });
+        // 機種フィルター（任意）
+        if (selectedMachines && selectedMachines.length > 0) {
+            kubiRows = kubiRows.filter(function(row) {
+                return selectedMachines.indexOf(row['機種名']) !== -1;
+            });
+        }
+
+        // 全体
+        rec.all = summarizeKubiRows(kubiRows);
+        // 順位別
+        ['1', '2', '3'].forEach(function(rank) {
+            var rows = kubiRows.filter(function(row) {
+                return String(row._machineBadge.kubi) === rank;
+            });
+            rec[rank] = summarizeKubiRows(rows);
+        });
+
+        return rec;
+    });
+}
+
+function loadKubiData() {
+    var summaryEl = document.getElementById('kubiSummary');
+    if (!summaryEl) return;
+
+    var targetFiles = (selectedTrendDates && selectedTrendDates.length > 0)
+        ? sortFilesByDate(selectedTrendDates, false)
+        : sortFilesByDate(sortFilesByDate(CSV_FILES, true).slice(0, 7), false);
+
+    if (targetFiles.length === 0) { summaryEl.innerHTML = '<p>表示する日付を選択してください</p>'; return; }
+
+    var selectedMachines = kubiMachineFilterSelect ? kubiMachineFilterSelect.getSelectedValues() : [];
+    var series = computeKubiSeries(targetFiles, selectedMachines);
+    var activeKeys = getSelectedKubiSeries();
+
+    renderKubiSummary(series, targetFiles, selectedMachines);
+    renderKubiCharts(series, targetFiles, activeKeys);
+    renderKubiTable(series, targetFiles, activeKeys);
+}
+
+function renderKubiSummary(series, targetFiles, selectedMachines) {
+    var el = document.getElementById('kubiSummary');
+    if (!el) return;
+    var valid = series.filter(function(s) { return s.all.count > 0; });
+    var avgWin = valid.length ? valid.reduce(function(a, s) { return a + s.all.winRate; }, 0) / valid.length : 0;
+    var totalKubi = series.reduce(function(a, s) { return a + s.all.count; }, 0);
+    var info = '期間: ' + targetFiles.length + '日間'
+        + ' | 💀延べ台数: ' + totalKubi.toLocaleString() + '台'
+        + ' | 全体平均勝率: ' + avgWin.toFixed(1) + '%'
+        + ' | 集計設定: ' + MachineBadge.getBadgeDays() + '日累積/'
+        + (MachineBadge.getBadgeBase() === 'prev' ? '前日基準/' : '当日基準/')
+        + MachineBadge.getTargetColumn();
+    if (selectedMachines.length > 0) info += ' | ' + selectedMachines.length + '機種選択中';
+    el.innerHTML = info;
+}
+
+function buildKubiDatasets(series, activeKeys, prop) {
+    // prop: 'winRate' または 'avgDiff'
+    return KUBI_SERIES_DEFS
+        .filter(function(def) { return activeKeys.indexOf(def.key) !== -1; })
+        .map(function(def) {
+            return {
+                label: def.label,
+                data: series.map(function(s) { return s[def.key][prop]; }),
+                borderColor: def.color,
+                backgroundColor: def.color + '22',
+                tension: 0.2,
+                spanGaps: true,
+                fill: false
+            };
+        });
+}
+
+function renderKubiCharts(series, targetFiles, activeKeys) {
+    var labels = targetFiles.map(function(f) { return formatDateShort(f); });
+
+    // 勝率
+    var winCanvas = document.getElementById('kubiWinRateChart');
+    if (winCanvas && typeof Chart !== 'undefined') {
+        if (kubiWinRateChartInstance) kubiWinRateChartInstance.destroy();
+        kubiWinRateChartInstance = new Chart(winCanvas.getContext('2d'), {
+            type: 'line',
+            data: { labels: labels, datasets: buildKubiDatasets(series, activeKeys, 'winRate') },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: { y: { suggestedMin: 0, suggestedMax: 100,
+                    ticks: { callback: function(v) { return v + '%'; } } } }
+            }
+        });
+    }
+
+    // 平均差枚
+    var avgCanvas = document.getElementById('kubiAvgDiffChart');
+    if (avgCanvas && typeof Chart !== 'undefined') {
+        if (kubiAvgDiffChartInstance) kubiAvgDiffChartInstance.destroy();
+        kubiAvgDiffChartInstance = new Chart(avgCanvas.getContext('2d'), {
+            type: 'line',
+            data: { labels: labels, datasets: buildKubiDatasets(series, activeKeys, 'avgDiff') },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: { y: { ticks: { callback: function(v) { return Math.round(v).toLocaleString(); } } } }
+            }
+        });
+    }
+}
+
+function renderKubiTable(series, targetFiles, activeKeys) {
+    var thead = document.querySelector('#kubi-table thead');
+    var tbody = document.querySelector('#kubi-table tbody');
+    if (!thead || !tbody) return;
+
+    var defs = KUBI_SERIES_DEFS.filter(function(d) { return activeKeys.indexOf(d.key) !== -1; });
+
+    // ヘッダ: 日付 + 各系列ごとに（台数 / 勝率 / 平均差枚）
+    var headCells = '<th rowspan="2">日付</th>';
+    defs.forEach(function(d) {
+        headCells += '<th colspan="3" class="kubi-grp-head">' + d.label + '</th>';
+    });
+    var subCells = '';
+    defs.forEach(function() {
+        subCells += '<th>台数</th><th>勝率</th><th>平均差枚</th>';
+    });
+    thead.innerHTML = '<tr>' + headCells + '</tr><tr>' + subCells + '</tr>';
+
+    var rows = series.map(function(s) {
+        var cells = '<td>' + formatDateShort(s.file) + '</td>';
+        defs.forEach(function(d) {
+            var v = s[d.key];
+            if (!v || v.count === 0) {
+                cells += '<td class="text-muted">-</td><td class="text-muted">-</td><td class="text-muted">-</td>';
+            } else {
+                var avgClass = v.avgDiff > 0 ? 'plus' : v.avgDiff < 0 ? 'minus' : '';
+                cells += '<td>' + v.count + '</td>'
+                    + '<td>' + v.winRate.toFixed(1) + '%</td>'
+                    + '<td class="' + avgClass + '">' + (v.avgDiff >= 0 ? '+' : '') + Math.round(v.avgDiff).toLocaleString() + '</td>';
+            }
+        });
+        return '<tr>' + cells + '</tr>';
+    }).join('');
+    tbody.innerHTML = rows;
+}
+
+// タブ切り替え＋イベント設定
+function setupAnalysisSubtabs() {
+    document.querySelectorAll('.analysis-subtab').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var target = btn.dataset.atab;
+            document.querySelectorAll('.analysis-subtab').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            var agg = document.getElementById('analysisTabAggregate');
+            var kubi = document.getElementById('analysisTabKubi');
+            if (agg) agg.classList.toggle('active', target === 'aggregate');
+            if (kubi) kubi.classList.toggle('active', target === 'kubi');
+            if (target === 'kubi') {
+                initKubiMachineFilter();
+                updateKubiPeriodLabel();
+                updateKubiBadgeSummaryLabel();
+                loadKubiData();
+            }
+        });
+    });
+}
+
+// いま凹みタブが表示中か
+function isKubiTabActive() {
+    var kubi = document.getElementById('analysisTabKubi');
+    return !!(kubi && kubi.classList.contains('active'));
+}
+
+function setupKubiEventListeners() {
+    setupAnalysisSubtabs();
+
+    var openBtn = document.getElementById('openKubiCalendar');
+    if (openBtn) openBtn.addEventListener('click', openTrendCalendarModal);
+
+    var loadBtn = document.getElementById('loadKubi');
+    if (loadBtn) loadBtn.addEventListener('click', loadKubiData);
+
+    // 系列チェックボックス → 即再描画
+    document.querySelectorAll('.kubiSeriesChk').forEach(function(chk) {
+        chk.addEventListener('change', loadKubiData);
+    });
+
+    // バッジ設定モーダル
+    var bsOpen = document.getElementById('openKubiBadgeSettings');
+    if (bsOpen) bsOpen.addEventListener('click', openKubiBadgeModal);
+    var bsClose = document.getElementById('closeKubiBadgeSettings');
+    if (bsClose) bsClose.addEventListener('click', closeKubiBadgeModal);
+    var bsApply = document.getElementById('applyKubiBadgeSettings');
+    if (bsApply) bsApply.addEventListener('click', function() {
+        closeKubiBadgeModal();
+        loadKubiData();
+    });
+    var bsModal = document.getElementById('kubiBadgeModal');
+    if (bsModal) bsModal.addEventListener('click', function(e) {
+        if (e.target.id === 'kubiBadgeModal') closeKubiBadgeModal();
+    });
+
+    // 日付モーダルの「適用」: 凹みタブが開いていれば凹み側も更新
+    var applyBtn = document.getElementById('applyTrendDates');
+    if (applyBtn) applyBtn.addEventListener('click', function() {
+        if (isKubiTabActive()) {
+            setTimeout(function() {
+                updateKubiPeriodLabel();
+                loadKubiData();
+            }, 0);
+        }
+    });
+}
