@@ -774,3 +774,29 @@
 .kubi-series-checks { display: flex; gap: 12px; flex-wrap: wrap; }
 .kubi-series-item { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
 #kubi-table .kubi-grp-head { text-align: center; border-bottom: 2px solid var(--border-color, #444); }
+
+/* 凹みタブ 機種セクション */
+.kubi-section {
+    margin-bottom: 28px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color, #444);
+}
+.kubi-section-title {
+    margin: 12px 0 8px;
+    font-size: 16px;
+    color: var(--primary-color, #60a5fa);
+}
+.kubi-avg-cards { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.kubi-avg-card {
+    border: 2px solid var(--k-color, #a78bfa);
+    border-radius: 8px; padding: 8px 12px; min-width: 130px;
+    background: var(--bg-card, rgba(255,255,255,0.03));
+}
+.kubi-avg-name { font-size: 13px; font-weight: bold; color: var(--k-color, #a78bfa); margin-bottom: 4px; }
+.kubi-avg-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
+.kubi-avg-row b.plus { color: var(--color-success, #4ade80); }
+.kubi-avg-row b.minus { color: var(--color-danger, #f87171); }
+.kubi-charts-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.kubi-charts-row .trend-chart-container { flex: 1 1 320px; }
+#kubi-table, .kubi-table { width: 100%; }
+.kubi-table .kubi-grp-head { text-align: center; border-bottom: 2px solid var(--border-color, #444); }
