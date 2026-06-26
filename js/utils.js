@@ -946,7 +946,7 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
                 '<div class="multi-select-preset-section">' +
                     '<div class="preset-row">' +
                         '<select class="preset-select"><option value="">プリセット選択...</option></select>' +
-                        '<button type="button" class="multi-select-btn preset-apply-btn" title="適用">適用</button>' +
+                        '<button type="button" class="multi-select-btn preset-apply-btn" title="このプリセットの機種をまとめてON/OFF">適用</button>' +
                     '</div>' +
                 '</div>' +
             '</div>' +
@@ -1038,14 +1038,21 @@ function initMultiSelectMachineFilter(containerId, options, placeholder, onChang
             return;
         }
 
-        selectedValues.clear();
-        matched.forEach(function(m) { selectedValues.add(m); });
+        // プリセットの機種が全部すでにチェック済みかどうかで ON/OFF を切り替える（トグル）
+        var allSelected = matched.every(function(m) { return selectedValues.has(m); });
+
+        if (allSelected) {
+            matched.forEach(function(m) { selectedValues.delete(m); });
+        } else {
+            matched.forEach(function(m) { selectedValues.add(m); });
+        }
 
         renderOptions(searchInput ? searchInput.value : '');
         updateDisplay();
         if (onChange) onChange(getSelectedValues());
 
-        showCopyToast('「' + preset.name + '」を適用: ' + matched.length + '機種');
+        var verb = allSelected ? 'のチェックを解除' : 'をチェック';
+        showCopyToast('「' + preset.name + '」' + matched.length + '機種' + verb);
     }
 
     // ========== 機種リスト描画 ==========
