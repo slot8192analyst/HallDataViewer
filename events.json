@@ -472,6 +472,12 @@
       "endDate": "2026_06_28",
       "machines": ["ネオアイムEX"],
       "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_06_29",
+      "endDate": "2026_07_05",
+      "machines": ["喰種,ガールズ"],
+      "color": "#3b82f6"
     }
  ],
   "mediaTypes": [
