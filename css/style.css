@@ -707,3 +707,66 @@ tr:nth-child(odd) {
         --font-size-3xl: 26px;
     }
 }
+
+/* ===================
+   サマリー スタットカード
+   =================== */
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.stat-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+.stat-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+}
+
+.stat-value {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-unit {
+    font-size: var(--font-size-sm);
+    font-weight: 400;
+    color: var(--text-secondary);
+    margin-left: 2px;
+}
+
+.summary-note {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+/* タブレット: 3列 */
+@media (max-width: 900px) {
+    .summary-cards {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* スマホ: 2列 */
+@media (max-width: 480px) {
+    .summary-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .stat-value {
+        font-size: var(--font-size-xl);
+    }
+}

@@ -1071,12 +1071,6 @@ async function filterAndRender() {
         data = data.filter(function(row) { return selectedMachines.indexOf(row['機種名']) !== -1; });
     }
 
-    var searchTerm = (_s.search !== undefined ? _s.search
-        : (document.getElementById('search') ? document.getElementById('search').value : '')).toLowerCase();
-    if (searchTerm) {
-        data = data.filter(function(row) { return (row['台番号'] || '').toLowerCase().indexOf(searchTerm) !== -1; });
-    }
-
     var sortBy = (_s.sortBy !== undefined ? _s.sortBy
         : (document.getElementById('sortBy') ? document.getElementById('sortBy').value : ''));
 
@@ -1169,19 +1163,6 @@ function renderActiveFilterChips() {
 
     var _s = (typeof DailyState !== 'undefined') ? DailyState.get() : {};
     var chips = [];
-
-    var searchVal = _s.search || '';
-    if (searchVal) {
-        chips.push({
-            type: 'chip-search',
-            label: '台番号: ' + searchVal,
-            remove: function() {
-                var el = document.getElementById('search');
-                if (el) el.value = '';
-                DailyState.setState({ search: '' });
-            }
-        });
-    }
 
     var machines = _s.selectedMachines || [];
     if (machines.length > 0) {
@@ -1544,23 +1525,42 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
                 var avgRateText = formatMechanicalRate(avgRate);
                 var avgRateClass = getMechanicalRateClass(avgRate);
 
-                var tagInfo = '';
+                var noteParts = [];
                 if (TagEngine.hasAnyActiveConditions()) {
                     var taggedCount = data.filter(function(r) { return r['_matchedTags'] && r['_matchedTags'].length > 0; }).length;
-                    tagInfo = ' | タグ付き: ' + taggedCount + '台';
+                    noteParts.push('タグ付き: ' + taggedCount + '台');
                 }
-
-                var filterInfo = '';
                 if (hasActiveDailyFilters()) {
-                    filterInfo = ' | フィルター適用中';
+                    noteParts.push('フィルター適用中');
                 }
+                var noteHtml = noteParts.length > 0
+                    ? '<div class="summary-note">' + noteParts.join('　/　') + '</div>'
+                    : '';
 
                 summaryEl.innerHTML =
-                    '表示: ' + data.length + '台' + tagInfo + filterInfo + ' | ' +
-                    '総G数: ' + totalGames.toLocaleString() + ' | ' +
-                    '総差枚: <span class="' + saClass + '">' + (totalSa >= 0 ? '+' : '') + totalSa.toLocaleString() + '</span> | ' +
-                    '機械割: <span class="' + avgRateClass + '">' + avgRateText + '</span> | ' +
-                    '勝率: ' + winRate + '%';
+                    '<div class="summary-cards">' +
+                        '<div class="stat-card">' +
+                            '<span class="stat-label">総差枚</span>' +
+                            '<span class="stat-value ' + saClass + '">' + (totalSa >= 0 ? '+' : '') + totalSa.toLocaleString() + '</span>' +
+                        '</div>' +
+                        '<div class="stat-card">' +
+                            '<span class="stat-label">機械割</span>' +
+                            '<span class="stat-value ' + avgRateClass + '">' + avgRateText + '</span>' +
+                        '</div>' +
+                        '<div class="stat-card">' +
+                            '<span class="stat-label">勝率</span>' +
+                            '<span class="stat-value">' + winRate + '%</span>' +
+                        '</div>' +
+                        '<div class="stat-card">' +
+                            '<span class="stat-label">表示台数</span>' +
+                            '<span class="stat-value">' + data.length + '<span class="stat-unit">台</span></span>' +
+                        '</div>' +
+                        '<div class="stat-card">' +
+                            '<span class="stat-label">総G数</span>' +
+                            '<span class="stat-value">' + totalGames.toLocaleString() + '</span>' +
+                        '</div>' +
+                    '</div>' +
+                    noteHtml;
             }
         }
     }
@@ -1795,14 +1795,6 @@ function setupDailyEventListeners() {
         } else {
             var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
             currentDateIndex = displayFiles.indexOf(e.target.value);
-            filterAndRender();
-        }
-    });
-
-    document.getElementById('search') && document.getElementById('search').addEventListener('input', function(e) {
-        if (typeof DailyState !== 'undefined') {
-            DailyState.setState({ search: e.target.value });
-        } else {
             filterAndRender();
         }
     });
