@@ -665,40 +665,117 @@ function applyBadgeCacheToData(data, dateFile) {
     });
 }
 
-function renderBadgeSettings() {
-    var container = document.getElementById('badgeSettingsContainer');
-    if (!container) return;
-    if (typeof MachineBadge === 'undefined') return;
+// バッジ設定ボトムシートのインスタンス（遅延生成）
+var _dailyBadgeSheet = null;
 
-    container.innerHTML = MachineBadge.renderSettingsHtml('dailyMb');
+function ensureDailyBadgeSheet() {
+    if (_dailyBadgeSheet) return _dailyBadgeSheet;
+    if (typeof BottomSheet === 'undefined') return null;
 
+    _dailyBadgeSheet = BottomSheet.create('dailyBadgeSheet', { title: '🏅 機種内順位バッジ設定' });
+
+    // シート内に設定UI＋操作ボタン（計算・フィルター）を組み立てる
+    var html =
+        MachineBadge.renderSettingsHtml('dailyMb')
+        + '<div class="mb-sheet-actions">'
+        +   '<button type="button" id="dailyMbRecalcBtn" class="mb-action-btn mb-action-primary">▶ バッジを計算</button>'
+        + '</div>'
+        + '<div class="mb-sheet-filter">'
+        +   '<span class="mb-sheet-filter-label">表示を絞る:</span>'
+        +   '<label class="mb-filter-label"><input type="checkbox" id="dailyMbFilterTako"> 🐙 タコだしのみ</label>'
+        +   '<label class="mb-filter-label"><input type="checkbox" id="dailyMbFilterKubi"> 💀 死に台のみ</label>'
+        + '</div>';
+
+    _dailyBadgeSheet.setContent(html);
+
+    // 設定変更 → プレビュー更新＋キャッシュ破棄（従来 renderBadgeSettings と同じ挙動）
     MachineBadge.setupSettingsEvents('dailyMb', function() {
         updateBadgePreview();
-        // 設定が変わったら全バッジキャッシュを破棄（再計算が必要）
         dailyBadgeCache = {};
-        updateBadgeRecalcButton();
+        updateDailyBadgeRecalcButton();
     });
+
+    // シート内の「計算」ボタン
+    var recalcBtn = document.getElementById('dailyMbRecalcBtn');
+    if (recalcBtn) {
+        recalcBtn.addEventListener('click', function() {
+            recalcBadgeCache();
+            updateDailyBadgeRecalcButton();
+            MachineBadge.renderWindowInfo('dailyMb'); // 計算に使った日を表示
+            filterAndRender();
+        });
+    }
+
+    // シート内のバッジ存在フィルター（🐙のみ / 💀のみ）
+    var fTako = document.getElementById('dailyMbFilterTako');
+    if (fTako) {
+        fTako.checked = dailyBadgeFilter.tako;
+        fTako.addEventListener('change', function(e) {
+            dailyBadgeFilter.tako = e.target.checked;
+            filterAndRender();
+        });
+    }
+    var fKubi = document.getElementById('dailyMbFilterKubi');
+    if (fKubi) {
+        fKubi.checked = dailyBadgeFilter.kubi;
+        fKubi.addEventListener('change', function(e) {
+            dailyBadgeFilter.kubi = e.target.checked;
+            filterAndRender();
+        });
+    }
+
+    // 開くたびに、現在の計算内訳を反映
+    _dailyBadgeSheet.onOpen(function() {
+        updateDailyBadgeRecalcButton();
+        MachineBadge.renderWindowInfo('dailyMb');
+    });
+
+    return _dailyBadgeSheet;
 }
 
-/** 再計算ボタンの状態（ラベル）を更新する */
+// 旧: renderBadgeSettings。呼び出し互換のため名前は残し、シート初期化に委譲する。
+function renderBadgeSettings() {
+    ensureDailyBadgeSheet();
+    updateBadgePreview();
+}
+
+/** 再計算ボタンの状態（ラベル）を更新する（既存ボタン＋シート内ボタン両対応） */
 function updateBadgeRecalcButton() {
-    var btn = document.getElementById('badgeRecalcBtn');
-    if (!btn) return;
     var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
     var _s = (typeof DailyState !== 'undefined') ? DailyState.get() : {};
     var cf = (_s.dateFile && displayFiles.indexOf(_s.dateFile) !== -1 ? _s.dateFile : null)
              || displayFiles[currentDateIndex];
     var hasCached = !!(cf && dailyBadgeCache[cf]);
-    btn.textContent = hasCached ? '🔄 再計算' : '▶ バッジを計算';
-    btn.classList.toggle('badge-needs-calc', !hasCached);
+    var label = hasCached ? '🔄 再計算' : '▶ バッジを計算';
+
+    var btn = document.getElementById('badgeRecalcBtn');
+    if (btn) {
+        btn.textContent = label;
+        btn.classList.toggle('badge-needs-calc', !hasCached);
+    }
+    var sheetBtn = document.getElementById('dailyMbRecalcBtn');
+    if (sheetBtn) {
+        sheetBtn.textContent = label;
+        sheetBtn.classList.toggle('mb-action-primary', !hasCached);
+    }
 }
 
-/** バッジフィルター（🐙あり／💀あり）のチェックボックス状態をDOMに反映 */
+// シート専用のラベル更新（ensureDailyBadgeSheet から呼ぶエイリアス）
+function updateDailyBadgeRecalcButton() {
+    updateBadgeRecalcButton();
+}
+
+/** バッジフィルター（🐙あり／💀あり）のチェックボックス状態をDOMに反映（既存＋シート両対応） */
 function syncBadgeFilterCheckboxes() {
     var tako = document.getElementById('badgeFilterTako');
     var kubi = document.getElementById('badgeFilterKubi');
     if (tako) tako.checked = dailyBadgeFilter.tako;
     if (kubi) kubi.checked = dailyBadgeFilter.kubi;
+
+    var sTako = document.getElementById('dailyMbFilterTako');
+    var sKubi = document.getElementById('dailyMbFilterKubi');
+    if (sTako) sTako.checked = dailyBadgeFilter.tako;
+    if (sKubi) sKubi.checked = dailyBadgeFilter.kubi;
 }
 
 // ===================
@@ -1708,7 +1785,13 @@ function setupDailyModalEvents() {
         closeAppModal('columnModal');
     });
 
-    bindModalOpen('openBadgeModal', 'badgeModal');
+    // バッジ設定はボトムシートで開く（旧 badgeModal は使わない）
+    var openBadgeBtn = document.getElementById('openBadgeModal');
+    if (openBadgeBtn) openBadgeBtn.addEventListener('click', function() {
+        var sheet = ensureDailyBadgeSheet();
+        if (sheet) sheet.open();
+    });
+
     bindModalClose('closeBadgeModal', 'badgeModal');
     var applyBadgeBtn = document.getElementById('applyBadgeModal');
     if (applyBadgeBtn) applyBadgeBtn.addEventListener('click', function() {

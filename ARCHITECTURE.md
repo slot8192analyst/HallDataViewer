@@ -5,7 +5,7 @@
 > コードを編集する前にこのファイルだけを読めば、「どのファイルに何が書いてあるか」「どこを直せばよいか」が分かることを目指す。
 > AI / 人間どちらも対象読者。**機能を追加・変更したらこのファイルも更新すること。**
 
-最終更新: 2026-07-13（promotion.js / board.js / promotion.css を追加。DESIGN.md に合わせて DevFocus Dark テーマ適用（背景色を純黒系に変更・フォント Inter 統一・角丸 8px 統一）。ARCHITECTURE.md を現在の実装に完全同期。）
+最終更新: 2026-07-13（bottomsheet.js を追加（バッジ設定を共通ボトムシート化）。機種内バッジのロジックを改修：1台設置機種はバッジ非付与に変更、未ロード日の検知と警告表示、集計に使った日の可視化（集計内訳）を追加、集計期間を数値入力から選択式（1〜15日・iOSネイティブホイール）に変更。バッジ設定UIを DESIGN.md（DevFocus Dark）準拠に刷新。）
 
 ---
 
@@ -67,7 +67,7 @@ webapp/
 │
 ├── js/                         … アプリ本体（§4で各ファイル詳述）
 │   ├── config.js  utils.js  data.js  chart.js
-│   ├── preset.js  hstag.js  machinebadge.js
+│   ├── preset.js  hstag.js  machinebadge.js  bottomsheet.js
 │   ├── daily-state.js  daily.js  aim.js  memo.js  analysis.js
 │   ├── calendar.js  island.js
 │   ├── promotion.js            … 取材ページ共通モジュール（一覧・詳細・機種マトリクス・全体マトリクス）
@@ -140,7 +140,7 @@ webapp/
 ## 4. JavaScript モジュール詳細
 
 読み込み順序（`index.html` 末尾）＝依存関係の順序：
-`config → utils → data → chart → preset → hstag → machinebadge → daily-state → daily → aim → memo → analysis → calendar → island → promotion → board → router → app`
+`config → utils → data → chart → preset → hstag → machinebadge → bottomsheet → daily-state → daily → aim → memo → analysis → calendar → island → promotion → board → router → app`
 
 > `tagmatch.js` は `index.html` から読み込まれていない（タブUIも無いため事実上無効）。`compare.js` / `trend.js` は存在しない（廃止／改称済み）。
 > `router.js` は全ページJSの後・`app.js` の直前に読み込む。`app.js` の `init()` 末尾で `Router.start()` を呼ぶことで初期表示が確定する。
@@ -161,12 +161,13 @@ webapp/
 | **chart.js** | ~190 | Chart.js ラッパ。解析タブ・カレンダーのトレンドグラフ描画 | `renderTrendChart`, `CHART_COLORS` |
 | **preset.js** | ~282 | 機種フィルタープリセット（固定＋ユーザー定義）管理。判定方式は partial / exact / exclude。除外は `excludeKeywords`（部分一致）と `excludeMachines`（完全一致）の2系統。台数フィルタは `minCount`（下限）/ `maxCount`（上限）で、**選択中の日の設置台数**で判定（`resolve` の第3引数 `machineOptions` の `count` を参照） | `MachinePreset`（IIFE） |
 | **hstag.js** | ~849 | **汎用タグ判定エンジン**。条件（差枚/G数/機械割…）でAND/ORグループ判定。日別タブ等で共用 | `TagEngine`（IIFE） |
-| **machinebadge.js** | ~436 | 機種内順位バッジ（🐙タコだし／💀死に台）。直近N日累積で順位付け。**設置台数別ロジック**: 3台以上=機種内で順位付け、2台=💀のみ1位付与（🐙なし）、1台設置機種=全機種横断で1グループにまとめて順位付け（解析タブは対象外） | `MachineBadge`（IIFE） |
+| **machinebadge.js** | ~520 | 機種内順位バッジ（🐙タコだし／💀死に台）。直近N日累積で順位付け。**設置台数別ロジック**: 3台以上=機種内で順位付け、2台=💀のみ1位付与（🐙なし）、1台設置機種=**バッジ非付与**（比較不能のため。旧・横断グループ方式は廃止）。**未ロード日検知**: 集計窓に含まれるがデータ未ロードの日を `missingFiles` として記録し、バッジのツールチップとボトムシートで警告表示。**集計内訳の可視化**: `renderWindowInfo` で「計算に使った日／除外日／未ロード日」を一覧描画。集計期間は選択式（1〜15日）。設定UIは共通ボトムシートに表示 | `MachineBadge`（IIFE。主要: `assignBadges`, `assignBadgesForTrend`, `renderBadgeHtml/Inner`, `renderSettingsHtml`, `setupSettingsEvents`, `getLastWindowInfo`, `renderWindowInfo`） |
+| **bottomsheet.js** | ~90 | **ボトムシート（ハーフモーダル）共通モジュール**。画面下部からスライドインする軽量シート。既存 `.app-modal` とは別系統で、DOM を動的生成する（partials に依存しない）。バッジ設定（日別・凹み推移・狙い台）の表示に共用。DESIGN.md 準拠（`--bg-elevated`・角丸8px・`--transition-normal`・44pxタップターゲット） | `BottomSheet`（IIFE: `create(id, {title})` → `setContent / open / close / isOpen / onOpen`、`get(id)`） |
 | **daily-state.js** | ~327 | **日別タブの状態管理**。localStorage + URL と双方向同期。`setState`で再描画をバッチ | `DailyState`（`get/setState/init/applyDefaultDate`） |
-| **daily.js** | ~2100 | **日別データページ**本体。テーブル描画、数値フィルター、タグ、表示列、バッジ、末尾統計、一括タグ付け、狙い台モーダル起動。初期化（`setupDailyEventListeners`+`filterAndRender`）は router の daily.init からページ初回表示時に呼ばれる。`initDailyMachineFilter` は対象コンテナ未挿入時は早期 return | `filterAndRender`, `setupDailyEventListeners`, `initDailyMachineFilter`, `dailyFilterGroups` |
-| **aim.js** | ~971 | **狙い台シート（AimSheet）**。日別タブのモーダルから起動。PC=HTML5 Drag&Drop／スマホ=長押しドラッグ＋タップメニューで凹み台を「最優先／優先／その他」ゾーンに区分け。💀🥇💀🥈💀🥉表記、機種除外（プリセット一括）、html2canvasで1枚画像出力。保存は localStorage（自動）＋**Cloudflare D1**（作成者ごとに upsert・他人のシート読込／削除）。Worker URL は `AIM_API_URL` 定数 | `AimSheet`（IIFE） |
+| **daily.js** | ~2100 | **日別データページ**本体。テーブル描画、数値フィルター、タグ、表示列、バッジ、末尾統計、一括タグ付け、狙い台モーダル起動。初期化（`setupDailyEventListeners`+`filterAndRender`）は router の daily.init からページ初回表示時に呼ばれる。`initDailyMachineFilter` は対象コンテナ未挿入時は早期 return。バッジ設定はボトムシート（ensureDailyBadgeSheet）で表示 | `filterAndRender`, `setupDailyEventListeners`, `initDailyMachineFilter`, `dailyFilterGroups` |
+| **aim.js** | ~971 | **狙い台シート（AimSheet）**。日別タブのモーダルから起動。PC=HTML5 Drag&Drop／スマホ=長押しドラッグ＋タップメニューで凹み台を「最優先／優先／その他」ゾーンに区分け。💀🥇💀🥈💀🥉表記、機種除外（プリセット一括）、html2canvasで1枚画像出力。保存は localStorage（自動）＋**Cloudflare D1**（作成者ごとに upsert・他人のシート読込／削除）。Worker URL は `AIM_API_URL` 定数。凹み判定（バッジ）設定はボトムシート（ensureAimBadgeSheet） | `AimSheet`（IIFE） |
 | **memo.js** | ~300 | **着席メモ**。日別タブのメモ列セルタップで起動する小モーダル（SeatMemo.openEditor）。記録者/日付/台/設定をその場で記録・共有 | `SeatMemo`（IIFE） |
-| **analysis.js** | ~1218 | **解析タブ**（旧データトレンド。ファイル名のみ analysis に改称、内部の関数・変数名は trend 由来のまま）。期間集計（台別/機種別、合計/平均）、Chart.jsグラフ、3段キャッシュ最適化 | `loadTrendData`, `setupTrendEventListeners`, `initTrendMachineFilter`, `trendCache`, `activeTrendFilters` |
+| **analysis.js** | ~1218 | **解析タブ**（旧データトレンド。ファイル名のみ analysis に改称、内部の関数・変数名は trend 由来のまま）。期間集計（台別/機種別、合計/平均）、Chart.jsグラフ、3段キャッシュ最適化。凹み推移タブのバッジ設定はボトムシート（ensureKubiBadgeSheet） | `loadTrendData`, `setupTrendEventListeners`, `initTrendMachineFilter`, `trendCache`, `activeTrendFilters` |
 | **calendar.js** | ~885 | **カレンダータブ**。月間集計、イベント表示、累積差枚推移グラフ、日別タブへ遷移 | `renderCalendar`, `setupCalendarEventListeners`, `navigateToDailyData` |
 | **island.js** | ~688 | **ヒートマップ（島図）タブ**。`island-config.json`でレイアウト描画、表示モード切替 | `IslandMap`（`init/render`） |
 | **promotion.js** | ~789 | **取材ページ共通モジュール**。取材ごとの開催日一覧（カード形式）・詳細（対象機種テーブル＋その日の全台ランキング）・対象機種マトリクス（縦:機種 × 横:開催日）・全体マトリクス（3取材一覧）を描画。`events.json` の `target_machines` / `candidate_machines` を参照。未来日（まだデータなし）は案内のみ表示。取材名定義 `PROMO_NAMES`・カラー定義 `PROMO_COLORS` を保持 | `Promotion`（IIFE: `render`, `renderOverview`, `PROMO_NAMES`, `PROMO_COLORS`, `PROMO_LABELS`） |
@@ -187,7 +188,7 @@ webapp/
 | `analysis.css` | 解析タブ（グラフ、固定列テーブル、機種サマリーカード）。旧 trend.css |
 | `calendar.css` | カレンダー（グリッド、凡例、月間推移グラフ） |
 | `island.css` | 島図（マップ、ヒートマップセル、台詳細モーダル） |
-| `machinebadge.css` | 機種内バッジの見た目 |
+| `machinebadge.css` | 機種内バッジの見た目。加えて**バッジ設定ボトムシート**（`.bottom-sheet` 系）と設定UI・集計内訳（`.mb-window-*`）のスタイルを内包。DESIGN.md（DevFocus Dark）準拠に刷新済み（色変数化・角丸8px・44pxタップターゲット・独自ライトメディアクエリ廃止） |
 | `aim.css` | 狙い台シート（ゾーンボード、チップ、画像出力レイアウト、クラウド操作UI） |
 | `memo.css` | 着席メモのバッジ／メモ列セル／メモ入力モーダル |
 | `promotion.css` | 取材ページ全体（取材カラー変数・開催日カード・対象機種マトリクス・詳細テーブル・取材掲示板）|
@@ -237,12 +238,16 @@ webapp/
 ### 機種内バッジ（`machinebadge.js` / `MachineBadge`）
 - その日を含む**直近N日間の累積差枚（or G数）**で同一機種内の順位を算出
 - 🐙=上位（タコだし）、💀=下位（死に台）。表示順位 `[1,2,3]` をカスタム可
-- **設置台数別ロジック**（日別タブ `assignBadges`）:
+- **設置台数別ロジック**（日別タブ `assignBadges`。設置台数の判定は「基準日の設置台数」）:
   - 3台以上 … 機種内で 🐙💀 を通常どおり順位付け
   - 2台 … 💀（死に台）1位のみ付与。🐙 は付けない（2台同値ならバッジなし）
-  - 1台 … 単独では比較不可のため、「1台設置の機種」をすべてまとめた**横断グループ**で 🐙💀 を順位付け
+  - 1台 … **バッジを付けない**（単独では比較不能のため。旧・1台設置機種の横断グループ方式は廃止）
   - 解析タブ（`assignBadgesForTrend`）はこのロジック非対象（選択期間合計での機種内順位のまま）
-- 設定は `localStorage`。設定変更後は**手動で再計算ボタン**が必要
+- **未ロード日の扱い**: 集計窓（`windowFiles`）に含まれるが `dataCache` 未ロードの日は集計から欠落する。この日を `missingFiles` として記録し、バッジのツールチップに「⚠未ロードN日ぶん欠落」、設定シートに警告一覧を表示する。時間を置いて再計算すると反映される
+- **集計内訳の可視化**: 直近の計算で使った窓情報を `_lastWindowInfo` に保持。`renderWindowInfo(idPrefix)` で「計算に使った日（範囲・チップ）／除外日／未ロード日」を設定シート内に描画する。`getLastWindowInfo()` で内訳を取得可能
+- **集計期間**は選択式（1〜15日、`MIN_DAYS`〜`MAX_DAYS`）。iOS Safari では `<select>` がネイティブホイールになる
+- 設定は `localStorage`。設定変更後は**手動で再計算ボタン**が必要（日別タブ）
+- **設定UIはボトムシート**（`BottomSheet`）で表示。日別＝`ensureDailyBadgeSheet`、凹み推移＝`ensureKubiBadgeSheet`、狙い台＝`ensureAimBadgeSheet`。いずれも `MachineBadge.renderSettingsHtml(idPrefix)` を共用（接頭辞: `dailyMb` / `kubiMb` / `aimMb`）
 
 ### 狙い台シート（`aim.js` / `AimSheet`）
 - 日別タブの「狙い台作成」モーダルから起動、またはホームから直接 `#aim` へ遷移可能。凹み台（💀）を「最優先 / 優先 / その他」の3ゾーンに区分けし、1枚画像（html2canvas）として出力
@@ -256,6 +261,12 @@ webapp/
 - **対象機種マトリクス**（`buildMachineMatrix`）: 各取材ページの開催日一覧の下部に機種×日付のマトリクスを描画
 - **取材掲示板**（`Board.render(boardKey)`）: 取材各ページ・ハブに配置した `.promo-memo[data-promo="キー"]` を起点に投稿フォーム＋一覧を動的に組む。Worker URL は `BOARD_API_URL`（`board.js` 冒頭にハードコード）
 - 取材カラー（天運総撃=赤・奥義の矢=青・ゾンビ狩り=緑）は `PROMO_COLORS` と `promotion.css` の `[data-promo="..."]` 変数で一元管理
+
+### ボトムシート（`bottomsheet.js` / `BottomSheet`）
+- 画面下部からスライドインするハーフモーダル。既存の `.app-modal`（`components.css`）とは別系統で、`BottomSheet.create(id, {title})` 呼び出し時に `document.body` へ DOM を動的生成する（partials 側のHTMLに依存しない）
+- 現状の用途は**バッジ設定**（日別 / 凹み推移 / 狙い台の3箇所）。各タブは初回に `ensure〇〇BadgeSheet()` でシートを1つ生成し、`MachineBadge.renderSettingsHtml` を流し込む
+- 閉じる操作は ×ボタン / オーバーレイ空白タップ / ハンドルタップ / Esc。表示制御は `.open` クラスの付け外しで行い、実際のスライドは `machinebadge.css` の `.bottom-sheet` トランジションが担う
+- スタイルは `machinebadge.css` に同梱（本来は独立CSSが理想だが、主用途がバッジ設定のため集約）
 
 ### 画面遷移（ルーティング）（`router.js` / `Router`）
 - ホーム（`#home`）起点のハッシュルーター。タブバーは持たない
@@ -337,6 +348,10 @@ webapp/
 - `partials/*.html` は**外側の `<div id="...">` ラッパーを含めない**（中身のみ）。ラッパーは index.html 側の空コンテナが持つ。
 - `index.html` は要素IDの一覧の正ではなくなった。日別/解析/カレンダー/島図の各要素IDは対応する `partials/*.html` を参照すること（ホームとローディングのみ index.html に直接ある）。
 - `board.js` の `startEdit` 内のキャンセル処理に `null` 参照の可能性がある（`list.closest('.promo-memo')` の戻り値を `loadPosts` に渡している箇所）。現状は `reloadByBoard` で回避しているが、将来の改修時に注意。
+- ボトムシートのスタイルは `machinebadge.css` に同梱している（`.bottom-sheet` 系）。バッジ以外の用途でボトムシートを使う場合は、独立CSS（例: `bottomsheet.css`）への切り出しを検討すること。
+- 機種内バッジの「1台設置機種はバッジ非付与」への変更に伴い、旧・横断グループ方式のロジック（`singleUnitItems` 集約）は `assignBadges` から削除済み。`assignBadgesForTrend`（解析の集計タブ）は従来どおり機種内順位のみで、台数別ロジック・1台非付与・未ロード検知は非対象。
+- 旧バッジ設定モーダル（`partials/daily.html` の `#badgeModal`、`partials/analysis.html` の `#kubiBadgeModal`、`partials/aim.html` の `#aimBadgePanel`）はボトムシート化により未使用。HTMLは残置しているが開かれない（掃除は任意）。
+
 
 ---
 

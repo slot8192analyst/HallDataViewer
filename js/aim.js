@@ -629,27 +629,46 @@ var AimSheet = (function() {
         renderBoard();
     }
 
-    // ========== 凹み判定（バッジ）設定パネル ==========
+    // ========== 凹み判定（バッジ）設定：ボトムシート ==========
 
-    var badgePanelRendered = false;
+    var _aimBadgeSheet = null;
 
-    function renderBadgePanel() {
-        var container = document.getElementById('aimBadgeSettings');
-        if (!container || typeof MachineBadge === 'undefined') return;
-        container.innerHTML = MachineBadge.renderSettingsHtml('aimMb');
+    function ensureAimBadgeSheet() {
+        if (_aimBadgeSheet) return _aimBadgeSheet;
+        if (typeof BottomSheet === 'undefined' || typeof MachineBadge === 'undefined') return null;
+
+        _aimBadgeSheet = BottomSheet.create('aimBadgeSheet', { title: '💀 凹み判定設定' });
+
+        var html =
+            '<div class="mb-sheet-hint">基準日を含む直近N日間の累積差枚（またはG数）で凹み台（💀）を判定します。変更すると即座に再計算されます。</div>'
+            + MachineBadge.renderSettingsHtml('aimMb');
+
+        _aimBadgeSheet.setContent(html);
+
         MachineBadge.setupSettingsEvents('aimMb', function() {
-            render();
+            // 設定変更 → 再ビルド＆再描画。render 完了後に内訳を更新する。
+            render().then(function() {
+                MachineBadge.renderWindowInfo('aimMb');
+            });
         });
-        badgePanelRendered = true;
+
+        _aimBadgeSheet.onOpen(function() {
+            // 開いた時点の最新の計算内訳を反映
+            MachineBadge.renderWindowInfo('aimMb');
+        });
+
+        return _aimBadgeSheet;
     }
 
+    // 旧: renderBadgePanel（#aimBadgeSettings への直接描画）は廃止し、シート初期化に委譲
+    function renderBadgePanel() {
+        ensureAimBadgeSheet();
+    }
+
+    // 旧: パネル開閉 → ボトムシートの開閉に変更
     function toggleBadgePanel() {
-        var panel = document.getElementById('aimBadgePanel');
-        if (!panel) return;
-        panel.classList.toggle('open');
-        if (panel.classList.contains('open') && !badgePanelRendered) {
-            renderBadgePanel();
-        }
+        var sheet = ensureAimBadgeSheet();
+        if (sheet) sheet.open();
     }
 
     // ========== 機種除外パネル ==========
@@ -1658,6 +1677,11 @@ var AimSheet = (function() {
             }
 
             renderBoard();   // 方針A: 自動初期配置はしない。未配置は未配置エリアへ。
+
+            // バッジ設定シートが既に生成されていれば、凹み判定に使った日を更新
+            if (typeof MachineBadge !== 'undefined' && MachineBadge.renderWindowInfo) {
+                MachineBadge.renderWindowInfo('aimMb');
+            }
         });
     }
 

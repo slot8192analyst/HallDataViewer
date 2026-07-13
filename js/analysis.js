@@ -1258,28 +1258,54 @@ function updateKubiPeriodLabel() {
     label.textContent = selectedTrendDates.length + '日間 (' + formatDateShort(s[0]) + '〜' + formatDateShort(s[s.length - 1]) + ')';
 }
 
-// ----- バッジ設定モーダル -----
+// ----- バッジ設定ボトムシート（凹み推移タブ）-----
 
-var _kubiBadgeUIReady = false;
+var _kubiBadgeSheet = null;
+
+function ensureKubiBadgeSheet() {
+    if (_kubiBadgeSheet) return _kubiBadgeSheet;
+    if (typeof BottomSheet === 'undefined') return null;
+
+    _kubiBadgeSheet = BottomSheet.create('kubiBadgeSheet', { title: '🏅 凹み集計のバッジ設定' });
+
+    var html =
+        MachineBadge.renderSettingsHtml('kubiMb')
+        + '<div class="mb-sheet-actions">'
+        +   '<button type="button" id="kubiMbApplyBtn" class="mb-action-btn mb-action-primary">この設定で再集計</button>'
+        + '</div>';
+
+    _kubiBadgeSheet.setContent(html);
+
+    MachineBadge.setupSettingsEvents('kubiMb', function() {
+        updateKubiBadgeSummaryLabel();
+        loadKubiData();
+        MachineBadge.renderWindowInfo('kubiMb');
+    });
+
+    var applyBtn = document.getElementById('kubiMbApplyBtn');
+    if (applyBtn) {
+        applyBtn.addEventListener('click', function() {
+            loadKubiData();
+            MachineBadge.renderWindowInfo('kubiMb');
+            _kubiBadgeSheet.close();
+        });
+    }
+
+    _kubiBadgeSheet.onOpen(function() {
+        updateKubiBadgeSummaryLabel();
+        MachineBadge.renderWindowInfo('kubiMb');
+    });
+
+    return _kubiBadgeSheet;
+}
 
 function openKubiBadgeModal() {
-    var container = document.getElementById('kubiBadgeSettingsContainer');
-    if (container && !_kubiBadgeUIReady) {
-        container.innerHTML = MachineBadge.renderSettingsHtml('kubiMb');
-        MachineBadge.setupSettingsEvents('kubiMb', function() {
-            updateKubiBadgeSummaryLabel();
-            loadKubiData();
-        });
-        _kubiBadgeUIReady = true;
-    }
-    updateKubiBadgeSummaryLabel();
-    var m = document.getElementById('kubiBadgeModal');
-    if (m) m.classList.add('active');
+    var sheet = ensureKubiBadgeSheet();
+    if (sheet) sheet.open();
 }
 
 function closeKubiBadgeModal() {
-    var m = document.getElementById('kubiBadgeModal');
-    if (m) m.classList.remove('active');
+    if (_kubiBadgeSheet) _kubiBadgeSheet.close();
 }
 
 function updateKubiBadgeSummaryLabel() {
@@ -1546,17 +1572,9 @@ function setupKubiEventListeners() {
         chk.addEventListener('change', loadKubiData);
     });
 
-    // バッジ設定モーダル
+    // バッジ設定ボトムシート
     var bsOpen = document.getElementById('openKubiBadgeSettings');
     if (bsOpen) bsOpen.addEventListener('click', openKubiBadgeModal);
-    var bsClose = document.getElementById('closeKubiBadgeSettings');
-    if (bsClose) bsClose.addEventListener('click', closeKubiBadgeModal);
-    var bsApply = document.getElementById('applyKubiBadgeSettings');
-    if (bsApply) bsApply.addEventListener('click', function() { closeKubiBadgeModal(); loadKubiData(); });
-    var bsModal = document.getElementById('kubiBadgeModal');
-    if (bsModal) bsModal.addEventListener('click', function(e) {
-        if (e.target.id === 'kubiBadgeModal') closeKubiBadgeModal();
-    });
 
     // 日付モーダルの「適用」: 凹みタブが開いていれば追従
     var applyBtn = document.getElementById('applyTrendDates');

@@ -43,7 +43,7 @@ var MachineBadge = (function() {
     var fillMode  = 'fill';     // 'fill'=有効日がN日たまるまで遡る / 'trim'=直近Nカレンダー日から抜くだけ
 
     var MIN_DAYS = 1;
-    var MAX_DAYS = 31;
+    var MAX_DAYS = 15;
     var DEFAULT_DAYS = 7;
 
     // ========== ストレージ ==========
@@ -157,39 +157,62 @@ var MachineBadge = (function() {
      *     fillMode='fill' : 除外日はスキップして「有効日が badgeDays たまるまで」遡る
      *     fillMode='trim' : 連続した badgeDays カレンダー日を取り、その中の除外日を抜く
      */
+    // 直近の計算で使った窓情報（可視化用）。assignBadges のたびに更新される。
+    var _lastWindowInfo = {
+        windowFiles: [],   // 実際に集計に使った日（データあり）
+        missingFiles: [],  // 窓に含まれるがデータ未ロードで集計できなかった日
+        excludedFiles: [], // 除外設定で窓から外した日
+        baseFile: null,
+        baseMode: 'current',
+        targetCol: '差枚'
+    };
+
     function calcCumulativeValues(baseFile, dataCacheRef, targetCol, opts) {
         opts = opts || {};
         var col = targetCol || '差枚';
 
         var allSorted = sortFilesByDate(CSV_FILES, true); // 新しい順
         var baseIdx = allSorted.indexOf(baseFile);
-        if (baseIdx === -1) return { values: {}, windowFiles: [] };
+        if (baseIdx === -1) return { values: {}, windowFiles: [], missingFiles: [], excludedFiles: [] };
 
         var usePrev = opts.forcePrev || (badgeBase === 'prev');
         var startIdx = usePrev ? baseIdx + 1 : baseIdx;
 
         var windowFiles = [];
+        var excludedFiles = [];
 
         if (fillMode === 'trim') {
             // 直近 badgeDays カレンダー日を取り、その中から除外日を抜く
             var slice = allSorted.slice(startIdx, startIdx + badgeDays);
             slice.forEach(function(file) {
-                if (!isExcludedDate(fileToDateKey(file))) windowFiles.push(file);
+                if (isExcludedDate(fileToDateKey(file))) {
+                    excludedFiles.push(file);
+                } else {
+                    windowFiles.push(file);
+                }
             });
         } else {
             // fill: 除外日はスキップしつつ、有効日が badgeDays たまるまで遡る
             for (var i = startIdx; i < allSorted.length && windowFiles.length < badgeDays; i++) {
                 var f = allSorted[i];
-                if (isExcludedDate(fileToDateKey(f))) continue;
+                if (isExcludedDate(fileToDateKey(f))) {
+                    excludedFiles.push(f);
+                    continue;
+                }
                 windowFiles.push(f);
             }
         }
 
         var cumulative = {}; // key: '機種名_台番号' → 累積値
+        var missingFiles = [];
 
         windowFiles.forEach(function(file) {
             var rows = dataCacheRef[file];
-            if (!rows) return;
+            if (!rows) {
+                // 窓には含まれるがデータが無い（未ロード等）→ 集計から欠落
+                missingFiles.push(file);
+                return;
+            }
             rows.forEach(function(row) {
                 var machine = row['機種名'] || '';
                 var num     = row['台番号'] || '';
@@ -201,7 +224,12 @@ var MachineBadge = (function() {
             });
         });
 
-        return { values: cumulative, windowFiles: windowFiles };
+        return {
+            values: cumulative,
+            windowFiles: windowFiles,
+            missingFiles: missingFiles,
+            excludedFiles: excludedFiles
+        };
     }
 
     // ========== コアランク計算 ==========
@@ -271,6 +299,16 @@ var MachineBadge = (function() {
         // 実際に使われた基準モード（仮想日は前日基準固定）
         var effectiveBase = (forcePrev || badgeBase === 'prev') ? 'prev' : 'current';
 
+        // 可視化用に窓情報を保持
+        _lastWindowInfo = {
+            windowFiles:   windowFiles.slice(),
+            missingFiles:  (cumResult.missingFiles || []).slice(),
+            excludedFiles: (cumResult.excludedFiles || []).slice(),
+            baseFile:      baseFile,
+            baseMode:      effectiveBase,
+            targetCol:     col
+        };
+
         // --- フィルター後の表示台のみで機種ごとにグループ化 ---
         var machineGroups = {};
         data.forEach(function(row) {
@@ -287,9 +325,8 @@ var MachineBadge = (function() {
         // --- 機種ごとに台数別ロジックでランク計算 ---
         //   3台以上 : 機種内で 🐙💀 を通常どおり順位付け
         //   2台      : 💀（死に台）1位のみ付与（🐙 は付けない）
-        //   1台      : 「1台設置機種」をすべてまとめた横断グループで順位付け
+        //   1台      : バッジを付けない（比較不能のため）
         var allRanks = {};
-        var singleUnitItems = []; // 1台設置機種の台を集約
 
         Object.keys(machineGroups).forEach(function(machine) {
             var items = machineGroups[machine];
@@ -304,16 +341,10 @@ var MachineBadge = (function() {
                     ranks2[k].tako = null;
                 });
                 Object.assign(allRanks, ranks2);
-            } else {
-                // 1台: 横断グループへ集約（後でまとめて順位付け）
-                singleUnitItems = singleUnitItems.concat(items);
             }
+            // 1台（items.length === 1）は何もしない → allRanks に登録されず、
+            //   行付与時のフォールバックで { tako: null, kubi: null } になる
         });
-
-        // --- 1台設置機種の横断グループでランク計算 ---
-        if (singleUnitItems.length > 0) {
-            Object.assign(allRanks, calcRanksFromItems(singleUnitItems));
-        }
 
         // --- 行に付与（累積値・期間情報も一緒に保存） ---
         return data.map(function(row) {
@@ -321,9 +352,10 @@ var MachineBadge = (function() {
             var badge = Object.assign(
                 allRanks[key] || { tako: null, kubi: null },
                 {
-                    cumVal:     cumValues[key] !== undefined ? cumValues[key] : null,
-                    windowDays: windowFiles.length,
-                    baseMode:   effectiveBase
+                    cumVal:      cumValues[key] !== undefined ? cumValues[key] : null,
+                    windowDays:  windowFiles.length,
+                    missingDays: (cumResult.missingFiles || []).length,
+                    baseMode:    effectiveBase
                 }
             );
             return Object.assign({}, row, { _machineBadge: badge });
@@ -389,7 +421,10 @@ var MachineBadge = (function() {
         var cumTip  = (badge.cumVal !== null && badge.cumVal !== undefined)
             ? '累積: ' + (badge.cumVal >= 0 ? '+' : '') + badge.cumVal.toLocaleString()
             : '';
-        var baseTip = [daysTip, cumTip].filter(Boolean).join(' / ');
+        var missTip = (badge.missingDays)
+            ? '⚠未ロード' + badge.missingDays + '日ぶん欠落'
+            : '';
+        var baseTip = [daysTip, cumTip, missTip].filter(Boolean).join(' / ');
 
         if (badge.tako !== null && showTako && takoRanks.indexOf(badge.tako) !== -1) {
             var tip = '🐙タコだし ' + badge.tako + '位（機種内）' + (baseTip ? ' | ' + baseTip : '');
@@ -423,28 +458,27 @@ var MachineBadge = (function() {
     function renderSettingsHtml(idPrefix) {
         idPrefix = idPrefix || 'mb';
 
+        // 集計期間セレクト（1〜15日）。iOS では select がネイティブホイールになる
+        var daysOptions = '';
+        for (var dOpt = MIN_DAYS; dOpt <= MAX_DAYS; dOpt++) {
+            daysOptions += '<option value="' + dOpt + '"' + (dOpt === badgeDays ? ' selected' : '') + '>'
+                + dOpt + '日</option>';
+        }
+
         return '<div class="mb-settings">'
-            // 集計期間（数値入力 1〜31）
+            // 集計期間（選択式 1〜15）
             + '<div class="mb-settings-item">'
             + '<span>集計期間:</span>'
-            + '<input type="number" id="' + idPrefix + 'Days" class="mb-days-input" '
-            +   'min="' + MIN_DAYS + '" max="' + MAX_DAYS + '" step="1" value="' + badgeDays + '">'
-            + '<span class="mb-days-unit">日（1〜' + MAX_DAYS + '）</span>'
+            + '<select id="' + idPrefix + 'Days" class="mb-select">'
+            + daysOptions
+            + '</select>'
             + '</div>'
             // 基準日
             + '<div class="mb-settings-item">'
             + '<span>基準日:</span>'
-            + '<select id="' + idPrefix + 'Base" class="mb-target-select">'
+            + '<select id="' + idPrefix + 'Base" class="mb-select">'
             + '<option value="current"' + (badgeBase === 'current' ? ' selected' : '') + '>当日含む</option>'
             + '<option value="prev"'    + (badgeBase === 'prev'    ? ' selected' : '') + '>前日基準</option>'
-            + '</select>'
-            + '</div>'
-            // 基準列
-            + '<div class="mb-settings-item">'
-            + '<span>基準列:</span>'
-            + '<select id="' + idPrefix + 'Target" class="mb-target-select">'
-            + '<option value="diff"'  + (target === 'diff'  ? ' selected' : '') + '>差枚</option>'
-            + '<option value="games"' + (target === 'games' ? ' selected' : '') + '>G数</option>'
             + '</select>'
             + '</div>'
             // 除外設定
@@ -464,21 +498,98 @@ var MachineBadge = (function() {
             // 補完モード（除外時の窓の取り方）
             + '<div class="mb-settings-item">'
             + '<span>除外時の集計:</span>'
-            + '<select id="' + idPrefix + 'FillMode" class="mb-target-select">'
+            + '<select id="' + idPrefix + 'FillMode" class="mb-select">'
             + '<option value="fill"' + (fillMode === 'fill' ? ' selected' : '') + '>遡って日数を補う</option>'
             + '<option value="trim"' + (fillMode === 'trim' ? ' selected' : '') + '>抜くだけ（補わない）</option>'
             + '</select>'
             + '</div>'
-            // 表示順位
-            + '<div class="mb-settings-item mb-rank-item">'
-            + '<span>🐙 表示順位:</span>'
-            + '<div class="mb-rank-checks">' + renderRankCheckboxes(idPrefix, 'Tako', takoRanks) + '</div>'
+            // 表示順位（🐙 / 💀）
+            + '<div class="mb-rank-wrap">'
+            +   '<div class="mb-settings-item mb-rank-item">'
+            +   '<span>🐙 表示順位:</span>'
+            +   '<div class="mb-rank-checks">' + renderRankCheckboxes(idPrefix, 'Tako', takoRanks) + '</div>'
+            +   '</div>'
+            +   '<div class="mb-settings-item mb-rank-item">'
+            +   '<span>💀 表示順位:</span>'
+            +   '<div class="mb-rank-checks">' + renderRankCheckboxes(idPrefix, 'Kubi', kubiRanks) + '</div>'
+            +   '</div>'
             + '</div>'
-            + '<div class="mb-settings-item mb-rank-item">'
-            + '<span>💀 表示順位:</span>'
-            + '<div class="mb-rank-checks">' + renderRankCheckboxes(idPrefix, 'Kubi', kubiRanks) + '</div>'
-            + '</div>'
+            // 集計内訳（どの日を使って計算したか）のマウント点
+            + '<div class="mb-window-info" id="' + idPrefix + 'WindowInfo"></div>'
             + '</div>';
+    }
+
+    // 直近の窓情報を取得（可視化・デバッグ用）
+    function getLastWindowInfo() {
+        return {
+            windowFiles:   _lastWindowInfo.windowFiles.slice(),
+            missingFiles:  _lastWindowInfo.missingFiles.slice(),
+            excludedFiles: _lastWindowInfo.excludedFiles.slice(),
+            baseFile:      _lastWindowInfo.baseFile,
+            baseMode:      _lastWindowInfo.baseMode,
+            targetCol:     _lastWindowInfo.targetCol
+        };
+    }
+
+    // 集計内訳を指定要素（idPrefix + 'WindowInfo'）に描画する。
+    // assignBadges 実行後に呼ぶと、直近の計算で使った日を一覧表示する。
+    function renderWindowInfo(idPrefix) {
+        idPrefix = idPrefix || 'mb';
+        var el = document.getElementById(idPrefix + 'WindowInfo');
+        if (!el) return;
+
+        var info = _lastWindowInfo;
+        var fmt = (typeof formatDateShort === 'function')
+            ? formatDateShort
+            : function(f) { return String(f).replace('data/', '').replace('.csv', ''); };
+
+        if (!info.windowFiles || info.windowFiles.length === 0) {
+            el.innerHTML = '<div class="mb-window-empty">まだ計算されていません。バッジを計算すると、ここに使用した日が表示されます。</div>';
+            return;
+        }
+
+        // 新しい順で並んでいるので、範囲は末尾（古い）〜先頭（新しい）
+        var wf = info.windowFiles;
+        var rangeText = fmt(wf[wf.length - 1]) + '〜' + fmt(wf[0]);
+        var baseLabel = info.baseMode === 'prev' ? '前日基準' : '当日基準';
+        var colLabel  = info.targetCol === 'G数' ? 'G数' : '差枚';
+
+        var html = '';
+        html += '<div class="mb-window-head">📅 集計に使った日</div>';
+        html += '<div class="mb-window-summary">'
+            + '<span class="mb-window-range">' + rangeText + '</span>'
+            + '<span class="mb-window-meta">' + wf.length + '日 / ' + baseLabel + ' / ' + colLabel + '</span>'
+            + '</div>';
+
+        // 使用日チップ
+        html += '<div class="mb-window-chips">';
+        wf.forEach(function(f) {
+            html += '<span class="mb-window-chip">' + fmt(f) + '</span>';
+        });
+        html += '</div>';
+
+        // 除外された日
+        if (info.excludedFiles && info.excludedFiles.length > 0) {
+            html += '<div class="mb-window-sub mb-window-excluded">'
+                + '<span class="mb-window-sub-label">除外: ' + info.excludedFiles.length + '日</span>';
+            info.excludedFiles.forEach(function(f) {
+                html += '<span class="mb-window-chip mb-chip-excluded">' + fmt(f) + '</span>';
+            });
+            html += '</div>';
+        }
+
+        // 未ロードで欠落した日（警告）
+        if (info.missingFiles && info.missingFiles.length > 0) {
+            html += '<div class="mb-window-sub mb-window-missing">'
+                + '<span class="mb-window-sub-label">⚠ 未ロードで欠落: ' + info.missingFiles.length + '日</span>';
+            info.missingFiles.forEach(function(f) {
+                html += '<span class="mb-window-chip mb-chip-missing">' + fmt(f) + '</span>';
+            });
+            html += '<div class="mb-window-missing-note">この日のデータが読み込まれていないため累積値から抜けています。時間を置いて再計算すると反映されます。</div>';
+            html += '</div>';
+        }
+
+        el.innerHTML = html;
     }
 
     function setupSettingsEvents(idPrefix, onChange) {
@@ -497,8 +608,6 @@ var MachineBadge = (function() {
                 if (d < MIN_DAYS) d = MIN_DAYS;
                 if (d > MAX_DAYS) d = MAX_DAYS;
                 badgeDays = d;
-                // 入力欄もクランプ後の値に反映
-                daysEl.value = d;
             }
             if (baseEl)     badgeBase = baseEl.value;
             if (targetEl)   target    = targetEl.value;
@@ -506,7 +615,6 @@ var MachineBadge = (function() {
             if (exTail05El) exTail05  = exTail05El.checked;
             if (fillModeEl) fillMode  = fillModeEl.value;
 
-            // タコだし/死に台順位チェックボックスを読み取る
             takoRanks = [1, 2, 3].filter(function(n) {
                 var el = document.getElementById(idPrefix + 'RankTako' + n);
                 return el ? el.checked : true;
@@ -515,7 +623,6 @@ var MachineBadge = (function() {
                 var el = document.getElementById(idPrefix + 'RankKubi' + n);
                 return el ? el.checked : true;
             });
-            // 一つもチェックなしの場合は全表示にフォールバック
             if (takoRanks.length === 0) takoRanks = [1, 2, 3];
             if (kubiRanks.length === 0) kubiRanks = [1, 2, 3];
 
@@ -523,17 +630,13 @@ var MachineBadge = (function() {
             if (onChange) onChange();
         }
 
-        if (daysEl) {
-            daysEl.addEventListener('change', update);
-            daysEl.addEventListener('input', update);
-        }
+        if (daysEl)     daysEl.addEventListener('change', update);
         if (baseEl)     baseEl.addEventListener('change', update);
         if (targetEl)   targetEl.addEventListener('change', update);
         if (exEventEl)  exEventEl.addEventListener('change', update);
         if (exTail05El) exTail05El.addEventListener('change', update);
         if (fillModeEl) fillModeEl.addEventListener('change', update);
 
-        // 順位チェックボックス
         [1, 2, 3].forEach(function(n) {
             var takoEl = document.getElementById(idPrefix + 'RankTako' + n);
             var kubiEl = document.getElementById(idPrefix + 'RankKubi' + n);
@@ -541,6 +644,7 @@ var MachineBadge = (function() {
             if (kubiEl) kubiEl.addEventListener('change', update);
         });
     }
+
 
     // ========== ゲッター ==========
 
@@ -587,6 +691,8 @@ var MachineBadge = (function() {
         getKubiRanks:           getKubiRanks,
         isExEvent:              isExEvent,
         isExTail05:             isExTail05,
-        getFillMode:            getFillMode
+        getFillMode:            getFillMode,
+        getLastWindowInfo:      getLastWindowInfo,
+        renderWindowInfo:       renderWindowInfo
     };
 })();
