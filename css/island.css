@@ -389,14 +389,14 @@
     color: var(--text-muted);
 }
 
-/* レスポンシブ */
-@media (max-width: 600px) {
+/* 禁止BP修正: 600px → 480px */
+@media (max-width: 480px) {
     .island-date-nav {
-        gap: 8px;
+        gap: var(--space-2);
     }
     
     .island-date-nav button {
-        padding: 8px 12px;
+        padding: var(--space-2) var(--space-3);
         font-size: var(--font-size-sm);
     }
     
@@ -408,8 +408,8 @@
     .island-controls {
         flex-direction: column;
         align-items: stretch;
-        gap: 10px;
-        padding: 10px;
+        gap: var(--space-3);
+        padding: var(--space-3);
     }
     
     .island-view-modes {
@@ -424,7 +424,7 @@
     .island-mode-btn {
         flex: 1;
         text-align: center;
-        padding: 10px 8px;
+        padding: var(--space-2);
         min-width: 60px;
     }
     
@@ -433,16 +433,16 @@
     }
     
     .island-list {
-        gap: 20px;
+        gap: var(--space-5);
     }
     
     .island-area {
-        margin-bottom: 30px;
+        margin-bottom: var(--space-6);
     }
     
     .island-area-title {
         font-size: var(--font-size-md);
-        padding: 8px 12px;
+        padding: var(--space-2) var(--space-3);
     }
     
     .island-unit {
@@ -451,7 +451,7 @@
     }
     
     .unit-number {
-        font-size: 9px;
+        font-size: var(--font-size-xs);
     }
     
     .unit-machine {
@@ -463,7 +463,7 @@
     }
     
     .legend-items {
-        gap: 8px;
+        gap: var(--space-2);
     }
     
     .legend-color {
@@ -480,14 +480,15 @@
     }
 }
 
-@media (min-width: 1024px) {
+/* 禁止BP修正: 1024px → 769px */
+@media (min-width: 769px) {
     .island-unit {
         width: 48px;
         height: 52px;
     }
     
     .unit-number {
-        font-size: 11px;
+        font-size: var(--font-size-sm);
     }
     
     .unit-machine {
@@ -499,11 +500,12 @@
     }
     
     .island-list {
-        gap: 26px;
+        gap: var(--space-6);
     }
 }
 
-@media (min-width: 1400px) {
+/* 禁止BP修正: 1400px → 1200px */
+@media (min-width: 1200px) {
     .island-unit {
         width: 52px;
         height: 56px;
@@ -522,7 +524,7 @@
     }
     
     .island-list {
-        gap: 28px;
+        gap: var(--space-6);
     }
 }
 
@@ -562,13 +564,14 @@
     border-color: var(--border-focus);
 }
 
-@media (max-width: 600px) {
+/* 禁止BP修正: 600px → 480px */
+@media (max-width: 480px) {
     #islandDateSelect {
         min-width: 100%;
         max-width: 100%;
     }
     
     .island-date-select-wrapper {
-        padding: 0 10px;
+        padding: 0 var(--space-3);
     }
 }

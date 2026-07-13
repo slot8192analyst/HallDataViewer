@@ -66,7 +66,7 @@
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     margin: 0;
-    padding: 10px;
+    padding: var(--space-3);
     background: var(--bg-base);
     color: var(--text-primary);
     font-size: var(--font-size-md);
@@ -112,7 +112,7 @@ h1,
 h1 {
     font-size: var(--font-size-xl);
     text-align: center;
-    margin: 10px auto;
+    margin: var(--space-3) auto;
     color: var(--text-primary);
 }
 
@@ -122,14 +122,14 @@ h1 {
 .tabs {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
-    margin-bottom: 15px;
+    gap: var(--space-1);
+    margin-bottom: var(--space-4);
     border-bottom: 2px solid var(--border-color);
-    padding-bottom: 10px;
+    padding-bottom: var(--space-2);
 }
 
 .tab-btn {
-    padding: 10px 15px;
+    padding: var(--space-2) var(--space-4);
     min-height: 44px;
     background: var(--bg-input);
     border: 1px solid transparent;
@@ -465,8 +465,8 @@ select:focus {
 .controls {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
 }
 
 .controls input,
@@ -484,7 +484,7 @@ select:focus {
 .control-group {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--space-1);
 }
 
 .control-group label {
@@ -503,8 +503,8 @@ select:focus {
 .date-nav {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
 }
 
 .date-nav button {
@@ -536,14 +536,14 @@ select:focus {
    =================== */
 .summary {
     background: var(--bg-card);
-    padding: 12px;
+    padding: var(--space-3);
     border-radius: var(--radius-md);
-    margin-bottom: 10px;
+    margin-bottom: var(--space-3);
     font-size: var(--font-size-md);
 }
 
 .summary span {
-    margin-right: 15px;
+    margin-right: var(--space-4);
     display: inline-block;
 }
 
@@ -564,7 +564,7 @@ table {
 th,
 td {
     border: 1px solid var(--border-color);
-    padding: 10px 12px;
+    padding: var(--space-2) var(--space-3);
     text-align: right;
     white-space: nowrap;
 }
@@ -590,8 +590,8 @@ tr:nth-child(odd) {
    =================== */
 .table-actions {
     display: flex;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
 }
 
 .btn-copy,
@@ -638,12 +638,12 @@ tr:nth-child(odd) {
    =================== */
 .copy-toast {
     position: fixed;
-    bottom: 20px;
+    bottom: var(--space-5);
     left: 50%;
     transform: translateX(-50%) translateY(100px);
     background: var(--bg-card);
     color: var(--text-primary);
-    padding: 12px 24px;
+    padding: var(--space-3) var(--space-6);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
     border: 1px solid var(--color-success);
@@ -686,7 +686,7 @@ tr:nth-child(odd) {
 
 .loading-content {
     text-align: center;
-    padding: 40px;
+    padding: var(--space-8);
 }
 
 .loading-spinner {
@@ -696,7 +696,7 @@ tr:nth-child(odd) {
     border-top-color: var(--primary-color);
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin: 0 auto 20px;
+    margin: 0 auto var(--space-5);
 }
 
 @keyframes spin {
@@ -708,7 +708,7 @@ tr:nth-child(odd) {
 .loading-text {
     font-size: var(--font-size-xl);
     color: var(--text-primary);
-    margin-bottom: 20px;
+    margin-bottom: var(--space-5);
 }
 
 .loading-progress {
@@ -717,7 +717,7 @@ tr:nth-child(odd) {
     background: var(--bg-input);
     border-radius: var(--radius-sm);
     overflow: hidden;
-    margin: 0 auto 15px;
+    margin: 0 auto var(--space-4);
 }
 
 .loading-progress-bar {
@@ -736,15 +736,15 @@ tr:nth-child(odd) {
 /* バックグラウンド読み込みインジケーター */
 .background-loading-indicator {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    bottom: var(--space-5);
+    right: var(--space-5);
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    padding: 12px 20px;
+    padding: var(--space-3) var(--space-5);
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-3);
     box-shadow: var(--shadow-md);
     z-index: var(--z-modal);
     transition: opacity 0.3s ease, transform 0.3s ease;
@@ -804,15 +804,15 @@ tr:nth-child(odd) {
     }
 
     body {
-        padding: 5px;
+        padding: var(--space-1);
     }
 
     .tabs {
-        gap: 3px;
+        gap: var(--space-1);
     }
 
     .tab-btn {
-        padding: 8px 10px;
+        padding: var(--space-2) var(--space-2);
     }
 
     .tabs .tab-btn {
@@ -823,7 +823,7 @@ tr:nth-child(odd) {
 
     .controls input,
     .controls select {
-        padding: 8px;
+        padding: var(--space-2);
         min-width: 80px;
     }
 
@@ -838,15 +838,15 @@ tr:nth-child(odd) {
 
     th,
     td {
-        padding: 5px 6px;
+        padding: var(--space-1) var(--space-2);
     }
 
     .summary {
-        padding: 8px;
+        padding: var(--space-2);
     }
 
     .summary span {
-        margin-right: 8px;
+        margin-right: var(--space-2);
     }
 
     .date-nav button {
@@ -865,7 +865,7 @@ tr:nth-child(odd) {
     }
 
     .loading-content {
-        padding: 20px;
+        padding: var(--space-5);
     }
 
     .loading-progress {
@@ -873,9 +873,9 @@ tr:nth-child(odd) {
     }
 
     .background-loading-indicator {
-        bottom: 10px;
-        right: 10px;
-        left: 10px;
+        bottom: var(--space-2);
+        right: var(--space-2);
+        left: var(--space-2);
         justify-content: center;
     }
 }
@@ -893,7 +893,7 @@ tr:nth-child(odd) {
 
     th,
     td {
-        padding: 8px 10px;
+        padding: var(--space-2) var(--space-3);
     }
 }
 
@@ -909,24 +909,24 @@ tr:nth-child(odd) {
     }
 
     body {
-        padding: 20px;
+        padding: var(--space-5);
     }
 
     .tabs {
-        gap: 8px;
+        gap: var(--space-2);
     }
 
     .tab-btn {
-        padding: 12px 20px;
+        padding: var(--space-3) var(--space-5);
     }
 
     th,
     td {
-        padding: 12px 16px;
+        padding: var(--space-3) var(--space-4);
     }
 
     .summary {
-        padding: 15px;
+        padding: var(--space-4);
     }
 
     .date-nav button {
@@ -952,15 +952,15 @@ tr:nth-child(odd) {
 .summary-cards {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
 }
 
 .stat-card {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 12px 14px;
+    gap: var(--space-1);
+    padding: var(--space-3) var(--space-4);
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
@@ -992,8 +992,8 @@ tr:nth-child(odd) {
     margin-bottom: 10px;
 }
 
-/* タブレット: 3列 */
-@media (max-width: 900px) {
+/* タブレット以下: 3列 */
+@media (max-width: 768px) {
     .summary-cards {
         grid-template-columns: repeat(3, 1fr);
     }
