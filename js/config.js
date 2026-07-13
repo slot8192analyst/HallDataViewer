@@ -44,9 +44,9 @@ const SITE_CONFIG = {
     // テーマ: "dark" または "light"
     theme: "dark",
 
-    // カスタムカラー（必要な場合のみ変更）
+    // カスタムカラー（DESIGN.md: DevFocus Dark）
     customColors: {
-        primary: "#4a4a8a",
+        primary: "#2665fd",
         accent: "#fbbf24",
     },
 
