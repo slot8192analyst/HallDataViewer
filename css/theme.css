@@ -1,59 +1,59 @@
 /* ===================
    theme.css — ページ全体カラーテーマ
-   ここを変えるだけで全体の色味が変わります
+   デザインシステム: DevFocus Dark (DESIGN.md 準拠)
 
-   ダークテーマ（デフォルト）: 黒ベース
-   ライトテーマ: [data-theme="light"] で上書き
+   Primary   #2665fd … CTA・アクティブ状態・主要インタラクション
+   Secondary #475569 … サポートUI・チップ・セカンダリアクション
+   Surface   #0b1326 … ページ背景
+   On-surface #dae2fd … ダーク背景上のメインテキスト
+   Error     #ffb4ab … バリデーションエラー・破壊的操作
    =================== */
 
 /* ===================
-   ダークテーマ（黒ベース）
+   ダークテーマ（DevFocus Dark）
    =================== */
 :root {
-    /* ━━━ メインカラー ━━━
-       紺（#4a4a8a）から落ち着いたスレートブルーに変更。
-       背景が純黒寄りになるため主張を抑えた青みで調和させる。
-    */
-    --primary-color: #3d6b9a;
-    --primary-hover: #4d7baa;
-    --primary-light: #5d8bba;
-    --primary-dark:  #2d5b8a;
+    /* ━━━ メインカラー（Primary: #2665fd） ━━━ */
+    --primary-color: #2665fd;
+    --primary-hover: #3d77ff;
+    --primary-light: #5a8fff;
+    --primary-dark:  #1a50d6;
 
-    /* ━━━ 背景色 ━━━
-       旧: 紺寄り（#1a1a2e / #222244 / #16213e）
-       新: 純黒寄りのグレー階調に統一
-         base    → ページ背景（最も暗い）
+    /* ━━━ セカンダリカラー（Secondary: #475569） ━━━ */
+    --secondary-color: #475569;
+    --secondary-hover: #576879;
+
+    /* ━━━ 背景色（Surface: #0b1326 ベース） ━━━
+         base    → ページ背景（Surface そのもの）
          elevated→ 行・パネル（1段明るい）
          surface → セクション背景
          card    → カード・サマリー
          input   → フォーム入力欄
     */
-    --bg-base:     #0d0d0d;
-    --bg-elevated: #181818;
-    --bg-surface:  #1e1e1e;
-    --bg-card:     #141414;
-    --bg-input:    #252525;
+    --bg-base:     #0b1326;
+    --bg-elevated: #111d35;
+    --bg-surface:  #172240;
+    --bg-card:     #0e1830;
+    --bg-input:    #1c2a48;
 
-    /* ━━━ テキスト ━━━ */
-    --text-primary:   #e8e8e8;
-    --text-secondary: #a0a0a0;
-    --text-muted:     #707070;
-    --text-disabled:  #484848;
+    /* ━━━ テキスト（On-surface: #dae2fd） ━━━ */
+    --text-primary:   #dae2fd;
+    --text-secondary: #8fa0c8;
+    --text-muted:     #5a6e96;
+    --text-disabled:  #3a4e70;
 
-    /* ━━━ ボーダー ━━━
-       純黒背景に合わせて白系の薄いラインに変更
-    */
-    --border-color: #2e2e2e;
-    --border-light: #3a3a3a;
-    --border-focus: #4d7baa;
+    /* ━━━ ボーダー ━━━ */
+    --border-color: #1e3060;
+    --border-light: #2a3f75;
+    --border-focus: #2665fd;
 
-    /* ━━━ アクセントカラー（変更なし） ━━━ */
+    /* ━━━ アクセントカラー ━━━ */
     --color-success: #4ade80;
-    --color-danger:  #f87171;
-    --color-info:    #60a5fa;
+    --color-danger:  #ffb4ab;
+    --color-info:    #93c5fd;
     --color-warning: #fbbf24;
-    --color-purple:  #a855f7;
-    --color-pink:    #ec4899;
+    --color-purple:  #a78bfa;
+    --color-pink:    #f472b6;
 
     /* ━━━ ホール固有カラー ━━━ */
     --hall-accent: #fbbf24;
@@ -63,44 +63,45 @@
     --table-row-even:  var(--bg-elevated);
     --table-row-odd:   var(--bg-base);
 
-    /* ━━━ シャドウ ━━━
-       純黒背景のため影は薄く・広く
-    */
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
-    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5);
-    --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.6);
+    /* ━━━ シャドウ ━━━ */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.6);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.6);
+    --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.7);
 }
 
 /* ===================
    ライトテーマ上書き
    =================== */
 [data-theme="light"] {
-    --primary-color: #4a6fa5;
-    --primary-hover: #5a7fb5;
-    --primary-light: #6a8fc5;
-    --primary-dark:  #3a5f95;
+    --primary-color: #2665fd;
+    --primary-hover: #3d77ff;
+    --primary-light: #5a8fff;
+    --primary-dark:  #1a50d6;
 
-    --bg-base:     #f5f5f5;
+    --secondary-color: #475569;
+    --secondary-hover: #576879;
+
+    --bg-base:     #f5f7ff;
     --bg-elevated: #ffffff;
-    --bg-surface:  #fafafa;
+    --bg-surface:  #eef1fb;
     --bg-card:     #ffffff;
-    --bg-input:    #f0f0f0;
+    --bg-input:    #e8ecf8;
 
-    --text-primary:   #222;
-    --text-secondary: #555;
-    --text-muted:     #888;
-    --text-disabled:  #bbb;
+    --text-primary:   #0f1f45;
+    --text-secondary: #475569;
+    --text-muted:     #7a8aaa;
+    --text-disabled:  #b0bbd0;
 
-    --border-color: #ddd;
-    --border-light: #e8e8e8;
-    --border-focus: #4a6fa5;
+    --border-color: #d0d8f0;
+    --border-light: #e0e8f8;
+    --border-focus: #2665fd;
 
     --color-success: #16a34a;
-    --color-danger:  #dc2626;
-    --color-info:    #2563eb;
+    --color-danger:  #e53e3e;
+    --color-info:    #2665fd;
 
-    --table-header-bg: #ebebeb;
-    --table-row-even:  #f8f8f8;
+    --table-header-bg: #e4e9f8;
+    --table-row-even:  #f5f7ff;
     --table-row-odd:   #ffffff;
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
