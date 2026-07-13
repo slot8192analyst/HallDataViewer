@@ -1008,3 +1008,266 @@ tr:nth-child(odd) {
         font-size: var(--font-size-xl);
     }
 }
+
+/* ===================
+   固定ハンバーガーボタン
+   スクロールでヘッダーが隠れたときに右上に出現
+   =================== */
+.floating-menu-btn {
+    position: fixed;
+    top: 14px;
+    right: 16px;
+    z-index: calc(var(--z-modal) - 10); /* 1100 程度 */
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    cursor: pointer;
+    padding: 0;
+    transition: opacity var(--transition-fast), transform var(--transition-fast),
+                background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    /* 初期は非表示（hidden 属性でも制御するが、アニメのため opacity も使う） */
+    opacity: 0;
+    pointer-events: none;
+}
+
+.floating-menu-btn.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.floating-menu-btn:hover {
+    background: var(--bg-elevated);
+    transform: scale(1.05);
+}
+
+.floating-menu-btn:active {
+    transform: scale(0.95);
+}
+
+.hamburger-line {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: var(--text-primary);
+    border-radius: 2px;
+    transition: transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+/* ハンバーガー → ✕ アニメーション（モーダルオープン時） */
+.floating-menu-btn.open .hamburger-line:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+.floating-menu-btn.open .hamburger-line:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+}
+.floating-menu-btn.open .hamburger-line:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ===================
+   ハーフモーダル オーバーレイ
+   =================== */
+.half-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: calc(var(--z-modal) - 5);
+    opacity: 0;
+    pointer-events: none;   /* 閉じている間はクリックを透過 */
+    transition: opacity var(--transition-normal);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+}
+
+.half-modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;   /* 開いているときだけ受け取る */
+}
+
+/* ===================
+   ハーフモーダル 本体
+   =================== */
+.half-modal {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: var(--z-modal);
+    background: var(--bg-surface);
+    border-radius: 20px 20px 0 0;
+    border-top: 1px solid var(--border-light);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
+    padding: 0 0 env(safe-area-inset-bottom, 0);
+
+    /* 初期位置: 画面下に隠れている */
+    transform: translateY(100%);
+    pointer-events: none;   /* 閉じている間はクリックを透過 */
+    transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+
+    /* 最大高さ: 画面の55% */
+    max-height: 55vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.half-modal.open {
+    transform: translateY(0);
+    pointer-events: auto;   /* 開いているときだけ受け取る */
+}
+
+/* ドラッグハンドル */
+.half-modal-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--border-light);
+    border-radius: 2px;
+    margin: 12px auto 0;
+    flex-shrink: 0;
+}
+
+/* ヘッダー */
+.half-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px 10px;
+    flex-shrink: 0;
+}
+
+.half-modal-current {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+}
+
+.half-modal-close-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: var(--font-size-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.half-modal-close-btn:hover {
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+
+/* ナビゲーショングリッド */
+.half-modal-nav {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 4px 16px 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.half-modal-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 8px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast),
+                color var(--transition-fast), transform var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    font-family: inherit;
+}
+
+.half-modal-nav-item:hover {
+    background: var(--bg-card);
+    border-color: var(--border-light);
+    color: var(--text-primary);
+}
+
+.half-modal-nav-item:active {
+    transform: scale(0.95);
+}
+
+.half-modal-nav-item.current-page {
+    background: var(--primary-color);
+    border-color: var(--primary-hover);
+    color: #fff;
+    pointer-events: none;
+}
+
+.half-modal-nav-icon {
+    font-size: 22px;
+    line-height: 1;
+}
+
+.half-modal-nav-label {
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* スマホ: 3列 */
+@media (max-width: 480px) {
+    .half-modal-nav {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        padding: 4px 12px 16px;
+    }
+
+    .half-modal-nav-item {
+        padding: 12px 6px;
+    }
+
+    .half-modal-nav-icon {
+        font-size: 20px;
+    }
+
+    .half-modal {
+        max-height: 60vh;
+    }
+}
+
+/* PC広幅: 7列 */
+@media (min-width: 769px) {
+    .half-modal-nav {
+        grid-template-columns: repeat(7, 1fr);
+    }
+
+    .half-modal {
+        max-width: 700px;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%) translateY(100%);
+        border-radius: 20px 20px 0 0;
+    }
+
+    .half-modal.open {
+        transform: translateX(-50%) translateY(0);
+        pointer-events: auto;
+    }
+}
