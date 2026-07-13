@@ -1083,6 +1083,7 @@ tr:nth-child(odd) {
     background: rgba(0, 0, 0, 0.5);
     z-index: calc(var(--z-modal) - 5);
     opacity: 0;
+    pointer-events: none;   /* 閉じている間はクリックを透過 */
     transition: opacity var(--transition-normal);
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
@@ -1090,6 +1091,7 @@ tr:nth-child(odd) {
 
 .half-modal-overlay.open {
     opacity: 1;
+    pointer-events: auto;   /* 開いているときだけ受け取る */
 }
 
 /* ===================
@@ -1109,6 +1111,7 @@ tr:nth-child(odd) {
 
     /* 初期位置: 画面下に隠れている */
     transform: translateY(100%);
+    pointer-events: none;   /* 閉じている間はクリックを透過 */
     transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
 
     /* 最大高さ: 画面の55% */
@@ -1120,6 +1123,7 @@ tr:nth-child(odd) {
 
 .half-modal.open {
     transform: translateY(0);
+    pointer-events: auto;   /* 開いているときだけ受け取る */
 }
 
 /* ドラッグハンドル */
@@ -1264,5 +1268,6 @@ tr:nth-child(odd) {
 
     .half-modal.open {
         transform: translateX(-50%) translateY(0);
+        pointer-events: auto;
     }
 }

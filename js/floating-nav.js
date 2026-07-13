@@ -42,8 +42,9 @@ var FloatingNav = (function () {
 
         if (!_btn || !_overlay || !_modal) return;
 
-        // 初期は hidden を外して opacity で制御（CSS の .visible でフェードイン）
+        // hidden 属性を外して CSS で表示制御に切り替え
         _btn.removeAttribute('hidden');
+        // overlay / modal は hidden を外しても pointer-events:none / transform で隠す
         _overlay.removeAttribute('hidden');
         _modal.removeAttribute('hidden');
 
