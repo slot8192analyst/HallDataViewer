@@ -23,18 +23,18 @@
     --secondary-color: #475569;
     --secondary-hover: #576879;
 
-    /* ━━━ 背景色（Surface: #0b1326 ベース） ━━━
-         base    → ページ背景（Surface そのもの）
+    /* ━━━ 背景色（純黒系） ━━━
+         base    → ページ背景（最も暗い）
          elevated→ 行・パネル（1段明るい）
          surface → セクション背景
          card    → カード・サマリー
          input   → フォーム入力欄
     */
-    --bg-base:     #0b1326;
-    --bg-elevated: #111d35;
-    --bg-surface:  #172240;
-    --bg-card:     #0e1830;
-    --bg-input:    #1c2a48;
+    --bg-base:     #0d0d0d;
+    --bg-elevated: #181818;
+    --bg-surface:  #1e1e1e;
+    --bg-card:     #141414;
+    --bg-input:    #252525;
 
     /* ━━━ テキスト（On-surface: #dae2fd） ━━━ */
     --text-primary:   #dae2fd;
@@ -43,8 +43,8 @@
     --text-disabled:  #3a4e70;
 
     /* ━━━ ボーダー ━━━ */
-    --border-color: #1e3060;
-    --border-light: #2a3f75;
+    --border-color: #2e2e2e;
+    --border-light: #3a3a3a;
     --border-focus: #2665fd;
 
     /* ━━━ アクセントカラー ━━━ */
