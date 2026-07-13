@@ -97,8 +97,8 @@
 }
 
 .calendar-filters .btn-small {
-    padding: 8px 12px;
     margin-left: auto;
+    /* min-height:36px は .btn-small 共通ルールを継承 */
 }
 
 /* ===================

@@ -307,9 +307,17 @@
     color: var(--text-primary, #e2e8f0);
     border: 1px solid var(--border-light, #334155);
     border-radius: var(--radius-sm, 4px);
-    padding: 8px 10px;
+    padding: var(--space-2, 8px) var(--space-3, 12px);
     font-size: var(--font-size-md, 14px);
     font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+}
+.board-author {
+    min-height: 44px;   /* DESIGN.md § Touch */
+}
+.board-body,
+.board-edit-area {
+    min-height: 88px;
 }
 .board-author:focus,
 .board-body:focus,

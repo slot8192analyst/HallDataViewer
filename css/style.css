@@ -130,6 +130,7 @@ h1 {
 
 .tab-btn {
     padding: 10px 15px;
+    min-height: 44px;
     background: var(--bg-input);
     border: 1px solid transparent;
     border-radius: var(--radius-md) var(--radius-md) 0 0;
@@ -137,6 +138,7 @@ h1 {
     cursor: pointer;
     font-size: var(--font-size-sm);
     transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .tab-btn:hover {
@@ -159,87 +161,302 @@ h1 {
 }
 
 /* ===================
-   ボタン共通
+   タッチ最適化（DESIGN.md § Touch）
    =================== */
-.btn-apply,
-.btn-reset,
-.calendar-btn,
-.modal-btn,
-.preset-btn {
-    padding: 8px 15px;
-    border: none;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    font-size: var(--font-size-md);
-    transition: background var(--transition-fast);
+
+/* タップ時のデフォルトハイライトを消してCSS :active に統一 */
+button,
+a,
+[role="button"],
+select,
+input[type="checkbox"],
+input[type="radio"] {
+    -webkit-tap-highlight-color: transparent;
 }
 
+/* タップ時フィードバック（:active で視覚的確認） */
+button:active:not(:disabled),
+[role="button"]:active {
+    opacity: 0.75;
+}
+
+/* スクロールコンテナ */
+.table-wrapper,
+.scroll-x {
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ===================
+   ボタン共通ベース（DESIGN.md § Buttons）
+   =================== */
+
+/* ── 新規統一クラス（4種） ── */
+.btn-primary,
+.btn-secondary,
+.btn-ghost,
+.btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    min-height: 44px;
+    padding: 0 var(--space-4);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-md);
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+}
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-ghost:disabled,
+.btn-danger:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Primary: 最重要アクション */
+.btn-primary {
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+}
+.btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+}
+.btn-primary:active:not(:disabled) {
+    opacity: 0.85;
+}
+
+/* Secondary: サブアクション */
+.btn-secondary {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+.btn-secondary:hover:not(:disabled) {
+    background: var(--bg-elevated);
+    border-color: var(--border-light);
+}
+.btn-secondary:active:not(:disabled) {
+    opacity: 0.75;
+}
+
+/* Ghost: 軽いアクション（最小高36px） */
+.btn-ghost {
+    min-height: 36px;
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+}
+.btn-ghost:hover:not(:disabled) {
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+}
+.btn-ghost:active:not(:disabled) {
+    opacity: 0.75;
+}
+
+/* Danger: 削除・リセットなど不可逆操作 */
+.btn-danger {
+    background: var(--color-danger);
+    color: #fff;
+    border: none;
+}
+.btn-danger:hover:not(:disabled) {
+    opacity: 0.85;
+}
+.btn-danger:active:not(:disabled) {
+    opacity: 0.7;
+}
+
+/* ── 既存クラス → 新規クラスへのエイリアス（後方互換） ── */
+/* 既存のHTMLを変更せずに新規スタイルを適用する            */
 .btn-apply,
 .calendar-btn,
 .modal-btn.primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    min-height: 44px;
+    padding: 0 var(--space-4);
     background: var(--primary-color);
     color: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-md);
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
 }
-
-.btn-apply:hover,
-.calendar-btn:hover,
-.modal-btn.primary:hover {
+.btn-apply:hover:not(:disabled),
+.calendar-btn:hover:not(:disabled),
+.modal-btn.primary:hover:not(:disabled) {
     background: var(--primary-hover);
+}
+.btn-apply:active:not(:disabled),
+.calendar-btn:active:not(:disabled),
+.modal-btn.primary:active:not(:disabled) {
+    opacity: 0.85;
 }
 
 .btn-reset,
-.modal-btn {
-    background: var(--border-light);
+.modal-btn:not(.primary) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    min-height: 44px;
+    padding: 0 var(--space-4);
+    background: transparent;
     color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-md);
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+}
+.btn-reset:hover:not(:disabled),
+.modal-btn:not(.primary):hover:not(:disabled) {
+    background: var(--bg-elevated);
+    border-color: var(--border-light);
+}
+.btn-reset:active:not(:disabled),
+.modal-btn:not(.primary):active:not(:disabled) {
+    opacity: 0.75;
 }
 
-.btn-reset:hover,
-.modal-btn:hover {
-    background: var(--border-color);
-}
-
+/* btn-small: Ghost相当 + 最小高さ保証 */
 .btn-small {
-    padding: 5px 10px;
-    font-size: var(--font-size-sm);
-    background: var(--primary-dark);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    min-height: 36px;
+    padding: 0 var(--space-3);
+    background: transparent;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+}
+.btn-small:hover:not(:disabled) {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border-color: var(--border-light);
+}
+.btn-small:active:not(:disabled) {
+    opacity: 0.75;
+}
+
+/* preset-btn: Secondary相当 */
+.preset-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 var(--space-4);
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-family: inherit;
     cursor: pointer;
     transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+}
+.preset-btn:hover:not(:disabled) {
+    background: var(--bg-elevated);
+    border-color: var(--primary-color);
+    color: var(--text-primary);
 }
 
-.btn-small:hover {
-    background: var(--primary-color);
-    color: #fff;
-}
-
-/* 無効化状態 */
+/* 無効化状態（共通） */
 button:disabled,
 button.disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
     pointer-events: none;
 }
 
 /* ===================
-   フォーム要素共通
+   フォーム要素共通（DESIGN.md § Forms）
    =================== */
+
+/* 全フォーム要素に44px最小高さ + タッチ最適化 */
 input[type="text"],
 input[type="number"],
+input[type="date"],
+input[type="search"],
+textarea,
 select {
-    padding: 8px 10px;
+    min-height: 44px;
+    padding: var(--space-2) var(--space-3);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-sm);
     background: var(--bg-input);
     color: var(--text-primary);
     font-size: var(--font-size-md);
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+textarea {
+    min-height: 88px; /* 44px × 2行 */
+    resize: vertical;
 }
 
 input:focus,
+textarea:focus,
 select:focus {
     outline: none;
     border-color: var(--border-focus);
+}
+
+/* .input クラス: DESIGN.md § Forms 標準入力欄 */
+.input {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color var(--transition-fast);
+}
+.input:focus {
+    outline: none;
+    border-color: var(--border-focus);
+}
+.input::placeholder {
+    color: var(--text-muted);
 }
 
 /* ===================
@@ -256,7 +473,7 @@ select:focus {
 .controls select {
     flex: 1;
     min-width: 100px;
-    padding: 10px;
+    /* padding は フォーム共通ルール（--space-2 --space-3）を継承 */
     font-size: var(--font-size-md);
 }
 
@@ -291,7 +508,8 @@ select:focus {
 }
 
 .date-nav button {
-    padding: 10px 15px;
+    min-height: 44px;
+    padding: 0 var(--space-4);
     background: var(--bg-input);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-md);
@@ -299,6 +517,7 @@ select:focus {
     cursor: pointer;
     font-size: var(--font-size-lg);
     transition: background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .date-nav button:hover:not(:disabled) {
@@ -379,15 +598,18 @@ tr:nth-child(odd) {
 .btn-download {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 8px 14px;
+    gap: var(--space-1);
+    min-height: 44px;
+    padding: 0 var(--space-3);
     background: var(--bg-input);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
     font-size: var(--font-size-sm);
+    font-family: inherit;
     cursor: pointer;
     transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .btn-copy:hover,
@@ -398,7 +620,7 @@ tr:nth-child(odd) {
 
 .btn-copy:active,
 .btn-download:active {
-    transform: scale(0.98);
+    opacity: 0.75;
 }
 
 .btn-copy.copied {
@@ -628,7 +850,7 @@ tr:nth-child(odd) {
     }
 
     .date-nav button {
-        padding: 6px 10px;
+        padding: 0 var(--space-2); /* min-height:44px は維持 */
     }
 
     .table-actions {
@@ -639,7 +861,7 @@ tr:nth-child(odd) {
     .btn-download {
         flex: 1;
         justify-content: center;
-        padding: 10px 12px;
+        /* min-height:44px / padding は共通ルールを維持 */
     }
 
     .loading-content {
@@ -708,7 +930,7 @@ tr:nth-child(odd) {
     }
 
     .date-nav button {
-        padding: 12px 20px;
+        padding: 0 var(--space-5); /* min-height:44px は維持 */
     }
 }
 
