@@ -462,14 +462,17 @@
 
 .multi-select-btn {
     flex: 1;
-    padding: 6px 10px;
+    min-height: 44px;   /* DESIGN.md § Touch */
+    padding: 0 var(--space-2);
     background: var(--bg-input);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--text-secondary);
     font-size: var(--font-size-sm);
+    font-family: inherit;
     cursor: pointer;
     transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .multi-select-btn:hover {
@@ -853,13 +856,16 @@ td:has(.position-tags) {
 }
 
 .position-logic-btn {
-    padding: 4px 10px;
+    min-height: 36px;   /* Ghost 相当: 軽微なUIのため 36px */
+    padding: 0 var(--space-2);
     background: var(--bg-input);
     border: 1px solid var(--border-color);
     color: var(--text-secondary);
     font-size: var(--font-size-xs);
+    font-family: inherit;
     cursor: pointer;
     transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .position-logic-btn:first-child {
@@ -992,8 +998,13 @@ td:has(.position-tags) {
     color: var(--text-secondary);
     font-size: var(--font-size-2xl);
     cursor: pointer;
-    padding: 0;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     line-height: 1;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .close-btn:hover {
@@ -1152,8 +1163,8 @@ td:has(.position-tags) {
 }
 
 .tag-group-remove {
-    width: 26px;
-    height: 26px;
+    width: 36px;    /* タップ判定領域を拡大 */
+    height: 36px;
     border-radius: 50%;
     background: transparent;
     border: 1px solid var(--color-danger);
@@ -1166,6 +1177,8 @@ td:has(.position-tags) {
     padding: 0;
     line-height: 1;
     transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
 }
 
 .tag-group-remove:hover {
@@ -1257,8 +1270,8 @@ td:has(.position-tags) {
 }
 
 .tag-condition-remove {
-    width: 24px;
-    height: 24px;
+    width: 32px;    /* タップ判定領域を拡大 */
+    height: 32px;
     border-radius: 50%;
     background: transparent;
     border: 1px solid var(--color-danger);
@@ -1272,6 +1285,7 @@ td:has(.position-tags) {
     line-height: 1;
     flex-shrink: 0;
     transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .tag-condition-remove:hover {
@@ -1280,8 +1294,10 @@ td:has(.position-tags) {
 }
 
 .tag-group-add-condition {
-    padding: 4px 10px;
+    min-height: 36px;
+    padding: 0 var(--space-2);
     font-size: var(--font-size-xs);
+    font-family: inherit;
     background: var(--bg-input);
     border: 1px dashed var(--border-light);
     border-radius: var(--radius-sm);
@@ -1289,6 +1305,7 @@ td:has(.position-tags) {
     cursor: pointer;
     transition: all var(--transition-fast);
     align-self: flex-start;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .tag-group-add-condition:hover {
@@ -1361,13 +1378,14 @@ td:has(.position-tags) {
 }
 
 .tag-color-btn {
-    width: 18px;
-    height: 18px;
+    width: 24px;    /* 視覚的は小さめだがタッチは親コンテナで確保 */
+    height: 24px;
     border-radius: 50%;
     border: 2px solid transparent;
     cursor: pointer;
     padding: 0;
     transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .tag-color-btn:hover {
@@ -1380,8 +1398,8 @@ td:has(.position-tags) {
 }
 
 .tag-def-remove-btn {
-    width: 30px;
-    height: 30px;
+    width: 36px;    /* タップ判定領域を拡大 */
+    height: 36px;
     border-radius: var(--radius-sm);
     background: transparent;
     border: 1px solid var(--border-color);
@@ -1394,6 +1412,7 @@ td:has(.position-tags) {
     padding: 0;
     flex-shrink: 0;
     transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .tag-def-remove-btn:hover {

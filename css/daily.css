@@ -515,8 +515,8 @@ select option {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: 20px;    /* タップ判定領域を少し大きく */
+    height: 20px;
     border-radius: 50%;
     border: none;
     background: rgba(255,255,255,0.18);
@@ -526,7 +526,8 @@ select option {
     cursor: pointer;
     padding: 0;
     flex-shrink: 0;
-    transition: background 0.15s;
+    transition: background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .filter-chip-remove:hover {
@@ -574,15 +575,18 @@ select option {
 .filter-chip-clear-all {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
+    gap: var(--space-1);
+    min-height: 32px;
+    padding: 0 var(--space-2);
     border-radius: var(--radius-full);
     font-size: var(--font-size-xs);
+    font-family: inherit;
     border: 1px dashed var(--border-light);
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
+    transition: border-color var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .filter-chip-clear-all:hover {

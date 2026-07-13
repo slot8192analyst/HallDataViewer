@@ -120,14 +120,17 @@
 }
 
 .quick-select-btn {
-    padding: 5px 12px;
+    min-height: 44px;   /* DESIGN.md § Touch */
+    padding: 0 var(--space-3);
     background: var(--primary-color);
     border: none;
     border-radius: var(--radius-sm);
     color: #fff;
     font-size: var(--font-size-sm);
+    font-family: inherit;
     cursor: pointer;
     transition: background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .quick-select-btn:hover {
@@ -208,16 +211,19 @@
 }
 
 .logic-btn {
-    padding: 8px 16px;
+    min-height: 44px;   /* DESIGN.md § Touch */
+    padding: 0 var(--space-4);
     background: var(--bg-input);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-sm);
     color: var(--text-secondary);
     cursor: pointer;
     font-size: var(--font-size-sm);
+    font-family: inherit;
     transition: all var(--transition-fast);
     flex: 1;
     text-align: center;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .logic-btn:hover {
@@ -271,16 +277,19 @@
 }
 
 .trend-filter-btn {
-    padding: 4px 8px;
+    min-height: 36px;   /* 密集UIのためGhost相当の36px */
+    padding: 0 var(--space-2);
     background: var(--bg-input);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--text-secondary);
     font-size: var(--font-size-xs);
+    font-family: inherit;
     cursor: pointer;
     transition: all var(--transition-fast);
-    min-width: 28px;
+    min-width: 36px;
     text-align: center;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .trend-filter-btn:hover {
@@ -297,7 +306,7 @@
 
 .trend-filter-btn.trend-filter-special {
     min-width: auto;
-    padding: 4px 10px;
+    padding: 0 var(--space-2);
     font-size: 11px;
 }
 
@@ -316,8 +325,9 @@
 .event-filter-btn {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    padding: 3px 8px;
+    gap: var(--space-1);
+    min-height: 32px;   /* インラインチップのため白い小さめに設定 */
+    padding: 0 var(--space-2);
     background: var(--bg-base);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
@@ -326,6 +336,7 @@
     cursor: pointer;
     transition: all var(--transition-fast);
     white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .event-filter-btn:hover {
@@ -349,17 +360,20 @@
 .filter-apply-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 10px 20px;
+    gap: var(--space-1);
+    min-height: 44px;   /* DESIGN.md § Touch */
+    padding: 0 var(--space-5);
     background: var(--primary-color);
     border: none;
     border-radius: var(--radius-sm);
     color: #fff;
     font-size: var(--font-size-md);
+    font-family: inherit;
     cursor: pointer;
     transition: background var(--transition-fast);
     width: 100%;
     justify-content: center;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .filter-apply-btn:hover {
@@ -624,12 +638,15 @@
     background: var(--bg-elevated);
     color: var(--text-secondary);
     border: 1px solid var(--border-light);
-    border-radius: 6px;
-    padding: 5px 12px;
+    border-radius: var(--radius-sm);
+    min-height: 36px;
+    padding: 0 var(--space-2);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--font-size-md);
+    font-family: inherit;
     line-height: 1;
-    transition: background 0.15s, color 0.15s;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
 }
 .trend-mc-pager:hover:not(:disabled) {
     background: var(--bg-surface);
@@ -650,12 +667,15 @@
     background: var(--bg-elevated);
     color: var(--text-secondary);
     border: 1px solid var(--border-light);
-    border-radius: 5px;
-    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    min-height: 36px;
+    padding: 0 var(--space-2);
     cursor: pointer;
-    font-size: 13px;
-    min-width: 32px;
-    transition: background 0.15s, color 0.15s;
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+    min-width: 36px;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
 }
 .trend-mc-page-btn:hover {
     background: var(--bg-surface);
