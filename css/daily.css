@@ -38,21 +38,21 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
-    margin: 12px 0;
+    gap: var(--space-3);
+    margin: var(--space-3) 0;
 }
 
 .daily-filter-btn-group {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--space-2);
 }
 
 .daily-filter-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
     border-radius: var(--radius-md);
     border: 1px solid var(--border-light);
     background: var(--bg-surface);
@@ -64,8 +64,8 @@
 }
 
 .daily-filter-btn:hover {
-    border-color: var(--primary-color, #3b82f6);
-    background: var(--primary-dark, #1e3a5f);
+    border-color: var(--primary-color);
+    background: var(--primary-dark);
 }
 
 .daily-filter-btn .dfb-icon {
@@ -124,11 +124,11 @@
     display: none;
     position: fixed;
     inset: 0;
-    z-index: 1000;
+    z-index: var(--z-modal);
     background: rgba(0, 0, 0, 0.6);
     justify-content: center;
     align-items: flex-start;
-    padding: 40px 15px;
+    padding: var(--space-8) var(--space-4);
     overflow-y: auto;
 }
 
@@ -137,7 +137,7 @@
 }
 
 .app-modal-content {
-    background: var(--bg-surface, #1f2937);
+    background: var(--bg-surface);
     border-radius: var(--radius-lg);
     width: 100%;
     max-width: 640px;
@@ -151,7 +151,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
+    padding: var(--space-4) var(--space-5);
     border-bottom: 1px solid var(--border-light);
     flex-shrink: 0;
 }
@@ -177,22 +177,22 @@
 }
 
 .app-modal-body {
-    padding: 18px 20px;
+    padding: var(--space-4) var(--space-5);
     overflow-y: auto;
     flex: 1;
 }
 
 .app-modal-footer {
-    padding: 12px 20px;
+    padding: var(--space-3) var(--space-5);
     border-top: 1px solid var(--border-light);
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
+    gap: var(--space-3);
     flex-shrink: 0;
 }
 
 .app-modal-footer .modal-btn {
-    padding: 8px 18px;
+    padding: var(--space-2) var(--space-4);
     border-radius: var(--radius-md);
     border: 1px solid var(--border-light);
     background: var(--bg-surface);
@@ -201,8 +201,8 @@
 }
 
 .app-modal-footer .modal-btn.primary {
-    background: var(--primary-color, #3b82f6);
-    border-color: var(--primary-color, #3b82f6);
+    background: var(--primary-color);
+    border-color: var(--primary-color);
     color: #fff;
 }
 
@@ -213,16 +213,16 @@
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 8px;
-    margin: 10px 0;
-    padding: 8px;
+    gap: var(--space-2);
+    margin: var(--space-3) 0;
+    padding: var(--space-2);
 }
 
 .daily-event-badges {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 8px;
+    gap: var(--space-2);
 }
 
 .daily-event-badge {
@@ -240,9 +240,9 @@
 .event-summary {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-bottom: 15px;
-    padding: 12px 15px;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+    padding: var(--space-3) var(--space-4);
     background: var(--bg-surface);
     border-radius: var(--radius-md);
 }
@@ -251,20 +251,20 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
 }
 
 .event-summary-label {
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
-    margin-right: 5px;
+    margin-right: var(--space-1);
 }
 
 .event-summary-item {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-3);
     border-radius: var(--radius-sm);
     border: 1px solid;
     font-size: var(--font-size-sm);
@@ -295,7 +295,7 @@ select option {
    台番号末尾統計テーブル（トグル式）
    =================== */
 .suffix-stats-block.collapsible {
-    margin-top: 20px;
+    margin-top: var(--space-5);
     background: var(--bg-surface);
     border-radius: var(--radius-lg);
     padding: 0;
@@ -306,7 +306,7 @@ select option {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 15px;
+    padding: var(--space-3) var(--space-4);
     cursor: pointer;
     transition: background var(--transition-fast);
     user-select: none;
@@ -346,12 +346,12 @@ select option {
     max-height: 0;
     overflow: hidden;
     transition: max-height var(--transition-normal), padding var(--transition-normal);
-    padding: 0 15px;
+    padding: 0 var(--space-4);
 }
 
 .suffix-stats-content.open {
     max-height: 800px;
-    padding: 15px;
+    padding: var(--space-4);
     transition: max-height 0.5s ease-in, padding var(--transition-normal);
 }
 
@@ -370,8 +370,8 @@ select option {
 /* テーブルアクション（末尾統計内） */
 .suffix-table-actions {
     display: flex;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
 }
 
 .suffix-table-actions .btn-copy,
@@ -442,7 +442,7 @@ select option {
     }
 
     .app-modal {
-        padding: 15px 8px;
+        padding: var(--space-4) var(--space-2);
     }
 
     .app-modal-content {
@@ -536,40 +536,40 @@ select option {
 
 /* チップ種別カラー */
 .filter-chip.chip-search {
-    background: #3b82f620;
-    border-color: #3b82f6;
-    color: #93c5fd;
+    background: rgba(59, 130, 246, 0.12);
+    border-color: var(--color-info);
+    color: var(--color-info);
 }
 
 .filter-chip.chip-machine {
-    background: #8b5cf620;
-    border-color: #8b5cf6;
-    color: #c4b5fd;
+    background: rgba(167, 139, 250, 0.12);
+    border-color: var(--color-purple);
+    color: var(--color-purple);
 }
 
 .filter-chip.chip-numfilter {
-    background: #f59e0b20;
-    border-color: #f59e0b;
-    color: #fcd34d;
+    background: rgba(251, 191, 36, 0.12);
+    border-color: var(--color-warning);
+    color: var(--color-warning);
 }
 
 .filter-chip.chip-tag {
     /* タグ固有の色はインラインで上書き */
-    background: #22c55e20;
-    border-color: #22c55e;
-    color: #86efac;
+    background: rgba(74, 222, 128, 0.12);
+    border-color: var(--color-success);
+    color: var(--color-success);
 }
 
 .filter-chip.chip-taggedonly {
-    background: #ec489920;
-    border-color: #ec4899;
-    color: #f9a8d4;
+    background: rgba(244, 114, 182, 0.12);
+    border-color: var(--color-pink);
+    color: var(--color-pink);
 }
 
 .filter-chip.chip-sort {
-    background: #06b6d420;
-    border-color: #06b6d4;
-    color: #67e8f9;
+    background: rgba(34, 211, 238, 0.12);
+    border-color: #22d3ee;
+    color: #22d3ee;
 }
 
 .filter-chip-clear-all {
@@ -606,7 +606,7 @@ select option {
 }
 
 #data-table th.sortable:hover {
-    background: var(--primary-dark, #1e3a5f);
+    background: var(--primary-dark);
 }
 
 #data-table th .sort-icon {
@@ -639,7 +639,7 @@ select option {
     content: '';
     position: absolute;
     inset: 0;
-    background: var(--bg-main, #111827);
+    background: var(--bg-base);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s;
@@ -660,12 +660,12 @@ select option {
 .skeleton-cell {
     display: block;
     height: 14px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     background: linear-gradient(
         90deg,
-        var(--bg-surface, #1f2937) 25%,
-        var(--primary-dark, #1e3a5f) 50%,
-        var(--bg-surface, #1f2937) 75%
+        var(--bg-surface) 25%,
+        var(--primary-dark) 50%,
+        var(--bg-surface) 75%
     );
     background-size: 200% 100%;
     animation: skeleton-shimmer 1.4s infinite;
@@ -689,11 +689,11 @@ select option {
     width: 18px;
     height: 18px;
     border: 2px solid var(--border-light);
-    border-top-color: var(--primary-color, #3b82f6);
+    border-top-color: var(--primary-color);
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
     vertical-align: middle;
-    margin-right: 8px;
+    margin-right: var(--space-2);
 }
 
 @keyframes spin {
@@ -722,8 +722,8 @@ select option {
 .tag-ref-date-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 10px 6px 14px;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
     background: var(--bg-elevated);
     border-top: 1px solid var(--border-color);
     flex-wrap: wrap;
@@ -738,7 +738,7 @@ select option {
 .tag-ref-mode-select,
 .tag-ref-file-select {
     font-size: var(--font-size-sm);
-    padding: 4px 8px;
+    padding: var(--space-1) var(--space-2);
     background: var(--bg-input);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-sm);
@@ -771,8 +771,8 @@ select option {
 .badge-recalc-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin: 16px 0 10px;
+    gap: var(--space-3);
+    margin: var(--space-4) 0 var(--space-3);
     flex-wrap: wrap;
 }
 
@@ -786,9 +786,9 @@ select option {
 
 /* 未計算状態の強調スタイル */
 button.badge-needs-calc {
-    background: var(--accent-orange, #d97706);
+    background: var(--color-warning);
     color: #fff;
-    border-color: var(--accent-orange, #d97706);
+    border-color: var(--color-warning);
     animation: badge-pulse 1.6s ease-in-out infinite;
 }
 
@@ -814,12 +814,12 @@ button#badgeRecalcBtn:not(.badge-needs-calc) {
 .badge-filter-row {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 12px 14px;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
     background: var(--bg-elevated);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
-    margin: 4px 0 10px;
+    margin: var(--space-1) 0 var(--space-3);
 }
 
 .badge-filter-label {
@@ -864,9 +864,9 @@ th.badge-col-header.badge-filter-active .sort-icon {
 
 /* バッジフィルターチップ */
 .chip-badge-filter {
-    background: var(--primary-color, #3d6b9a)20;
-    border-color: var(--primary-color, #3d6b9a);
-    color: var(--primary-color, #3d6b9a);
+    background: rgba(38, 101, 253, 0.12);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
 }
 
 /* ===================
@@ -914,15 +914,15 @@ th.badge-col-header.badge-filter-active .sort-icon {
     background: var(--bg-elevated);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
-    padding: 12px 14px;
-    margin-bottom: 14px;
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-4);
 }
 
 .tag-bulk-apply-header {
     display: flex;
     align-items: baseline;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
     flex-wrap: wrap;
 }
 
@@ -947,7 +947,7 @@ th.badge-col-header.badge-filter-active .sort-icon {
 .tag-bulk-select {
     flex: 1;
     min-width: 140px;
-    padding: 5px 8px;
+    padding: var(--space-1) var(--space-2);
     background: var(--bg-input);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-sm);

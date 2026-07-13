@@ -4,7 +4,7 @@
 
    Primary   #2665fd … CTA・アクティブ状態・主要インタラクション
    Secondary #475569 … サポートUI・チップ・セカンダリアクション
-   Surface   #0b1326 … ページ背景
+   Surface   #0d0d0d … ページ背景
    On-surface #dae2fd … ダーク背景上のメインテキスト
    Error     #ffb4ab … バリデーションエラー・破壊的操作
    =================== */
@@ -13,6 +13,18 @@
    ダークテーマ（DevFocus Dark）
    =================== */
 :root {
+    /* ━━━ ゾーンカラー（aim.css / analysis.css 共通） ━━━ */
+    --color-zone-top:   #ef4444;   /* 最優先ゾーン（赤） */
+    --color-zone-high:  #fbbf24;   /* 高優先ゾーン（黄） */
+    --color-zone-other: #6b7280;   /* その他ゾーン（グレー） */
+    --color-zone-hidden: #4b5563;  /* 未配置（暗グレー） */
+
+    /* ━━━ 機能色（カード・テキスト用背景 rgba） ━━━ */
+    /* aim-chip 凹みランク色 */
+    --chip-kubi-1-bg:   rgba(239,  68,  68, 0.25);
+    --chip-kubi-2-bg:   rgba(245, 158,  11, 0.22);
+    --chip-kubi-3-bg:   rgba( 59, 130, 246, 0.20);
+
     /* ━━━ メインカラー（Primary: #2665fd） ━━━ */
     --primary-color: #2665fd;
     --primary-hover: #3d77ff;

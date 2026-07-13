@@ -1,44 +1,44 @@
 /* ===== メモタブ ===== */
 #memo .memo-input-panel {
-    background: var(--bg-secondary, #16213e);
-    border: 1px solid var(--border-light, #2a3a5a);
-    border-radius: 10px;
-    padding: 16px;
-    margin-bottom: 16px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
 }
 .memo-input-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: var(--space-3);
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-3);
 }
 .memo-input-row label.memo-field-label {
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     opacity: 0.8;
     min-width: 64px;
 }
 #memo select, #memo input[type="text"] {
-    padding: 8px 10px;
-    border-radius: 6px;
-    border: 1px solid var(--border-light, #2a3a5a);
-    background: var(--bg-primary, #1a1a2e);
-    color: var(--text-primary, #e0e0e0);
-    font-size: 14px;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
 }
 #memoPersonInput { flex: 1; min-width: 180px; }
-.memo-or-sep { opacity: 0.5; font-size: 12px; padding: 0 4px; }
+.memo-or-sep { opacity: 0.5; font-size: var(--font-size-xs); padding: 0 var(--space-1); }
 
 /* ===== 日付ホイールピッカー ===== */
 .memo-wheel {
     position: relative;
     width: 100%;
     max-width: 320px;
-    height: 200px; /* itemHeight(40) * 5 */
+    height: 200px;
     overflow: hidden;
-    border: 1px solid var(--border-light, #2a3a5a);
-    border-radius: 12px;
-    background: var(--bg-primary, #1a1a2e);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--bg-input);
     -webkit-mask-image: linear-gradient(to bottom,
         transparent 0%, #000 25%, #000 75%, transparent 100%);
     mask-image: linear-gradient(to bottom,
@@ -46,12 +46,12 @@
 }
 .memo-wheel-highlight {
     position: absolute;
-    top: 80px;       /* (200-40)/2 */
+    top: 80px;
     left: 0; right: 0;
     height: 40px;
-    border-top: 1px solid var(--hall-accent, #e94560);
-    border-bottom: 1px solid var(--hall-accent, #e94560);
-    background: rgba(233, 69, 96, 0.08);
+    border-top: 1px solid var(--hall-accent);
+    border-bottom: 1px solid var(--hall-accent);
+    background: rgba(251, 191, 36, 0.08);
     pointer-events: none;
     z-index: 1;
 }
@@ -69,32 +69,32 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
-    color: var(--text-secondary, #8a8aa0);
+    font-size: var(--font-size-md);
+    color: var(--text-secondary);
     scroll-snap-align: center;
     transition: color 0.15s, transform 0.15s, font-weight 0.15s;
     user-select: none;
 }
 .memo-wheel-item.active {
-    color: var(--text-primary, #fff);
+    color: var(--text-primary);
     font-weight: 700;
-    font-size: 16px;
+    font-size: var(--font-size-lg);
     transform: scale(1.04);
 }
 .memo-wheel-pad { height: 40px; }
 .memo-wheel-empty { padding: 80px 16px; text-align: center; opacity: 0.6; }
 
 /* ===== 設定入力チップ（色分け） ===== */
-.memo-setting-checks { display: flex; flex-wrap: wrap; gap: 8px; }
+.memo-setting-checks { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .memo-setting-chip {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 6px 12px;
-    border: 1px solid var(--border-light, #2a3a5a);
-    border-radius: 20px;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-full);
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     user-select: none;
     transition: all 0.15s;
 }
@@ -107,19 +107,19 @@
 .memo-set-chip-2:has(input:checked) { background: #16a08522; border-color: #16a085; color: #3fc9ab; }
 .memo-set-chip-1:has(input:checked) { background: #2980b922; border-color: #2980b9; color: #4aa3df; }
 
-.memo-input-actions { display: flex; gap: 10px; margin-top: 8px; }
+.memo-input-actions { display: flex; gap: var(--space-3); margin-top: var(--space-2); }
 
 /* ===== メモ一覧テーブル ===== */
-.memo-list-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.memo-list-table { width: 100%; border-collapse: collapse; font-size: var(--font-size-md); }
 .memo-list-table th, .memo-list-table td {
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--border-light, #2a3a5a);
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--border-light);
     text-align: left;
 }
-.memo-list-table th { opacity: 0.7; font-size: 12px; }
+.memo-list-table th { opacity: 0.7; font-size: var(--font-size-xs); }
 .memo-cell-num { font-weight: bold; text-align: center; }
 .memo-cell-author { opacity: 0.7; font-size: 12px; }
-.memo-del-btn { background: none; border: none; cursor: pointer; font-size: 15px; opacity: 0.7; }
+.memo-del-btn { background: none; border: none; cursor: pointer; font-size: var(--font-size-md); opacity: 0.7; }
 .memo-del-btn:hover { opacity: 1; }
 .memo-list-empty { padding: 16px; opacity: 0.6; text-align: center; }
 
@@ -127,25 +127,25 @@
 .memo-badge {
     display: inline-flex;
     align-items: center;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 12px;
+    padding: 2px var(--space-2);
+    border-radius: var(--space-3);
+    font-size: var(--font-size-xs);
     font-weight: 600;
     line-height: 1.5;
     white-space: nowrap;
 }
 .memo-person-badge {
     background: rgba(74, 144, 226, 0.18);
-    border: 1px solid #4a90e2;
-    color: #6bb0ff;
-    margin-right: 4px;
+    border: 1px solid var(--color-info);
+    color: var(--color-info);
+    margin-right: var(--space-1);
 }
-.memo-setting-badges { display: inline-flex; gap: 3px; vertical-align: middle; }
+.memo-setting-badges { display: inline-flex; gap: var(--space-1); vertical-align: middle; }
 .memo-setting-badge {
     min-width: 18px;
     justify-content: center;
-    padding: 2px 6px;
-    border-radius: 9px;
+    padding: 2px var(--space-2);
+    border-radius: var(--space-2);
     color: #fff;
 }
 /* 設定色: 6=赤 → 1=青 */
@@ -160,13 +160,13 @@
 #data-table td.memo-col-cell {
     white-space: nowrap;
 }
-#data-table td.memo-col-cell .memo-badge { font-size: 11px; }
+#data-table td.memo-col-cell .memo-badge { font-size: var(--font-size-xs); }
 
 .memo-col-clickable { cursor: pointer; }
-.memo-add-hint { color: var(--text-muted, #888); font-size: 0.85em; opacity: 0.7; }
-.memo-edit-target { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
-.memo-edit-daiban { font-weight:bold; font-size:1.1em; }
-.memo-edit-machine { color: var(--text-muted, #888); }
-.memo-edit-date { margin-left:auto; font-size:0.9em; opacity:0.8; }
-.memo-edit-row { display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
-.virtual-day-note { color: var(--hall-accent, #f0a020); }
+.memo-add-hint { color: var(--text-muted); font-size: var(--font-size-sm); opacity: 0.7; }
+.memo-edit-target { display:flex; gap:var(--space-2); align-items:center; flex-wrap:wrap; margin-bottom:var(--space-3); }
+.memo-edit-daiban { font-weight:bold; font-size:var(--font-size-lg); }
+.memo-edit-machine { color: var(--text-muted); }
+.memo-edit-date { margin-left:auto; font-size:var(--font-size-sm); opacity:0.8; }
+.memo-edit-row { display:flex; align-items:center; gap:var(--space-2); margin-bottom:var(--space-3); flex-wrap:wrap; }
+.virtual-day-note { color: var(--hall-accent); }

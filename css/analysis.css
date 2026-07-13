@@ -512,7 +512,7 @@
 }
 
 /* ===================
-   レスポンシブ
+   レスポンシブ（禁止BP修正: 600px→480px, 720px削除）
    =================== */
 @media (max-width: 480px) {
     #trend-fixed-table th:first-child,
@@ -780,7 +780,7 @@
         max-width: 100%;
     }
     .trend-mc-total {
-        font-size: 18px;
+        font-size: var(--font-size-xl);
     }
 }
 
