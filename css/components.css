@@ -1777,6 +1777,51 @@ td:has(.position-tags) {
 .terminal-card-title { font-weight: bold; font-size: 1.05em; }
 .terminal-card-desc { font-size: 0.8em; opacity: 0.65; }
 
+/* ===== ページナビゲーションバー ===== */
+.page-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+    align-items: center;
+}
+.page-nav-btn {
+    flex: 1;                          /* PC：均等に伸縮 */
+    padding: 8px 16px;
+    cursor: pointer;
+    background: var(--bg-surface, #1e1e1e);
+    border: none;
+    border-radius: var(--radius-sm, 8px);
+    color: inherit;
+    font-size: var(--font-size-md, 14px);
+    white-space: nowrap;
+    text-align: center;
+    transition: background 0.15s, color 0.15s;
+    opacity: 0.7;
+}
+.page-nav-btn:hover {
+    background: var(--primary-hover, #3d77ff);
+    color: #fff;
+    opacity: 1;
+}
+.page-nav-btn.active {
+    background: var(--primary-color, #2665fd);
+    color: #fff;
+    font-weight: 600;
+    opacity: 1;
+    pointer-events: none;
+}
+
+/* スマホ：折り返して均等配置 */
+@media (max-width: 600px) {
+    .page-nav-btn {
+        flex: 1 1 calc(25% - 6px);   /* 1行4個 → 自然に折り返す */
+        font-size: var(--font-size-sm, 12px);
+        padding: 7px 8px;
+    }
+}
+
+/* 後方互換：旧 back-to-home ボタン（使用箇所が残っている場合のフォールバック） */
 .back-to-home {
     margin-bottom: 12px; padding: 6px 14px; cursor: pointer;
     background: transparent; border: 1px solid var(--border-light, #333);
