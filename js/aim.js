@@ -1160,10 +1160,38 @@ var AimSheet = (function() {
         wrap.className = 'aim-export-list';
         var dateLabel = currentFile && typeof formatDate === 'function' ? formatDate(currentFile) : (currentFile || '-');
         var authorLabel = author ? '　作成: ' + author : '';
+        
+        // 凹み判定の条件（updateMeta と同じ取得ロジック）
+        var days = (typeof MachineBadge !== 'undefined') ? MachineBadge.getBadgeDays() : '?';
+        var base = (typeof MachineBadge !== 'undefined' && MachineBadge.getBadgeBase() === 'prev') ? '前日基準' : '当日含む';
+        var col  = (typeof MachineBadge !== 'undefined') ? MachineBadge.getTargetColumn() : '差枚';
+        
+        // 実際に集計に使った日の範囲（getLastWindowInfo）。windowFiles は新しい順。
+        var windowText = '';
+        if (typeof MachineBadge !== 'undefined' && MachineBadge.getLastWindowInfo) {
+            var wi = MachineBadge.getLastWindowInfo();
+            var wf = wi && wi.windowFiles ? wi.windowFiles : [];
+            if (wf.length) {
+                var fmt = (typeof formatDateShort === 'function')
+                    ? formatDateShort
+                    : function(f) { return String(f).replace('data/', '').replace('.csv', ''); };
+                var rangeText = fmt(wf[wf.length - 1]) + '〜' + fmt(wf[0]);  // 最古〜最新
+                windowText = rangeText + '（' + wf.length + '日）';
+                if (wi.missingFiles && wi.missingFiles.length) {
+                    windowText += ' ⚠未ロード' + wi.missingFiles.length + '日';
+                }
+            }
+        }
+    
         var head = document.createElement('div');
         head.className = 'aim-export-head';
-        head.innerHTML = '<div class="aim-export-title">🎯 狙い台シート</div>'
-            + '<div class="aim-export-sub">' + escapeHtml(dateLabel) + escapeHtml(authorLabel) + '</div>';
+        head.innerHTML =
+              '<div class="aim-export-title">🎯 狙い台シート</div>'
+            + '<div class="aim-export-sub">' + escapeHtml(dateLabel) + escapeHtml(authorLabel) + '</div>'
+            + '<div class="aim-export-meta">'
+            +   '凹み判定: ' + escapeHtml(String(days)) + '日累積・' + escapeHtml(base) + '・' + escapeHtml(col)
+            +   (windowText ? '<br>集計期間: ' + escapeHtml(windowText) : '')
+            + '</div>';
         wrap.appendChild(head);
 
         ZONES.forEach(function(zone) {
