@@ -102,6 +102,11 @@ async function init() {
 
     Router.start();
     
+    // FloatingNav 初期化（スクロール連動ハンバーガー + ハーフモーダル）
+    if (typeof FloatingNav !== 'undefined') {
+        FloatingNav.init();
+    }
+
     hideLoadingScreen();
     console.log('初期表示完了');
     

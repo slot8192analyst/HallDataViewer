@@ -36,7 +36,58 @@
         </div>
     </div>
     
-    <h1>📊 ホールデータまとめ</h1>
+    <h1 id="site-header">📊 ホールデータまとめ</h1>
+
+    <!-- ============================= -->
+    <!-- 固定ハンバーガーボタン（スクロール時表示） -->
+    <!-- ============================= -->
+    <button id="floating-menu-btn" class="floating-menu-btn" aria-label="メニューを開く" hidden>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+    </button>
+
+    <!-- ============================= -->
+    <!-- ハーフモーダル ナビゲーション  -->
+    <!-- ============================= -->
+    <div id="half-modal-overlay" class="half-modal-overlay" hidden></div>
+    <div id="half-modal" class="half-modal" hidden aria-modal="true" role="dialog">
+        <div class="half-modal-handle"></div>
+        <div class="half-modal-header">
+            <span id="half-modal-current-page" class="half-modal-current"></span>
+            <button id="half-modal-close" class="half-modal-close-btn" aria-label="閉じる">✕</button>
+        </div>
+        <nav class="half-modal-nav">
+            <button class="half-modal-nav-item" data-nav="home">
+                <span class="half-modal-nav-icon">🏠</span>
+                <span class="half-modal-nav-label">ホーム</span>
+            </button>
+            <button class="half-modal-nav-item" data-nav="daily">
+                <span class="half-modal-nav-icon">📅</span>
+                <span class="half-modal-nav-label">日別データ</span>
+            </button>
+            <button class="half-modal-nav-item" data-nav="aim">
+                <span class="half-modal-nav-icon">🎯</span>
+                <span class="half-modal-nav-label">狙い台作成</span>
+            </button>
+            <button class="half-modal-nav-item" data-nav="analysis">
+                <span class="half-modal-nav-icon">📈</span>
+                <span class="half-modal-nav-label">解析</span>
+            </button>
+            <button class="half-modal-nav-item" data-nav="calendar">
+                <span class="half-modal-nav-icon">🗓️</span>
+                <span class="half-modal-nav-label">カレンダー</span>
+            </button>
+            <button class="half-modal-nav-item" data-nav="island">
+                <span class="half-modal-nav-icon">🗺️</span>
+                <span class="half-modal-nav-label">ヒートマップ</span>
+            </button>
+            <button class="half-modal-nav-item" data-nav="promotion">
+                <span class="half-modal-nav-icon">📣</span>
+                <span class="half-modal-nav-label">取材</span>
+            </button>
+        </nav>
+    </div>
 
     <!-- =================== -->
     <!-- ホーム（ターミナル）  -->
@@ -125,6 +176,7 @@
     <script src="js/promotion.js"></script>
     <script src="js/board.js"></script>
     <script src="js/router.js"></script>
+    <script src="js/floating-nav.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

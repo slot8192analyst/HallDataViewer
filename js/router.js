@@ -224,6 +224,11 @@ var Router = (function() {
             // 表示のたびに onShow（param を渡す）
             if (typeof page.onShow === 'function') page.onShow(param);
 
+            // FloatingNav に現在ページを通知
+            if (typeof FloatingNav !== 'undefined') {
+                FloatingNav.setCurrentPage(pageName);
+            }
+
             // ページ先頭へスクロール
             window.scrollTo(0, 0);
         });
