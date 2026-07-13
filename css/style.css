@@ -25,9 +25,25 @@
     --radius-lg: 8px;
     --radius-full: 9999px;
 
-    /* ━━━ トランジション ━━━ */
-    --transition-fast: 0.2s ease;
-    --transition-normal: 0.3s ease;
+    /* ━━━ スペーシング（4pxベース / DESIGN.md § Spacing） ━━━ */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+
+    /* ━━━ ブレークポイント参照値（DESIGN.md § Breakpoints） ━━━ */
+    /* CSSのメディアクエリは var() 非対応のため実際は数値で書く。  */
+    /* この変数はJS・ドキュメント参照用として定義する。             */
+    --bp-sm: 480px;   /* スマホ縦向き上限 */
+    --bp-md: 768px;   /* タブレット・スマホ横向き上限 */
+    --bp-lg: 1200px;  /* PC（コンテンツ最大幅） */
+
+    /* ━━━ トランジション（DESIGN.md § Motion） ━━━ */
+    --transition-fast: 0.15s ease;   /* インタラクション用 */
+    --transition-normal: 0.3s ease;  /* パネル展開・モーダル用 */
 
     /* ━━━ z-index管理 ━━━ */
     --z-sticky: 10;
