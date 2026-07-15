@@ -11,6 +11,7 @@ const HallData = window.HallData || {
         machines: new Set(),
         events: null,
         positions: null,
+        unitHistory: null,   // ★追記: unit_history.json の格納先（未ロード時は null）
         loadingState: {
             initialLoadComplete: false,
             fullLoadComplete: false,
@@ -2205,3 +2206,425 @@ function getPositionFilterDisplayText(tabName) {
     
     return labels.join(logicText);
 }
+
+// ===================
+// 台番号ステータス／経過日数ヘルパー（unit_history.json 連携）
+// HallData.store.unitHistory を参照。null の場合は例外を投げず null を返す。
+// ===================
+
+/**
+ * 各種フォーマットの日付を "YYYY_MM_DD" に正規化する内部ヘルパー。
+ * 受け付ける形式: "YYYY_MM_DD" / "YYYY/MM/DD" / "data/YYYY_MM_DD.csv" など
+ * （文字列中に (\d{4})[_/](\d{2})[_/](\d{2}) を含んでいれば拾う）
+ * 取り出せなければ null。
+ */
+function normalizeDateKey(dateLike) {
+    if (typeof dateLike !== 'string') return null;
+    var m = dateLike.match(/(\d{4})[_/](\d{2})[_/](\d{2})/);
+    if (!m) return null;
+    return m[1] + '_' + m[2] + '_' + m[3];
+}
+
+/**
+ * "YYYY_MM_DD" を Date に変換する内部ヘルパー。不正なら null。
+ */
+function unitHistoryDateToObj(dateKey) {
+    var key = normalizeDateKey(dateKey);
+    if (!key) return null;
+    var parts = key.split('_');
+    // 月は 0 始まり。ローカル 0 時で生成（カレンダー日数計算用）。
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+}
+
+/**
+ * unitHistory 全体から、全期間の末尾日付（最新の date）を求める内部ヘルパー。
+ * targetDate 省略時のデフォルト対象日として使う。見つからなければ null。
+ */
+function getLatestDateInUnitHistory() {
+    var uh = HallData.store && HallData.store.unitHistory;
+    if (!uh || !uh.unit_history) return null;
+    var latest = null;
+
+    var unitMap = uh.unit_history;
+    for (var unitNo in unitMap) {
+        if (!Object.prototype.hasOwnProperty.call(unitMap, unitNo)) continue;
+        var entries = unitMap[unitNo];
+        if (!entries || !entries.length) continue;
+        var d = entries[entries.length - 1].date;
+        if (latest === null || d > latest) latest = d;
+    }
+    if (uh.machine_history) {
+        var mh = uh.machine_history;
+        for (var machine in mh) {
+            if (!Object.prototype.hasOwnProperty.call(mh, machine)) continue;
+            var evs = mh[machine].events;
+            if (!evs || !evs.length) continue;
+            var md = evs[evs.length - 1].date;
+            if (latest === null || md > latest) latest = md;
+        }
+    }
+    return latest;
+}
+
+/**
+ * 台番号の、targetDate 時点における最新ステータスを返す。
+ *
+ * 動作:
+ *   unit_history[unitNo] を走査し、targetDate 以前で最も新しいエントリ
+ *   （その時点で有効な機種）を特定。その機種の machine_history のイベント列から、
+ *   有効機種の開始日以降・targetDate 以前で最も新しい type を解決して返す。
+ *
+ * targetDate 省略時: 全期間の末尾日付（最新）を対象にする。
+ *
+ * @param {string} unitNo   台番号（文字列）
+ * @param {string} [targetDate] "YYYY_MM_DD" 等。省略時は全期間の最新日。
+ * @returns {{type:(string|null), machine:string, date:string}|null}
+ */
+HallData.utils = HallData.utils || {};
+
+HallData.utils.getUnitStatus = function(unitNo, targetDate) {
+    var uh = HallData.store && HallData.store.unitHistory;
+    if (!uh || !uh.unit_history) return null; // 未ロードなら null
+
+    unitNo = String(unitNo);
+
+    // targetDate 省略時は全期間の最新日を対象にする
+    if (targetDate === undefined || targetDate === null) {
+        targetDate = getLatestDateInUnitHistory();
+        if (targetDate === null) return null;
+    } else {
+        targetDate = normalizeDateKey(targetDate);
+        if (targetDate === null) return null;
+    }
+
+    var entries = uh.unit_history[unitNo];
+    if (!entries || !entries.length) return null;
+
+    // targetDate 以前で最も新しい台番号軸エントリ（有効な機種）
+    var effective = null;
+    for (var i = 0; i < entries.length; i++) {
+        if (entries[i].date <= targetDate) {
+            if (effective === null || entries[i].date >= effective.date) {
+                effective = entries[i];
+            }
+        }
+    }
+    if (effective === null) return null;
+
+    var machine = effective.machine;
+    var resolvedType = null;
+    var resolvedDate = effective.date;
+
+    var mh = uh.machine_history && uh.machine_history[machine];
+    if (mh && mh.events && mh.events.length) {
+        var latestEv = null;
+        for (var j = 0; j < mh.events.length; j++) {
+            var ev = mh.events[j];
+            if (ev.date >= effective.date && ev.date <= targetDate) {
+                if (latestEv === null || ev.date >= latestEv.date) {
+                    latestEv = ev;
+                }
+            }
+        }
+        if (latestEv !== null) {
+            resolvedType = latestEv.type;
+            resolvedDate = latestEv.date;
+        }
+    }
+
+    return { type: resolvedType, machine: machine, date: resolvedDate };
+};
+
+/**
+ * その台番号が「現在（targetDate 時点）の機種」になってからの経過日数を返す。
+ *
+ * 動作:
+ *   unit_history[unitNo] から targetDate 時点で有効な機種の開始日
+ *   （台番号軸に記録された、その機種になった節目の日）を特定し、
+ *   targetDate との差をカレンダー日数で返す（同日なら 0）。
+ *
+ * targetDate 省略時: 全期間の末尾日付（最新）を対象にする。
+ *
+ * @param {string} unitNo   台番号（文字列）
+ * @param {string} [targetDate] "YYYY_MM_DD" 等。省略時は全期間の最新日。
+ * @returns {number|null} カレンダー日数、または null
+ */
+HallData.utils.getUnitAge = function(unitNo, targetDate) {
+    var uh = HallData.store && HallData.store.unitHistory;
+    if (!uh || !uh.unit_history) return null; // 未ロードなら null
+
+    unitNo = String(unitNo);
+
+    if (targetDate === undefined || targetDate === null) {
+        targetDate = getLatestDateInUnitHistory();
+        if (targetDate === null) return null;
+    } else {
+        targetDate = normalizeDateKey(targetDate);
+        if (targetDate === null) return null;
+    }
+
+    var entries = uh.unit_history[unitNo];
+    if (!entries || !entries.length) return null;
+
+    var startEntry = null;
+    for (var i = 0; i < entries.length; i++) {
+        if (entries[i].date <= targetDate) {
+            if (startEntry === null || entries[i].date >= startEntry.date) {
+                startEntry = entries[i];
+            }
+        }
+    }
+    if (startEntry === null) return null;
+
+    var startDate = unitHistoryDateToObj(startEntry.date);
+    var endDate = unitHistoryDateToObj(targetDate);
+    if (startDate === null || endDate === null) return null;
+
+    var MS_PER_DAY = 24 * 60 * 60 * 1000;
+    return Math.round((endDate.getTime() - startDate.getTime()) / MS_PER_DAY);
+};
+
+/**
+ * その台番号が属する「現在（targetDate 時点）の機種」が、
+ * その島に新規設置された日（machine_history の new イベント日）からの経過日数を返す。
+ *
+ * getUnitAge（台番号がその機種になった節目の日を起点）とは異なり、
+ * こちらは「機種の設置日」を起点にするため、増台で後から入った台でも
+ * 同じ機種なら同じ日数を返す。
+ *
+ * new イベントが存在しない機種（＝最初のデータ日から存在していた機種など）は、
+ * 起点が特定できないため、フォールバックとして
+ *   1) その機種の最古の machine_history イベント日
+ *   2) それも無ければ getUnitAge（台番号軸の開始日）
+ * の順で起点を決める。
+ *
+ * targetDate 省略時: 全期間の末尾日付（最新）を対象にする。
+ *
+ * @param {string} unitNo   台番号（文字列）
+ * @param {string} [targetDate] "YYYY_MM_DD" 等。省略時は全期間の最新日。
+ * @returns {number|null} カレンダー日数、または null
+ */
+HallData.utils.getMachineAge = function(unitNo, targetDate) {
+    var uh = HallData.store && HallData.store.unitHistory;
+    if (!uh || !uh.unit_history) return null; // 未ロードなら null
+
+    unitNo = String(unitNo);
+
+    if (targetDate === undefined || targetDate === null) {
+        targetDate = getLatestDateInUnitHistory();
+        if (targetDate === null) return null;
+    } else {
+        targetDate = normalizeDateKey(targetDate);
+        if (targetDate === null) return null;
+    }
+
+    // 1) targetDate 時点で有効な機種を特定（台番号軸から）
+    var entries = uh.unit_history[unitNo];
+    if (!entries || !entries.length) return null;
+
+    var effective = null;
+    for (var i = 0; i < entries.length; i++) {
+        if (entries[i].date <= targetDate) {
+            if (effective === null || entries[i].date >= effective.date) {
+                effective = entries[i];
+            }
+        }
+    }
+    if (effective === null) return null;
+    var machine = effective.machine;
+
+    // 2) その機種の「設置起点日」を決める
+    var startDateKey = null;
+    var mh = uh.machine_history && uh.machine_history[machine];
+    if (mh && mh.events && mh.events.length) {
+        // 有効機種の開始日以前で最も新しい new イベント（＝今設置されている個体の設置日）を探す。
+        // ※撤去→再設置を繰り返した機種でも、現在有効な個体の new を拾えるようにする。
+        var newDate = null;
+        for (var j = 0; j < mh.events.length; j++) {
+            var ev = mh.events[j];
+            if (ev.type === 'new' && ev.date <= targetDate) {
+                // effective.date（この台が今の機種になった日）以前で最も新しい new を採用
+                if (ev.date <= effective.date) {
+                    if (newDate === null || ev.date >= newDate) newDate = ev.date;
+                }
+            }
+        }
+        if (newDate !== null) {
+            startDateKey = newDate;
+        } else {
+            // new が無い場合のフォールバック: その機種の最古イベント日
+            var oldest = null;
+            for (var k = 0; k < mh.events.length; k++) {
+                if (mh.events[k].date <= targetDate) {
+                    if (oldest === null || mh.events[k].date < oldest) oldest = mh.events[k].date;
+                }
+            }
+            startDateKey = oldest;
+        }
+    }
+
+    // 3) それでも決まらなければ台番号軸の開始日にフォールバック
+    if (startDateKey === null) {
+        startDateKey = effective.date;
+    }
+
+    var startDate = unitHistoryDateToObj(startDateKey);
+    var endDate = unitHistoryDateToObj(targetDate);
+    if (startDate === null || endDate === null) return null;
+
+    var MS_PER_DAY = 24 * 60 * 60 * 1000;
+    return Math.round((endDate.getTime() - startDate.getTime()) / MS_PER_DAY);
+};
+
+// 新台バッジを出す期間（日数）。localStorage で調整可能。デフォルト90日（約3か月）。
+var UNIT_NEW_PERIOD_KEY = 'unitNewPeriodDays';
+var UNIT_NEW_PERIOD_DEFAULT = 90;
+
+HallData.utils.getNewPeriodDays = function() {
+    try {
+        var raw = localStorage.getItem(UNIT_NEW_PERIOD_KEY);
+        if (raw !== null && raw !== '') {
+            var n = parseInt(raw, 10);
+            if (!isNaN(n) && n >= 0) return n;
+        }
+    } catch (e) {}
+    return UNIT_NEW_PERIOD_DEFAULT;
+};
+
+HallData.utils.setNewPeriodDays = function(days) {
+    try { localStorage.setItem(UNIT_NEW_PERIOD_KEY, String(days)); } catch (e) {}
+};
+
+/**
+ * UI表示用の台ステータスを返す。getUnitStatus をベースに、
+ * 機種の設置日数（getMachineAge）が新台期間（デフォルト90日）を超えている場合は
+ * new / add / remove / move のバッジを出さない（type を null にして返す）。
+ * withdraw は下部セクション用のため閾値対象外。
+ * （※経過日数=設置日数のカウント自体は getMachineAge で継続され、影響を受けない）
+ *
+ * 戻り値: { type, machine, date } または null
+ */
+HallData.utils.getUnitDisplayStatus = function(unitNo, targetDate) {
+    var st = HallData.utils.getUnitStatus(unitNo, targetDate);
+    if (!st) return null;
+
+    // withdraw 以外のバッジは、設置日数が新台期間を超えたら出さない
+    if (st.type && st.type !== 'withdraw') {
+        var days = HallData.utils.getMachineAge(unitNo, targetDate);
+        var period = HallData.utils.getNewPeriodDays();
+        // 設置日数が取得できない、または新台期間を超えている場合はバッジを出さない
+        if (days === null || days === undefined || days > period) {
+            return { type: null, machine: st.machine, date: st.date };
+        }
+    }
+    return st;
+};
+
+// 状態バッジの表示順（この順でソートして並べる）
+var UNIT_STATUS_ORDER = ['new', 'add', 'move', 'remove', 'withdraw'];
+
+/**
+ * targetDate 時点で有効な機種について、その「最新イベント日」に発生した
+ * 全イベントの type を配列で返す（add+move など同時発生を両方拾う）。
+ * 返す types は UNIT_STATUS_ORDER（new→add→move→remove→withdraw）順にソート済み。
+ *
+ * 期間フィルタ（getNewPeriodDays、デフォルト90日）:
+ *   - new            … 機種設置日（getMachineAge）からの経過が期間内なら表示
+ *   - add/move/remove … そのイベント発生日（latestDate）からの経過が期間内なら表示
+ *   - withdraw       … 状態列には出さない（下部セクション用のため常に除外）
+ *   いずれも「期間日数ちょうど」までは表示し、超えた翌日から消える（<= period 判定）。
+ *   ※設置日数（getMachineAge）のカウント自体はこのフィルタの影響を受けない。
+ *
+ * 戻り値: { types: [...], machine, date } または null
+ *   （該当機種はあるがイベントが無い場合は types: [] を返す）
+ */
+HallData.utils.getUnitDisplayStatuses = function(unitNo, targetDate) {
+    var uh = HallData.store && HallData.store.unitHistory;
+    if (!uh || !uh.unit_history) return null; // 未ロードなら null
+
+    unitNo = String(unitNo);
+
+    if (targetDate === undefined || targetDate === null) {
+        targetDate = getLatestDateInUnitHistory();
+        if (targetDate === null) return null;
+    } else {
+        targetDate = normalizeDateKey(targetDate);
+        if (targetDate === null) return null;
+    }
+
+    // targetDate 時点で有効な機種を特定（台番号軸から）
+    var entries = uh.unit_history[unitNo];
+    if (!entries || !entries.length) return null;
+
+    var effective = null;
+    for (var i = 0; i < entries.length; i++) {
+        if (entries[i].date <= targetDate) {
+            if (effective === null || entries[i].date >= effective.date) {
+                effective = entries[i];
+            }
+        }
+    }
+    if (effective === null) return null;
+    var machine = effective.machine;
+
+    var mh = uh.machine_history && uh.machine_history[machine];
+    if (!mh || !mh.events || !mh.events.length) {
+        return { types: [], machine: machine, date: effective.date };
+    }
+
+    // 有効機種の開始日以降・targetDate 以前で最も新しいイベント日を特定
+    var latestDate = null;
+    for (var j = 0; j < mh.events.length; j++) {
+        var ev = mh.events[j];
+        if (ev.date >= effective.date && ev.date <= targetDate) {
+            if (latestDate === null || ev.date > latestDate) latestDate = ev.date;
+        }
+    }
+    if (latestDate === null) {
+        return { types: [], machine: machine, date: effective.date };
+    }
+
+    // その最新日に発生した全 type を集める（重複除去）
+    var types = [];
+    for (var k = 0; k < mh.events.length; k++) {
+        if (mh.events[k].date === latestDate) {
+            var t = mh.events[k].type;
+            if (types.indexOf(t) === -1) types.push(t);
+        }
+    }
+
+    // ── 期間フィルタ（type ごとに基準を変える）──
+    var period = HallData.utils.getNewPeriodDays();
+
+    // new 用: 機種設置日（new イベント日）からの経過日数
+    var machineAge = HallData.utils.getMachineAge(unitNo, targetDate);
+
+    // add/move/remove 用: そのイベント発生日（latestDate）からの経過日数
+    var eventAge = null;
+    var endObj = unitHistoryDateToObj(targetDate);
+    var evObj = unitHistoryDateToObj(latestDate);
+    if (endObj && evObj) {
+        var MS_PER_DAY = 24 * 60 * 60 * 1000;
+        eventAge = Math.round((endObj.getTime() - evObj.getTime()) / MS_PER_DAY);
+    }
+
+    types = types.filter(function(ty) {
+        if (ty === 'withdraw') return false; // 状態列には出さない
+        if (ty === 'new') {
+            return machineAge !== null && machineAge !== undefined && machineAge <= period;
+        }
+        // add / move / remove はイベント発生日からの経過で判定
+        return eventAge !== null && eventAge <= period;
+    });
+
+    // 表示順（new→add→move→remove→withdraw）にソート。未定義 type は末尾。
+    types.sort(function(a, b) {
+        var ia = UNIT_STATUS_ORDER.indexOf(a);
+        var ib = UNIT_STATUS_ORDER.indexOf(b);
+        if (ia === -1) ia = UNIT_STATUS_ORDER.length;
+        if (ib === -1) ib = UNIT_STATUS_ORDER.length;
+        return ia - ib;
+    });
+
+    return { types: types, machine: machine, date: latestDate };
+};

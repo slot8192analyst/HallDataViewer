@@ -219,6 +219,31 @@ function loadFilesList() {
 }
 
 /**
+ * unit_history.json を読み込み HallData.store.unitHistory に格納する。
+ * 失敗・不在時は unitHistory = null のまま解決し、既存フローを一切妨げない。
+ * （常に resolve する。reject しないので初期ロードのチェーンを壊さない）
+ * @returns {Promise<void>}
+ */
+function loadUnitHistory() {
+    return fetch('unit_history.json')
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error('unit_history.json not ok: ' + response.status);
+            }
+            return response.json();
+        })
+        .then(function(json) {
+            HallData.store.unitHistory = json;
+            console.log('unit_history.json 読み込み完了');
+        })
+        .catch(function(e) {
+            // ファイル不在・パース失敗・ネットワークエラーをすべて握りつぶす
+            HallData.store.unitHistory = null;
+            console.log('unit_history.json は読み込めませんでした（既存機能には影響しません）:', e.message);
+        });
+}
+
+/**
  * 月別JSONファイルを読み込んでキャッシュに展開
  */
 function loadMonthlyJSON(filepath) {
@@ -335,10 +360,14 @@ function loadInitialData() {
         
         var startTime = performance.now();
         
-        // 位置データを先に読み込み
         updateLoadingProgress(5, 100, '位置データを読み込み中...');
         
-        return loadPositionData().then(function() {
+        // ★変更: 位置データと unit_history を並行読み込み。
+        //   loadUnitHistory は必ず resolve するため、既存の位置データ読込フローを妨げない。
+        return Promise.all([
+            loadPositionData(),
+            loadUnitHistory()
+        ]).then(function() {
             // 最新月（最大2ヶ月分）を読み込み
             var initialFiles = monthlyFiles.slice(0, 2);
             var loaded = 0;

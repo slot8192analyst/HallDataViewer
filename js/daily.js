@@ -568,6 +568,15 @@ function initColumnSelector() {
         allColumns.push('機種内順位');
     }
 
+    // ★追記: 台の状態変化バッジ列（new/add/remove/move）と、機種設置からの経過日数列。
+    //   unit_history.json 未ロード時も列は出す（セルは "-"）。
+    if (allColumns.indexOf('状態') === -1) {
+        allColumns.push('状態');
+    }
+    if (allColumns.indexOf('設置日数') === -1) {
+        allColumns.push('設置日数');
+    }
+
     if (allColumns.indexOf('メモ') === -1) {
         allColumns.push('メモ');
     }
@@ -580,6 +589,12 @@ function initColumnSelector() {
             visibleColumns = parsed.filter(function(col) { return allColumns.indexOf(col) !== -1; });
             if (visibleColumns.length > 0 && visibleColumns.indexOf('機種内順位') === -1) {
                 visibleColumns.push('機種内順位');
+            }
+            if (visibleColumns.length > 0 && visibleColumns.indexOf('状態') === -1) {
+                visibleColumns.push('状態');
+            }
+            if (visibleColumns.length > 0 && visibleColumns.indexOf('設置日数') === -1) {
+                visibleColumns.push('設置日数');
             }
             if (visibleColumns.length > 0 && visibleColumns.indexOf('メモ') === -1) {
                 visibleColumns.push('メモ');
@@ -1222,6 +1237,9 @@ async function filterAndRender() {
     // 末尾統計は仮想日では非表示（数値が無いため）
     renderSuffixStatsTable(isVirtual ? [] : data);
 
+    // ★追記: 撤去台一覧（表示中の日付以前の撤去を新しい順に）
+    renderWithdrawnTable(dailyCurrentMemoDateKey);
+
     updateNumFilterPreview();
     renderDailyTagPreview();
     updateColumnPreview();
@@ -1517,6 +1535,34 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
                     + inner + '</td>';
             }
 
+            if (h === '状態') {
+                // その台の targetDate 時点での最新イベント日の全種別をバッジ表示（add+move 同時など複数対応）
+                var statusBase = dailyCurrentMemoDateKey || '';
+                var res = null;
+                if (HallData.utils && HallData.utils.getUnitDisplayStatuses) {
+                    res = HallData.utils.getUnitDisplayStatuses(row['台番号'], statusBase);
+                }
+                if (!res || !res.types || res.types.length === 0) {
+                    return '<td class="unit-status-cell text-center"><span class="text-muted">-</span></td>';
+                }
+                return '<td class="unit-status-cell text-center">' + renderUnitStatusBadges(res.types) + '</td>';
+            }
+
+            if (h === '設置日数') {
+                // 機種の new イベント日を起点にした経過日数
+                var ageBase = dailyCurrentMemoDateKey || '';
+                var days = null;
+                if (HallData.utils && HallData.utils.getMachineAge) {
+                    days = HallData.utils.getMachineAge(row['台番号'], ageBase);
+                }
+                if (days === null || days === undefined) {
+                    return '<td class="unit-age-cell text-center"><span class="text-muted">-</span></td>';
+                }
+                var ageLabel = days === 0 ? '設置日' : (days + '日');
+                var freshClass = days <= 6 ? ' unit-age-fresh' : '';
+                return '<td class="unit-age-cell text-center' + freshClass + '">' + ageLabel + '</td>';
+            }
+
             if (h === '機種内順位') {
                 if (typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled()) {
                     var badgeInfo = row['_machineBadge'] || { tako: null, kubi: null };
@@ -1647,6 +1693,34 @@ function escapeHtmlTag(str) {
     if (!str) return '';
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
+
+// 台の状態変化バッジ（new/add/remove/move/withdraw）のラベル定義
+var UNIT_STATUS_LABELS = {
+    'new':      { icon: '🆕', label: '新台', cls: 'us-new' },
+    'add':      { icon: '➕', label: '増台', cls: 'us-add' },
+    'move':     { icon: '🔄', label: '移動', cls: 'us-move' },
+    'remove':   { icon: '➖', label: '減台', cls: 'us-remove' },
+    'withdraw': { icon: '🗑️', label: '撤去', cls: 'us-withdraw' }
+};
+
+// 単一 type のバッジHTML（互換用）
+function renderUnitStatusBadge(type) {
+    var info = UNIT_STATUS_LABELS[type];
+    if (!info) return '<span class="text-muted">-</span>';
+    return '<span class="unit-status-badge ' + info.cls + '">' + info.icon + ' ' + info.label + '</span>';
+}
+
+// 複数 type のバッジHTMLをまとめて返す（add+move 同時発生などに対応）
+function renderUnitStatusBadges(types) {
+    if (!types || types.length === 0) return '<span class="text-muted">-</span>';
+    var html = types.map(function(t) {
+        var info = UNIT_STATUS_LABELS[t];
+        if (!info) return '';
+        return '<span class="unit-status-badge ' + info.cls + '">' + info.icon + ' ' + info.label + '</span>';
+    }).filter(Boolean).join(' ');
+    return html || '<span class="text-muted">-</span>';
+}
+
 
 // ===================
 // コピー・ダウンロード
@@ -1946,6 +2020,11 @@ function setupDailyEventListeners() {
     initDateSelectWithEvents();
     setupSuffixStatsEventListeners();
 
+    var withdrawnToggle = document.getElementById('withdrawnToggle');
+    if (withdrawnToggle) {
+        withdrawnToggle.addEventListener('click', toggleWithdrawnPanel);
+    }
+
     if (typeof SeatMemo !== 'undefined' && SeatMemo.init) {
         SeatMemo.init();
     }
@@ -2137,6 +2216,95 @@ function renderSuffixStatsTable(data) {
     rows += '</tr>';
 
     tbody.innerHTML = rows;
+}
+
+// ===================
+// 最近撤去された台
+// ===================
+
+var WITHDRAWN_MAX_ROWS = 50; // 表示上限（新しい順）
+
+/**
+ * unit_history.json の machine_history から withdraw イベントを新しい順に集め、
+ * テーブル下部に「最近撤去された台」を描画する。
+ * targetDate を渡すと、その日以前の撤去のみ対象にする（省略時は全期間）。
+ */
+function renderWithdrawnTable(targetDate) {
+    var block = document.getElementById('withdrawnBlock');
+    var table = document.getElementById('withdrawn-table');
+    if (!table) return;
+    var thead = table.querySelector('thead');
+    var tbody = table.querySelector('tbody');
+
+    var uh = HallData.store && HallData.store.unitHistory;
+    // 未ロード or データ無しならブロックごと隠す
+    if (!uh || !uh.machine_history) {
+        if (block) block.style.display = 'none';
+        return;
+    }
+
+    var base = (typeof normalizeDateKey === 'function') ? normalizeDateKey(targetDate || '') : (targetDate || '');
+
+    var rows = [];
+    var mh = uh.machine_history;
+    for (var machine in mh) {
+        if (!Object.prototype.hasOwnProperty.call(mh, machine)) continue;
+        var evs = mh[machine].events || [];
+        evs.forEach(function(ev) {
+            if (ev.type !== 'withdraw') return;
+            if (base && ev.date > base) return; // 表示日以前の撤去のみ
+            // prev_units（撤去直前に存在した台番号）を台ごとに展開
+            var units = (ev.prev_units && ev.prev_units.length) ? ev.prev_units : [''];
+            units.forEach(function(u) {
+                rows.push({ date: ev.date, machine: machine, unit: u });
+            });
+        });
+    }
+
+    if (rows.length === 0) {
+        if (block) block.style.display = 'none';
+        return;
+    }
+    if (block) block.style.display = '';
+
+    // 新しい順（日付降順 → 機種名 → 台番号）
+    rows.sort(function(a, b) {
+        if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+        var mc = HallData.sort.compareJapanese(a.machine, b.machine);
+        if (mc !== 0) return mc;
+        return HallData.sort.extractUnitNumber(a.unit) - HallData.sort.extractUnitNumber(b.unit);
+    });
+
+    rows = rows.slice(0, WITHDRAWN_MAX_ROWS);
+
+    thead.innerHTML = '<tr><th>撤去日</th><th>機種名</th><th>台番号</th></tr>';
+
+    tbody.innerHTML = rows.map(function(r) {
+        var dateLabel = r.date.replace(/_/g, '/');
+        return '<tr>'
+            + '<td class="text-center">' + dateLabel + '</td>'
+            + '<td>' + escapeHtmlTag(r.machine) + '</td>'
+            + '<td class="text-center">' + escapeHtmlTag(String(r.unit || '-')) + '</td>'
+            + '</tr>';
+    }).join('');
+}
+
+var withdrawnPanelOpen = false;
+
+function toggleWithdrawnPanel() {
+    var content = document.getElementById('withdrawnContent');
+    var toggle = document.getElementById('withdrawnToggle');
+    if (!content || !toggle) return;
+    withdrawnPanelOpen = !withdrawnPanelOpen;
+    if (withdrawnPanelOpen) {
+        content.classList.add('open');
+        toggle.classList.add('open');
+        toggle.querySelector('.toggle-icon').textContent = '▲';
+    } else {
+        content.classList.remove('open');
+        toggle.classList.remove('open');
+        toggle.querySelector('.toggle-icon').textContent = '▼';
+    }
 }
 
 function getSuffixStatsTableData() {

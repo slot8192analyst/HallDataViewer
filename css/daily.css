@@ -1013,3 +1013,24 @@ th.badge-col-header.badge-filter-active .sort-icon {
     padding: 0 4px;
     vertical-align: middle;
 }
+
+.unit-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    white-space: nowrap;
+}
+.unit-status-badge.us-new      { background: #2665fd20; border: 1px solid #2665fd; color: #2665fd; }
+.unit-status-badge.us-add      { background: #22c55e20; border: 1px solid #22c55e; color: #22c55e; }
+.unit-status-badge.us-remove   { background: #f9731620; border: 1px solid #f97316; color: #f97316; }
+.unit-status-badge.us-move     { background: #eab30820; border: 1px solid #eab308; color: #eab308; }
+.unit-status-badge.us-withdraw { background: #ffb4ab20; border: 1px solid #ffb4ab; color: #ffb4ab; }
+
+.unit-age-fresh { color: var(--primary-color); font-weight: 600; }
+
+.withdrawn-content { display: none; }
+.withdrawn-content.open { display: block; }
