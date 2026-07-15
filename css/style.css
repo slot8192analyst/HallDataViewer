@@ -41,6 +41,19 @@
     --bp-md: 768px;   /* タブレット・スマホ横向き上限 */
     --bp-lg: 1200px;  /* PC（コンテンツ最大幅） */
 
+    /* ━━━ スマホ用ボタン高さ（DESIGN.md § Touch Button Sizing） ━━━ */
+    /* スマホ（≤480px）でのみ上書きして使う。PCはボタン共通の min-height を使う。 */
+    --btn-touch-high: 72px;   /* 高優先度: 画面の主目的アクション（送信・実行等） */
+    --btn-touch-mid:  60px;   /* 中優先度: サブアクション（絞り込み・切替等）     */
+    --btn-touch-low:  44px;   /* 低優先度: 補助アクション（最小タップ領域と統一） */
+
+    /* ━━━ スマホ用ボタン間隔（DESIGN.md § Touch Button Sizing） ━━━ */
+    /* 小さいボタンほど誤タップしやすいため間隔を広く取る（サイズと反比例）  */
+    --gap-btn-large: 12px;   /* 大ボタン（72px）: 12〜24px */
+    --gap-btn-mid:   24px;   /* 中ボタン（60px）: 24〜36px */
+    --gap-btn-small: 36px;   /* 小ボタン（44px）: 36〜48px */
+    --gap-btn-text:  12px;   /* テキストボタン */
+
     /* ━━━ トランジション（DESIGN.md § Motion） ━━━ */
     --transition-fast: 0.15s ease;   /* インタラクション用 */
     --transition-normal: 0.3s ease;  /* パネル展開・モーダル用 */
@@ -863,6 +876,52 @@ tr:nth-child(odd) {
         justify-content: center;
         /* min-height:44px / padding は共通ルールを維持 */
     }
+
+    /* ── スマホ用ボタンサイズ（DESIGN.md § Touch Button Sizing） ── */
+    /* 高優先度: Primary / Danger → 72px */
+    .btn-primary,
+    .btn-danger {
+        min-height: var(--btn-touch-high);
+        font-size: var(--font-size-lg);   /* 1段上げてタップしやすく */
+    }
+
+    /* 中優先度: Secondary → 60px */
+    .btn-secondary {
+        min-height: var(--btn-touch-mid);
+    }
+
+    /* 低優先度: Ghost / icon-btn → 44px */
+    .btn-ghost,
+    .icon-btn {
+        min-height: var(--btn-touch-low);
+        min-width:  var(--btn-touch-low);
+    }
+
+    /* 後方互換エイリアスにも同じ優先度を適用 */
+    /* btn-apply / calendar-btn / modal-btn.primary → Primary相当（高優先度） */
+    .btn-apply,
+    .calendar-btn,
+    .modal-btn.primary {
+        min-height: var(--btn-touch-high);
+        font-size: var(--font-size-lg);
+    }
+
+    /* btn-reset / modal-btn（非primary） → Secondary相当（中優先度） */
+    .btn-reset,
+    .modal-btn:not(.primary) {
+        min-height: var(--btn-touch-mid);
+    }
+
+    /* btn-small → Ghost相当（低優先度） */
+    .btn-small {
+        min-height: var(--btn-touch-low);
+    }
+
+    /* ボタングループのギャップ補助クラス */
+    .btn-group-large { display: flex; gap: var(--gap-btn-large); }
+    .btn-group-mid   { display: flex; gap: var(--gap-btn-mid); }
+    .btn-group-small { display: flex; gap: var(--gap-btn-small); }
+    .text-btn-group  { display: flex; gap: var(--gap-btn-text); }
 
     .loading-content {
         padding: var(--space-5);

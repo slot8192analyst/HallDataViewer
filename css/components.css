@@ -460,15 +460,17 @@
     gap: var(--space-2);
 }
 
+/* .multi-select-btn: Secondary相当（全選・全解除などドロップ内ボタン） */
 .multi-select-btn {
     flex: 1;
-    min-height: 44px;   /* DESIGN.md § Touch */
+    min-height: 44px;   /* btn-secondary と同じ最小高さ */
     padding: 0 var(--space-2);
     background: var(--bg-input);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);   /* 角丸を md に統一 */
     color: var(--text-secondary);
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-md);    /* btn-secondary に合わせ md に統一 */
+    font-weight: 500;
     font-family: inherit;
     cursor: pointer;
     transition: all var(--transition-fast);
@@ -621,11 +623,15 @@
     border-color: var(--primary-color);
 }
 
+/* .preset-apply-btn: Primary相当（プリセット適用） — btn-primary に角丸・ふんわりを合わせる */
 .preset-row .preset-apply-btn {
-    padding: 6px 10px;
+    min-height: 44px;             /* btn-primary と同じ最小高さ */
+    padding: 0 var(--space-3);    /* 直書き 6px/10px → 変数に統一 */
     font-size: var(--font-size-sm);
+    font-weight: 500;
     background: var(--primary-color);
     border-color: var(--primary-hover);
+    border-radius: var(--radius-md);   /* 角丸を md に統一 */
     color: #fff;
     white-space: nowrap;
     flex-shrink: 0;
@@ -635,12 +641,14 @@
     background: var(--primary-hover);
 }
 
+/* .preset-save-btn / .preset-manage-btn: Ghost相当（保存・管理補助ボタン） */
 .preset-row .preset-save-btn,
 .preset-row .preset-manage-btn {
-    padding: 6px 8px;
+    min-height: 44px;             /* 親コンテナと高さを揃える */
+    padding: 0 var(--space-2);    /* 直書き 6px/8px → 変数に統一 */
     font-size: var(--font-size-sm);
     flex-shrink: 0;
-    min-width: 32px;
+    min-width: 36px;
     text-align: center;
 }
 
@@ -855,8 +863,9 @@ td:has(.position-tags) {
     margin-right: 8px;
 }
 
+/* .position-logic-btn: Ghost相当（AND/OR切替トグル） — 角丸だけ変数参照に統一 */
 .position-logic-btn {
-    min-height: 36px;   /* Ghost 相当: 軽微なUIのため 36px */
+    min-height: 36px;   /* Ghost相当: 軽微なUIのため 36px 維持 */
     padding: 0 var(--space-2);
     background: var(--bg-input);
     border: 1px solid var(--border-color);
@@ -869,11 +878,11 @@ td:has(.position-tags) {
 }
 
 .position-logic-btn:first-child {
-    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+    border-radius: var(--radius-md) 0 0 var(--radius-md);   /* 角丸を md に統一 */
 }
 
 .position-logic-btn:last-child {
-    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;   /* 角丸を md に統一 */
 }
 
 .position-logic-btn:hover {
@@ -892,15 +901,16 @@ td:has(.position-tags) {
     gap: 4px;
 }
 
-/* 位置フィルターボタン（統一） */
+/* .position-filter-btn: Ghost相当（位置タグ選択） — min-height / border-radius を統一 */
 .position-filter-btn {
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    padding: 4px 10px;
+    min-height: 36px;   /* Ghost相当の 36px 維持 */
+    padding: 0 var(--space-2);    /* 直書き 4px/10px → 変数に統一 */
     background: var(--bg-input);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);   /* 角丸を md に統一 */
     color: var(--text-secondary);
     font-size: var(--font-size-sm);
     cursor: pointer;
@@ -916,11 +926,13 @@ td:has(.position-tags) {
     font-weight: 500;
 }
 
+/* .position-filter-clear: Danger相当（タグクリア） — min-height / border-radius を統一 */
 .position-filter-clear {
-    padding: 4px 10px;
+    min-height: 36px;   /* Ghost相当の 36px 維持 */
+    padding: 0 var(--space-2);    /* 直書き 4px/10px → 変数に統一 */
     background: var(--bg-base);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);   /* 角丸を md に統一 */
     color: var(--text-muted);
     font-size: var(--font-size-xs);
     cursor: pointer;
@@ -1483,22 +1495,7 @@ td:has(.position-tags) {
     flex-wrap: wrap;
 }
 
-.preset-btn {
-    padding: var(--space-1) var(--space-3);
-    font-size: var(--font-size-sm);
-    background: var(--bg-input);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-sm);
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all var(--transition-fast);
-}
-
-.preset-btn:hover {
-    background: var(--primary-dark);
-    border-color: var(--primary-color);
-    color: var(--text-primary);
-}
+/* .preset-btn は style.css で Secondary 相当として一元定義済み → ここでは削除 */
 
 /* タグ表示オプション */
 .tag-display-row {
@@ -1612,6 +1609,15 @@ td:has(.position-tags) {
         flex: 1;
         text-align: center;
         min-width: 60px;
+        min-height: var(--btn-touch-low);    /* Ghost相当 → 低優先度 44px */
+    }
+
+    .position-logic-btn {
+        min-height: var(--btn-touch-low);    /* Ghost相当 → 低優先度 44px */
+    }
+
+    .position-filter-clear {
+        min-height: var(--btn-touch-low);    /* Ghost相当 → 低優先度 44px */
     }
 
     /* モーダル */
@@ -1708,6 +1714,18 @@ td:has(.position-tags) {
 
     .preset-row .preset-apply-btn {
         flex: 0 0 auto;
+        min-height: var(--btn-touch-high);   /* Primary相当 → 高優先度 72px */
+        font-size: var(--font-size-lg);
+    }
+
+    .preset-row .preset-save-btn,
+    .preset-row .preset-manage-btn {
+        min-height: var(--btn-touch-low);    /* Ghost相当 → 低優先度 44px */
+    }
+
+    /* multi-select内ボタン */
+    .multi-select-btn {
+        min-height: var(--btn-touch-mid);    /* Secondary相当 → 中優先度 60px */
     }
 
 
@@ -1783,19 +1801,22 @@ td:has(.position-tags) {
     margin-bottom: var(--space-4);
     align-items: center;
 }
+/* .page-nav-btn: Secondary相当（ページ間ナビゲーション） — min-height / border-radius / font-weight を統一 */
 .page-nav-btn {
     flex: 1;
+    min-height: 44px;             /* btn-secondary と同じ最小高さ */
     padding: var(--space-2) var(--space-4);
     cursor: pointer;
     background: var(--bg-surface);
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);   /* 角丸を md に統一 */
     color: inherit;
     font-size: var(--font-size-md);
     white-space: nowrap;
     text-align: center;
-    transition: background 0.15s, color 0.15s;
+    transition: background var(--transition-fast), color var(--transition-fast);
     opacity: 0.7;
+    -webkit-tap-highlight-color: transparent;
 }
 .page-nav-btn:hover {
     background: var(--primary-hover);
@@ -1816,6 +1837,7 @@ td:has(.position-tags) {
         flex: 1 1 calc(25% - 6px);   /* 1行4個 → 自然に折り返す */
         font-size: var(--font-size-sm);
         padding: var(--space-2);
+        min-height: var(--btn-touch-mid);   /* Secondary相当 → 中優先度 60px */
     }
 }
 
