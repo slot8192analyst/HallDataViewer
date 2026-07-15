@@ -30,16 +30,20 @@
     white-space: nowrap;
 }
 
+/* .calendar-header button: Primary相当（月移動ナビゲーション） — btn-primary に統一 */
 .calendar-header button {
     background: var(--primary-color);
     border: none;
     color: #fff;
-    padding: 8px 16px;
-    border-radius: var(--radius-sm);
+    min-height: 44px;             /* btn-primary と同じ最小高さ */
+    padding: 0 var(--space-4);    /* 直書き 8px/16px → 変数に統一 */
+    border-radius: var(--radius-md);   /* 角丸を md に統一 */
     cursor: pointer;
     font-size: var(--font-size-md);
+    font-weight: 500;
     transition: background var(--transition-fast);
     white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .calendar-header button:hover {
@@ -521,7 +525,9 @@
     }
 
     .calendar-header button {
-        padding: 6px 10px;
+        min-height: var(--btn-touch-high);   /* Primary相当 → 高優先度 72px */
+        font-size: var(--font-size-lg);
+        padding: 0 var(--space-3);   /* スマホは横幅を少し紞める */
     }
 
     .calendar-filter-container {

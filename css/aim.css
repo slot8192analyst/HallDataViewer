@@ -33,23 +33,24 @@
     line-height: 1.5;
 }
 
-/* ボタン共通サイズ（色は役割クラス btn-apply / btn-reset / btn-small に委ねる） */
+/* .aim-btn: ボタンレイアウト基盤クラス。色・スタイルは btn-apply / btn-reset / btn-small に委ねる */
+/* min-height / border-radius / font-size を統一クラスと揃える */
 .aim-btn {
-    min-height: 44px;   /* DESIGN.md § Touch: 最小タップターゲット44px */
+    min-height: 44px;   /* btn-secondary と同じ最小高さ */
     height: auto;
-    padding: 0 var(--space-3, 12px);
-    font-size: var(--font-size-sm, 13px);
-    border-radius: var(--radius-md, 8px);
+    padding: 0 var(--space-3);
+    font-size: var(--font-size-md);   /* btn-* 統一クラスに合わせ sm → md */
+    border-radius: var(--radius-md);
     box-sizing: border-box;
     display: inline-flex;
     align-items: center;
-    gap: var(--space-1, 4px);
+    gap: var(--space-1);
     line-height: 1;
     white-space: nowrap;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
 }
-button.aim-btn { border: 1px solid var(--border-light, #3a3a5a); }
+button.aim-btn { border: 1px solid var(--border-light); }
 
 /* 凹み判定（バッジ）設定パネル */
 .aim-badge-panel,
@@ -544,4 +545,17 @@ button.aim-btn { border: 1px solid var(--border-light, #3a3a5a); }
     .aim-board-zones .aim-zone-body { min-height: 25vh; }
     .aim-zone-unplaced .aim-card { width: 100%; }
     .aim-review-stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+    /* .aim-btn: btn-apply（Primary相当）と組み合わせる場合は高優先度サイズに */
+    .aim-btn.btn-apply,
+    .aim-btn.btn-reset {
+        min-height: var(--btn-touch-high);   /* 主目的アクション → 72px */
+        font-size: var(--font-size-lg);
+    }
+    /* btn-small と組み合わせる場合は低優先度サイズに */
+    .aim-btn.btn-small {
+        min-height: var(--btn-touch-low);    /* 補助アクション → 44px */
+    }
 }

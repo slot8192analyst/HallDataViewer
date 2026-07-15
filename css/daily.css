@@ -48,18 +48,23 @@
     gap: var(--space-2);
 }
 
+/* .daily-filter-btn: Secondary相当（条件切替ボタン） — min-height を btn-secondary に合わせ統一 */
 .daily-filter-btn {
     display: inline-flex;
     align-items: center;
     gap: var(--space-2);
-    padding: var(--space-2) var(--space-4);
+    min-height: 44px;   /* btn-secondary と同じ最小高さ */
+    padding: 0 var(--space-4);
     border-radius: var(--radius-md);
     border: 1px solid var(--border-light);
     background: var(--bg-surface);
     color: var(--text-primary);
+    font-size: var(--font-size-md);   /* btn-secondary に合わせ md に統一 */
+    font-weight: 500;
+    font-family: inherit;
     cursor: pointer;
-    font-size: var(--font-size-sm);
     transition: background var(--transition-fast), border-color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
     max-width: 100%;
 }
 
@@ -191,13 +196,11 @@
     flex-shrink: 0;
 }
 
+/* .modal-btn: style.css のエイリアス定義（min-height:44px）を継承しつつ色だけ上書き */
 .app-modal-footer .modal-btn {
-    padding: var(--space-2) var(--space-4);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-light);
+    /* min-height / padding / border-radius は style.css .btn-reset と同じ値を継承 */
     background: var(--bg-surface);
-    color: var(--text-primary);
-    cursor: pointer;
+    border-color: var(--border-light);
 }
 
 .app-modal-footer .modal-btn.primary {
@@ -413,6 +416,7 @@ select option {
         flex: 1;
         justify-content: center;
         min-width: calc(50% - 4px);
+        min-height: var(--btn-touch-mid);   /* Secondary相当 → 中優先度 60px */
     }
 
     .daily-filter-btn .dfb-preview {
@@ -956,8 +960,10 @@ th.badge-col-header.badge-filter-active .sort-icon {
     cursor: pointer;
 }
 
+/* .tag-bulk-btn: Ghost相当（補助操作） — btn-small / btn-ghost から継承した形でサイズ統一 */
 .tag-bulk-btn {
-    padding: 6px 14px;
+    min-height: 36px;   /* Ghost相当: btn-small / btn-ghost の最小高さを統一 */
+    padding: 0 var(--space-3);
     font-size: var(--font-size-sm);
     white-space: nowrap;
     flex-shrink: 0;
@@ -990,10 +996,11 @@ th.badge-col-header.badge-filter-active .sort-icon {
     white-space: nowrap;
 }
 
+/* .tag-unit-list-clear-btn: Danger相当（リストクリア） — btn-small のサイズを基准に色だけ変更 */
 .tag-unit-list-clear-btn {
     flex-shrink: 0;
-    color: var(--error-color, #ef4444);
-    border-color: var(--error-color, #ef4444);
+    color: var(--color-danger);
+    border-color: var(--color-danger);
 }
 
 /* タグプレビューの台数バッジ */
