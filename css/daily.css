@@ -1,39 +1,91 @@
-/* ===================
+/* ===================================================================
    daily.css - 日別データタブ専用
-   =================== */
+   目次:
+     1. 日別データテーブル（左固定列: 機種名・台番号）
+     2. フィルター・設定ボタンバー
+     3. アクティブフィルター チップバー
+     4. 汎用モーダル（app-modal）
+     5. イベントバッジ / サマリー
+     6. 日付セレクト
+     7. 台番号末尾統計テーブル（トグル）
+     8. 列ヘッダ クリックソート
+     9. 機種内順位ヘッダ クリックフィルター
+    10. バッジ再計算ボタン・バッジフィルター
+    11. バッジ順位チェックボックス
+    12. タグ基準日 UI
+    13. タグ一括付け UI
+    14. 台の状態変化バッジ / 撤去台
+    15. テーブルスケルトン ＆ スピナー
+    16. レスポンシブ
+   =================================================================== */
 
-/* ===================
-   日別データテーブル
-   =================== */
-#data-table td:nth-child(1),
-#data-table th:nth-child(1) {
-    text-align: left;
+
+/* ===================================================================
+   1. 日別データテーブル（左固定列: 機種名・台番号）
+   ------------------------------------------------------------------
+   機種名列(width) と 台番号列(left) の値は必ず一致させること。
+   変更時は 3箇所（既定 / スマホ≤480 / PC≥769）をセットで直す。
+   =================================================================== */
+
+/* 機種名列：左端に固定（本文セル＋ヘッダ共通） */
+#data-table th.col-fixed-machine,
+#data-table td.col-fixed-machine {
     position: sticky;
     left: 0;
     z-index: 5;
-    min-width: 120px;
-    max-width: 180px;
+    box-sizing: border-box;
+    width: 150px;
+    min-width: 150px;
+    max-width: 150px;
+    text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    background: var(--bg-elevated);   /* 透け防止のフォールバック（縞は下で上書き） */
 }
 
-#data-table th:nth-child(1) {
-    z-index: var(--z-sticky-header);
+/* 台番号列：機種名列の幅ぶん右にずらして固定 */
+#data-table th.col-fixed-unit,
+#data-table td.col-fixed-unit {
+    position: sticky;
+    left: 150px;                      /* = 機種名列の width */
+    z-index: 5;
+    box-sizing: border-box;
+    min-width: 64px;
+    text-align: center;
+    white-space: nowrap;
+    background: var(--bg-elevated);   /* 透け防止のフォールバック */
+}
+
+/* ヘッダ固定列（縦スクロール時もヘッダを残す。本文セルより前面へ） */
+#data-table thead th.col-fixed-machine,
+#data-table thead th.col-fixed-unit {
+    position: sticky;
+    top: 0;
+    z-index: calc(var(--z-sticky-header) + 1);
     background: var(--table-header-bg);
     text-align: center;
 }
 
-#data-table tr:nth-child(even) td:nth-child(1) {
-    background: var(--table-row-even);
+/* ソートアイコンのpaddingで幅がずれないよう、機種名ヘッダの padding-right を無効化 */
+#data-table thead th.col-fixed-machine.sortable {
+    padding-right: 8px;
 }
 
-#data-table tr:nth-child(odd) td:nth-child(1) {
+/* sticky セルは背景が透けると下の行が見えるため、行の縞背景を固定セルにも当てる */
+#data-table tr:nth-child(even) td.col-fixed-machine,
+#data-table tr:nth-child(even) td.col-fixed-unit {
+    background: var(--table-row-even);
+}
+#data-table tr:nth-child(odd) td.col-fixed-machine,
+#data-table tr:nth-child(odd) td.col-fixed-unit {
     background: var(--table-row-odd);
 }
 
-/* ===================
-   フィルター・設定ボタンバー
-   =================== */
+
+/* ===================================================================
+   2. フィルター・設定ボタンバー
+   =================================================================== */
 .daily-filter-bar {
     display: flex;
     flex-wrap: wrap;
@@ -48,18 +100,18 @@
     gap: var(--space-2);
 }
 
-/* .daily-filter-btn: Secondary相当（条件切替ボタン） — min-height を btn-secondary に合わせ統一 */
+/* .daily-filter-btn: Secondary相当（min-height を btn-secondary に統一） */
 .daily-filter-btn {
     display: inline-flex;
     align-items: center;
     gap: var(--space-2);
-    min-height: 44px;   /* btn-secondary と同じ最小高さ */
+    min-height: 44px;
     padding: 0 var(--space-4);
     border-radius: var(--radius-md);
     border: 1px solid var(--border-light);
     background: var(--bg-surface);
     color: var(--text-primary);
-    font-size: var(--font-size-md);   /* btn-secondary に合わせ md に統一 */
+    font-size: var(--font-size-md);
     font-weight: 500;
     font-family: inherit;
     cursor: pointer;
@@ -122,9 +174,142 @@
     color: var(--text-muted);
 }
 
-/* ===================
-   汎用モーダル（app-modal）
-   =================== */
+
+/* ===================================================================
+   3. アクティブフィルター チップバー
+   =================================================================== */
+.active-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-height: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease, padding 0.25s ease, margin 0.25s ease;
+    padding: 0;
+    margin: 0;
+}
+
+.active-filter-bar.has-chips {
+    max-height: 200px;
+    padding: 6px 0 8px;
+    margin: 4px 0 2px;
+}
+
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    border: 1px solid;
+    cursor: default;
+    white-space: nowrap;
+    max-width: 240px;
+    transition: opacity 0.15s;
+    animation: chip-in 0.18s ease;
+}
+
+@keyframes chip-in {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+.filter-chip-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.filter-chip-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.18);
+    color: inherit;
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.filter-chip-remove:hover {
+    background: rgba(255, 255, 255, 0.38);
+}
+
+/* チップ種別カラー */
+.filter-chip.chip-search {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: var(--color-info);
+    color: var(--color-info);
+}
+.filter-chip.chip-machine {
+    background: rgba(167, 139, 250, 0.12);
+    border-color: var(--color-purple);
+    color: var(--color-purple);
+}
+.filter-chip.chip-numfilter {
+    background: rgba(251, 191, 36, 0.12);
+    border-color: var(--color-warning);
+    color: var(--color-warning);
+}
+.filter-chip.chip-tag {
+    background: rgba(74, 222, 128, 0.12);
+    border-color: var(--color-success);
+    color: var(--color-success);
+}
+.filter-chip.chip-taggedonly {
+    background: rgba(244, 114, 182, 0.12);
+    border-color: var(--color-pink);
+    color: var(--color-pink);
+}
+.filter-chip.chip-sort {
+    background: rgba(34, 211, 238, 0.12);
+    border-color: #22d3ee;
+    color: #22d3ee;
+}
+.chip-badge-filter {
+    background: rgba(38, 101, 253, 0.12);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.filter-chip-clear-all {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-height: 32px;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-family: inherit;
+    border: 1px dashed var(--border-light);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.filter-chip-clear-all:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-secondary);
+}
+
+
+/* ===================================================================
+   4. 汎用モーダル（app-modal）
+   =================================================================== */
 .app-modal {
     display: none;
     position: fixed;
@@ -196,9 +381,8 @@
     flex-shrink: 0;
 }
 
-/* .modal-btn: style.css のエイリアス定義（min-height:44px）を継承しつつ色だけ上書き */
+/* .modal-btn: style.css のエイリアス定義を継承しつつ色だけ上書き */
 .app-modal-footer .modal-btn {
-    /* min-height / padding / border-radius は style.css .btn-reset と同じ値を継承 */
     background: var(--bg-surface);
     border-color: var(--border-light);
 }
@@ -209,9 +393,10 @@
     color: #fff;
 }
 
-/* ===================
-   イベントバッジ
-   =================== */
+
+/* ===================================================================
+   5. イベントバッジ / サマリー
+   =================================================================== */
 .daily-event-info {
     display: flex;
     justify-content: center;
@@ -239,7 +424,6 @@
     white-space: nowrap;
 }
 
-/* イベント・演者サマリー */
 .event-summary {
     display: flex;
     flex-direction: column;
@@ -284,7 +468,10 @@
     color: var(--text-muted);
 }
 
-/* 日付セレクト幅 */
+
+/* ===================================================================
+   6. 日付セレクト
+   =================================================================== */
 #dateSelect {
     min-width: 280px;
     max-width: 400px;
@@ -294,9 +481,10 @@ select option {
     padding: 4px 8px;
 }
 
-/* ===================
-   台番号末尾統計テーブル（トグル式）
-   =================== */
+
+/* ===================================================================
+   7. 台番号末尾統計テーブル（トグル）
+   =================================================================== */
 .suffix-stats-block.collapsible {
     margin-top: var(--space-5);
     background: var(--bg-surface);
@@ -370,7 +558,6 @@ select option {
     color: var(--text-disabled);
 }
 
-/* テーブルアクション（末尾統計内） */
 .suffix-table-actions {
     display: flex;
     gap: var(--space-2);
@@ -383,224 +570,10 @@ select option {
     font-size: var(--font-size-sm);
 }
 
-/* ===================
-   レスポンシブ
-   =================== */
-@media (max-width: 480px) {
-    #data-table td:nth-child(1),
-    #data-table th:nth-child(1) {
-        min-width: 100px;
-        max-width: 130px;
-    }
 
-    .daily-event-info {
-        margin-bottom: 10px;
-    }
-
-    .daily-event-badges {
-        padding: 8px;
-        gap: 5px;
-    }
-
-    /* 日付セレクト全幅 */
-    #dateSelect {
-        min-width: 100%;
-        max-width: 100%;
-    }
-
-    .daily-filter-btn-group {
-        width: 100%;
-    }
-
-    .daily-filter-btn {
-        flex: 1;
-        justify-content: center;
-        min-width: calc(50% - 4px);
-        min-height: var(--btn-touch-mid);   /* Secondary相当 → 中優先度 60px */
-    }
-
-    .daily-filter-btn .dfb-preview {
-        display: none; /* スマホではプレビュー非表示でコンパクトに */
-    }
-
-    .suffix-table-actions {
-        flex-wrap: wrap;
-    }
-
-    .suffix-table-actions .btn-copy,
-    .suffix-table-actions .btn-download {
-        flex: 1;
-        justify-content: center;
-    }
-
-    .event-summary {
-        padding: 8px 10px;
-    }
-
-    .event-summary-section {
-        gap: 5px;
-    }
-
-    .event-summary-label {
-        width: 100%;
-    }
-
-    .app-modal {
-        padding: var(--space-4) var(--space-2);
-    }
-
-    .app-modal-content {
-        max-height: calc(100vh - 30px);
-    }
-}
-
-@media (min-width: 769px) {
-    #data-table td:nth-child(1),
-    #data-table th:nth-child(1) {
-        min-width: 180px;
-        max-width: 250px;
-    }
-
-    #dateSelect {
-        min-width: 320px;
-    }
-}
-
-/* ===================
-   アクティブフィルター チップバー
-   =================== */
-.active-filter-bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    min-height: 0;
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.25s ease, padding 0.25s ease, margin 0.25s ease;
-    padding: 0;
-    margin: 0;
-}
-
-.active-filter-bar.has-chips {
-    max-height: 200px;
-    padding: 6px 0 8px;
-    margin: 4px 0 2px;
-}
-
-.filter-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 10px 4px 10px;
-    border-radius: var(--radius-full);
-    font-size: var(--font-size-xs);
-    font-weight: 500;
-    border: 1px solid;
-    cursor: default;
-    white-space: nowrap;
-    max-width: 240px;
-    transition: opacity 0.15s;
-    animation: chip-in 0.18s ease;
-}
-
-@keyframes chip-in {
-    from { opacity: 0; transform: scale(0.85); }
-    to   { opacity: 1; transform: scale(1); }
-}
-
-.filter-chip-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.filter-chip-remove {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;    /* タップ判定領域を少し大きく */
-    height: 20px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(255,255,255,0.18);
-    color: inherit;
-    font-size: 11px;
-    line-height: 1;
-    cursor: pointer;
-    padding: 0;
-    flex-shrink: 0;
-    transition: background var(--transition-fast);
-    -webkit-tap-highlight-color: transparent;
-}
-
-.filter-chip-remove:hover {
-    background: rgba(255,255,255,0.38);
-}
-
-/* チップ種別カラー */
-.filter-chip.chip-search {
-    background: rgba(59, 130, 246, 0.12);
-    border-color: var(--color-info);
-    color: var(--color-info);
-}
-
-.filter-chip.chip-machine {
-    background: rgba(167, 139, 250, 0.12);
-    border-color: var(--color-purple);
-    color: var(--color-purple);
-}
-
-.filter-chip.chip-numfilter {
-    background: rgba(251, 191, 36, 0.12);
-    border-color: var(--color-warning);
-    color: var(--color-warning);
-}
-
-.filter-chip.chip-tag {
-    /* タグ固有の色はインラインで上書き */
-    background: rgba(74, 222, 128, 0.12);
-    border-color: var(--color-success);
-    color: var(--color-success);
-}
-
-.filter-chip.chip-taggedonly {
-    background: rgba(244, 114, 182, 0.12);
-    border-color: var(--color-pink);
-    color: var(--color-pink);
-}
-
-.filter-chip.chip-sort {
-    background: rgba(34, 211, 238, 0.12);
-    border-color: #22d3ee;
-    color: #22d3ee;
-}
-
-.filter-chip-clear-all {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-1);
-    min-height: 32px;
-    padding: 0 var(--space-2);
-    border-radius: var(--radius-full);
-    font-size: var(--font-size-xs);
-    font-family: inherit;
-    border: 1px dashed var(--border-light);
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: border-color var(--transition-fast), color var(--transition-fast);
-    -webkit-tap-highlight-color: transparent;
-}
-
-.filter-chip-clear-all:hover {
-    border-color: var(--text-secondary);
-    color: var(--text-secondary);
-}
-
-/* ===================
-   列ヘッダ クリックソート
-   =================== */
+/* ===================================================================
+   8. 列ヘッダ クリックソート
+   =================================================================== */
 #data-table th.sortable {
     cursor: pointer;
     user-select: none;
@@ -632,146 +605,27 @@ select option {
     color: var(--hall-accent, #fbbf24);
 }
 
-/* ===================
-   テーブルスケルトン ＆ スピナー
-   =================== */
-.table-loading-overlay {
-    position: relative;
-}
 
-.table-loading-overlay::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--bg-base);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s;
-    z-index: 10;
-    border-radius: var(--radius-md);
-}
-
-.table-loading-overlay.is-loading::after {
-    opacity: 0.55;
-    pointer-events: auto;
-}
-
-/* スケルトン行 */
-.skeleton-tbody tr td {
-    padding: 10px 8px;
-}
-
-.skeleton-cell {
-    display: block;
-    height: 14px;
-    border-radius: var(--radius-sm);
-    background: linear-gradient(
-        90deg,
-        var(--bg-surface) 25%,
-        var(--primary-dark) 50%,
-        var(--bg-surface) 75%
-    );
-    background-size: 200% 100%;
-    animation: skeleton-shimmer 1.4s infinite;
-}
-
-@keyframes skeleton-shimmer {
-    0%   { background-position: 200% center; }
-    100% { background-position: -200% center; }
-}
-
-/* テーブル上部スピナー */
-.table-spinner-row td {
-    text-align: center;
-    padding: 24px 0;
-    color: var(--text-muted);
-    font-size: var(--font-size-sm);
-}
-
-.inline-spinner {
-    display: inline-block;
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--border-light);
-    border-top-color: var(--primary-color);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    vertical-align: middle;
-    margin-right: var(--space-2);
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* ===================
-   レスポンシブ（追加）
-   =================== */
-@media (max-width: 480px) {
-    .active-filter-bar.has-chips {
-        gap: 4px;
-    }
-    .filter-chip {
-        max-width: 180px;
-        font-size: 11px;
-        padding: 3px 8px 3px 8px;
-    }
-}
-
-/* ===================
-   タグ基準日 UI
-   =================== */
-
-/* タグ定義ブロック内の基準日行 */
-.tag-ref-date-row {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
-    background: var(--bg-elevated);
-    border-top: 1px solid var(--border-color);
-    flex-wrap: wrap;
-}
-
-.tag-ref-date-label {
-    font-size: var(--font-size-sm);
-    color: var(--text-muted);
-    white-space: nowrap;
-}
-
-.tag-ref-mode-select,
-.tag-ref-file-select {
-    font-size: var(--font-size-sm);
-    padding: var(--space-1) var(--space-2);
-    background: var(--bg-input);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-sm);
-    color: var(--text-primary);
+/* ===================================================================
+   9. 機種内順位ヘッダ クリックフィルター
+   =================================================================== */
+th.badge-col-header {
     cursor: pointer;
 }
 
-.tag-ref-file-select {
-    flex: 1;
-    min-width: 120px;
+th.badge-col-header.badge-filter-active {
+    background: var(--primary-color);
+    color: #fff;
 }
 
-/* プレビューバッジに付く基準日サブラベル */
-.tag-ref-date-badge {
-    display: inline-block;
-    margin-left: 4px;
-    font-size: 10px;
-    opacity: 0.85;
-    background: rgba(0,0,0,0.25);
-    border-radius: 3px;
-    padding: 0 4px;
-    vertical-align: middle;
+th.badge-col-header.badge-filter-active .sort-icon {
+    color: #fff;
 }
 
-/* ===================
-   バッジ再計算ボタン・バッジフィルター
-   =================== */
 
-/* 再計算ボタン行 */
+/* ===================================================================
+   10. バッジ再計算ボタン・バッジフィルター
+   =================================================================== */
 .badge-recalc-row {
     display: flex;
     align-items: center;
@@ -780,7 +634,6 @@ select option {
     flex-wrap: wrap;
 }
 
-/* 再計算ヒントテキスト */
 .badge-recalc-hint {
     font-size: var(--font-size-sm);
     color: var(--text-muted);
@@ -788,7 +641,6 @@ select option {
     min-width: 160px;
 }
 
-/* 未計算状態の強調スタイル */
 button.badge-needs-calc {
     background: var(--color-warning);
     color: #fff;
@@ -804,17 +656,15 @@ button.badge-needs-calc:hover {
 
 @keyframes badge-pulse {
     0%, 100% { opacity: 1; }
-    50%       { opacity: 0.72; }
+    50%      { opacity: 0.72; }
 }
 
-/* 計算済み状態（通常の再計算ボタン） */
 button#badgeRecalcBtn:not(.badge-needs-calc) {
     background: var(--primary-color);
     color: #fff;
     border-color: var(--primary-color);
 }
 
-/* バッジ存在フィルター行 */
 .badge-filter-row {
     display: flex;
     flex-direction: column;
@@ -848,35 +698,10 @@ button#badgeRecalcBtn:not(.badge-needs-calc) {
     color: var(--text-primary);
 }
 
-/* ===================
-   機種内順位ヘッダ クリックフィルター
-   =================== */
 
-/* バッジフィルター有効中の機種内順位ヘッダ */
-th.badge-col-header {
-    cursor: pointer;
-}
-
-th.badge-col-header.badge-filter-active {
-    background: var(--primary-color);
-    color: #fff;
-}
-
-th.badge-col-header.badge-filter-active .sort-icon {
-    color: #fff;
-}
-
-/* バッジフィルターチップ */
-.chip-badge-filter {
-    background: rgba(38, 101, 253, 0.12);
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-}
-
-/* ===================
-   バッジ順位チェックボックス
-   =================== */
-
+/* ===================================================================
+   11. バッジ順位チェックボックス
+   =================================================================== */
 .mb-rank-item {
     flex-direction: column;
     align-items: flex-start;
@@ -910,10 +735,57 @@ th.badge-col-header.badge-filter-active .sort-icon {
     cursor: pointer;
 }
 
-/* ===================
-   タグ一括付け UI
-   =================== */
 
+/* ===================================================================
+   12. タグ基準日 UI
+   =================================================================== */
+.tag-ref-date-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
+    background: var(--bg-elevated);
+    border-top: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.tag-ref-date-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.tag-ref-mode-select,
+.tag-ref-file-select {
+    font-size: var(--font-size-sm);
+    padding: var(--space-1) var(--space-2);
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.tag-ref-file-select {
+    flex: 1;
+    min-width: 120px;
+}
+
+.tag-ref-date-badge {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 10px;
+    opacity: 0.85;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 3px;
+    padding: 0 4px;
+    vertical-align: middle;
+}
+
+
+/* ===================================================================
+   13. タグ一括付け UI
+   =================================================================== */
 .tag-bulk-apply-section {
     background: var(--bg-elevated);
     border: 1px solid var(--border-color);
@@ -960,16 +832,15 @@ th.badge-col-header.badge-filter-active .sort-icon {
     cursor: pointer;
 }
 
-/* .tag-bulk-btn: Ghost相当（補助操作） — btn-small / btn-ghost から継承した形でサイズ統一 */
+/* .tag-bulk-btn: Ghost相当（補助操作） */
 .tag-bulk-btn {
-    min-height: 36px;   /* Ghost相当: btn-small / btn-ghost の最小高さを統一 */
+    min-height: 36px;
     padding: 0 var(--space-3);
     font-size: var(--font-size-sm);
     white-space: nowrap;
     flex-shrink: 0;
 }
 
-/* タグ定義内の台番号リスト表示 */
 .tag-unit-list-row {
     display: flex;
     align-items: center;
@@ -996,24 +867,27 @@ th.badge-col-header.badge-filter-active .sort-icon {
     white-space: nowrap;
 }
 
-/* .tag-unit-list-clear-btn: Danger相当（リストクリア） — btn-small のサイズを基准に色だけ変更 */
+/* .tag-unit-list-clear-btn: Danger相当（リストクリア） */
 .tag-unit-list-clear-btn {
     flex-shrink: 0;
     color: var(--color-danger);
     border-color: var(--color-danger);
 }
 
-/* タグプレビューの台数バッジ */
 .tag-unit-badge-count {
     display: inline-block;
     margin-left: 4px;
     font-size: 10px;
-    background: rgba(0,0,0,0.2);
+    background: rgba(0, 0, 0, 0.2);
     border-radius: 3px;
     padding: 0 4px;
     vertical-align: middle;
 }
 
+
+/* ===================================================================
+   14. 台の状態変化バッジ / 撤去台
+   =================================================================== */
 .unit-status-badge {
     display: inline-flex;
     align-items: center;
@@ -1030,7 +904,191 @@ th.badge-col-header.badge-filter-active .sort-icon {
 .unit-status-badge.us-move     { background: #eab30820; border: 1px solid #eab308; color: #eab308; }
 .unit-status-badge.us-withdraw { background: #ffb4ab20; border: 1px solid #ffb4ab; color: #ffb4ab; }
 
-.unit-age-fresh { color: var(--primary-color); font-weight: 600; }
+.unit-age-fresh {
+    color: var(--primary-color);
+    font-weight: 600;
+}
 
-.withdrawn-content { display: none; }
-.withdrawn-content.open { display: block; }
+.withdrawn-content {
+    display: none;
+}
+.withdrawn-content.open {
+    display: block;
+}
+
+
+/* ===================================================================
+   15. テーブルスケルトン ＆ スピナー
+   =================================================================== */
+.table-loading-overlay {
+    position: relative;
+}
+
+.table-loading-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--bg-base);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 10;
+    border-radius: var(--radius-md);
+}
+
+.table-loading-overlay.is-loading::after {
+    opacity: 0.55;
+    pointer-events: auto;
+}
+
+.skeleton-tbody tr td {
+    padding: 10px 8px;
+}
+
+.skeleton-cell {
+    display: block;
+    height: 14px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(
+        90deg,
+        var(--bg-surface) 25%,
+        var(--primary-dark) 50%,
+        var(--bg-surface) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s infinite;
+}
+
+@keyframes skeleton-shimmer {
+    0%   { background-position: 200% center; }
+    100% { background-position: -200% center; }
+}
+
+.table-spinner-row td {
+    text-align: center;
+    padding: 24px 0;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.inline-spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border-light);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: var(--space-2);
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+
+/* ===================================================================
+   16. レスポンシブ
+   =================================================================== */
+
+/* --- スマホ（≤480px）--- */
+@media (max-width: 480px) {
+    #data-table th.col-fixed-machine,
+    #data-table td.col-fixed-machine {
+        width: 110px;
+        min-width: 110px;
+        max-width: 110px;
+    }
+    #data-table th.col-fixed-unit,
+    #data-table td.col-fixed-unit {
+        left: 110px;
+    }
+
+    .daily-event-info {
+        margin-bottom: 10px;
+    }
+
+    .daily-event-badges {
+        padding: 8px;
+        gap: 5px;
+    }
+
+    #dateSelect {
+        min-width: 100%;
+        max-width: 100%;
+    }
+
+    .daily-filter-btn-group {
+        width: 100%;
+    }
+
+    .daily-filter-btn {
+        flex: 1;
+        justify-content: center;
+        min-width: calc(50% - 4px);
+        min-height: var(--btn-touch-mid);
+    }
+
+    .daily-filter-btn .dfb-preview {
+        display: none;
+    }
+
+    .suffix-table-actions {
+        flex-wrap: wrap;
+    }
+
+    .suffix-table-actions .btn-copy,
+    .suffix-table-actions .btn-download {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .event-summary {
+        padding: 8px 10px;
+    }
+
+    .event-summary-section {
+        gap: 5px;
+    }
+
+    .event-summary-label {
+        width: 100%;
+    }
+
+    .app-modal {
+        padding: var(--space-4) var(--space-2);
+    }
+
+    .app-modal-content {
+        max-height: calc(100vh - 30px);
+    }
+
+    .active-filter-bar.has-chips {
+        gap: 4px;
+    }
+
+    .filter-chip {
+        max-width: 180px;
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+}
+
+/* --- PC（≥769px）--- */
+@media (min-width: 769px) {
+    #data-table th.col-fixed-machine,
+    #data-table td.col-fixed-machine {
+        width: 200px;
+        min-width: 200px;
+        max-width: 200px;
+    }
+    #data-table th.col-fixed-unit,
+    #data-table td.col-fixed-unit {
+        left: 200px;
+    }
+
+    #dateSelect {
+        min-width: 320px;
+    }
+}

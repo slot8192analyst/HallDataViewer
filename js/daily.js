@@ -568,7 +568,7 @@ function initColumnSelector() {
         allColumns.push('機種内順位');
     }
 
-    // ★追記: 台の状態変化バッジ列（new/add/remove/move）と、機種設置からの経過日数列。
+    // ★台の状態変化バッジ列（new/add/remove/move）と、機種設置からの経過日数列。
     //   unit_history.json 未ロード時も列は出す（セルは "-"）。
     if (allColumns.indexOf('状態') === -1) {
         allColumns.push('状態');
@@ -605,6 +605,20 @@ function initColumnSelector() {
         }
     } else {
         visibleColumns = [].concat(allColumns);
+    }
+
+    // ★常時表示列（機種名・台番号）は必ず含める。localStorage に古い設定が
+    //   残っていて欠けていても、allColumns の並び順を保ったまま補完する。
+    if (visibleColumns.length > 0) {
+        var needsFix = ALWAYS_VISIBLE_COLUMNS.some(function(col) {
+            return allColumns.indexOf(col) !== -1 && visibleColumns.indexOf(col) === -1;
+        });
+        if (needsFix) {
+            visibleColumns = allColumns.filter(function(col) {
+                return visibleColumns.indexOf(col) !== -1
+                    || ALWAYS_VISIBLE_COLUMNS.indexOf(col) !== -1;
+            });
+        }
     }
 
     renderColumnCheckboxes();
@@ -802,11 +816,17 @@ var COLUMN_GROUPS = [
     { id: '__group_atari_rate',  label: '当たり確率', members: ['合成確率', 'BB確率', 'RB確率', 'ART確率'] }
 ];
 
+// 表示列フィルタから常に除外する列（必ず表示・固定列）
+var ALWAYS_VISIBLE_COLUMNS = ['機種名', '台番号'];
+
 function getGroupedColumnLayout() {
     var layout = [];
     var consumedGroupIds = {};
 
     allColumns.forEach(function(col) {
+        // 機種名・台番号は常時表示なのでチェックボックスに出さない
+        if (ALWAYS_VISIBLE_COLUMNS.indexOf(col) !== -1) return;
+
         var group = COLUMN_GROUPS.find(function(g) { return g.members.indexOf(col) !== -1; });
         if (group) {
             if (!consumedGroupIds[group.id]) {
@@ -861,6 +881,11 @@ function _persistVisibleColumns() {
 
 function updateVisibleColumns() {
     var checkedCols = {};
+
+    // 常時表示列は必ず含める（チェックボックスが存在しないため明示的に入れる）
+    ALWAYS_VISIBLE_COLUMNS.forEach(function(col) {
+        if (allColumns.indexOf(col) !== -1) checkedCols[col] = true;
+    });
 
     document.querySelectorAll('#columnCheckboxes input[type="checkbox"]:checked').forEach(function(cb) {
         if (cb.dataset.groupId) {
@@ -1439,6 +1464,114 @@ var SORTABLE_COLUMNS = {
     '台番号': { asc: 'unit_asc',    desc: 'unit_desc' }
 };
 
+// 機種名・台番号なら左固定用クラス文字列を返す（該当しなければ空文字）
+function fixedColClass(colName) {
+    if (colName === '機種名') return 'col-fixed col-fixed-machine';
+    if (colName === '台番号') return 'col-fixed col-fixed-unit';
+    return '';
+}
+
+
+// 1セル分の <td> HTML を返す（固定クラスの注入は呼び出し側で行う）
+function renderDailyCell(row, h, memoForDate, fixed) {
+    var val = row[h];
+    var fx = fixed ? (' ' + fixed) : '';
+
+    if (h === 'メモ') {
+        var memoBadges = '';
+        if (typeof SeatMemo !== 'undefined') {
+            var memo = memoForDate[String(row['台番号'])];
+            memoBadges = SeatMemo.badgeHtml(memo);
+        }
+        var inner = memoBadges || '<span class="memo-add-hint">＋メモ</span>';
+        return '<td class="memo-col-cell memo-col-clickable' + fx + '" data-daiban="'
+            + escapeHtmlTag(String(row['台番号'] || ''))
+            + '" data-machine="' + escapeHtmlTag(String(row['機種名'] || '')) + '">'
+            + inner + '</td>';
+    }
+
+    if (h === '状態') {
+        var statusBase = dailyCurrentMemoDateKey || '';
+        var res = null;
+        if (HallData.utils && HallData.utils.getUnitDisplayStatuses) {
+            res = HallData.utils.getUnitDisplayStatuses(row['台番号'], statusBase);
+        }
+        if (!res || !res.types || res.types.length === 0) {
+            return '<td class="unit-status-cell text-center' + fx + '"><span class="text-muted">-</span></td>';
+        }
+        return '<td class="unit-status-cell text-center' + fx + '">' + renderUnitStatusBadges(res.types) + '</td>';
+    }
+
+    if (h === '設置日数') {
+        var ageBase = dailyCurrentMemoDateKey || '';
+        var days = null;
+        if (HallData.utils && HallData.utils.getMachineAge) {
+            days = HallData.utils.getMachineAge(row['台番号'], ageBase);
+        }
+        if (days === null || days === undefined) {
+            return '<td class="unit-age-cell text-center' + fx + '"><span class="text-muted">-</span></td>';
+        }
+        var ageLabel = days === 0 ? '設置日' : (days + '日');
+        var freshClass = days <= 6 ? ' unit-age-fresh' : '';
+        return '<td class="unit-age-cell text-center' + freshClass + fx + '">' + ageLabel + '</td>';
+    }
+
+    if (h === '機種内順位') {
+        if (typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled()) {
+            var badgeInfo = row['_machineBadge'] || { tako: null, kubi: null };
+            return MachineBadge.renderBadgeHtml(badgeInfo);
+        }
+        return '<td class="mb-cell' + fx + '">-</td>';
+    }
+
+    if (h === 'タグ') {
+        var matchedTags = row['_matchedTags'] || [];
+        if (matchedTags.length === 0) {
+            return '<td class="text-center' + fx + '"><span class="text-muted">-</span></td>';
+        }
+        var tagsHtml = matchedTags.map(function(tagId) {
+            var def = TagEngine.get(tagId);
+            if (!def) return '';
+            return '<span class="custom-tag-badge" style="background: ' + def.color + '20; border-color: ' + def.color + '; color: ' + def.color + ';">' + def.icon + ' ' + escapeHtmlTag(def.name) + '</span>';
+        }).join(' ');
+        return '<td class="text-center' + fx + '">' + tagsHtml + '</td>';
+    }
+
+    if (h === '位置') {
+        var tagsHtml2 = renderPositionTags(row['台番号'], { compact: true });
+        return '<td' + (fx ? ' class="' + fixed + '"' : '') + '>' + (tagsHtml2 || '-') + '</td>';
+    }
+
+    if (h === '機械割') {
+        var rate = val;
+        if (rate === null || rate === undefined || isNaN(rate)) {
+            return '<td' + (fx ? ' class="' + fixed + '"' : '') + '>-</td>';
+        }
+        var rateClass = getMechanicalRateClass(rate);
+        var rateText = formatMechanicalRate(rate);
+        return '<td class="' + rateClass + fx + '">' + rateText + '</td>';
+    }
+
+    if (h === '差枚') {
+        if (val === '' || val === null || val === undefined) return '<td' + (fx ? ' class="' + fixed + '"' : '') + '>-</td>';
+        var numVal = parseInt(String(val).replace(/,/g, '')) || 0;
+        var cls = numVal > 0 ? 'plus' : numVal < 0 ? 'minus' : '';
+        return '<td class="' + cls + fx + '">' + (numVal >= 0 ? '+' : '') + numVal.toLocaleString() + '</td>';
+    }
+
+    if (h === 'G数') {
+        if (val === '' || val === null || val === undefined) return '<td' + (fx ? ' class="' + fixed + '"' : '') + '>-</td>';
+        var gVal = parseInt(String(val).replace(/,/g, '')) || 0;
+        return '<td' + (fx ? ' class="' + fixed + '"' : '') + '>' + gVal.toLocaleString() + '</td>';
+    }
+
+    var strVal = (val === null || val === undefined) ? '' : val;
+    if (strVal === '') return '<td' + (fx ? ' class="' + fixed + '"' : '') + '>-</td>';
+    if (/^-?\d+$/.test(strVal)) return '<td' + (fx ? ' class="' + fixed + '"' : '') + '>' + parseInt(strVal).toLocaleString() + '</td>';
+    return '<td' + (fx ? ' class="' + fixed + '"' : '') + '>' + strVal + '</td>';
+}
+
+
 function renderTableWithColumns(data, tableId, summaryId, columns) {
     var table = document.getElementById(tableId);
     if (!table) return;
@@ -1448,23 +1581,29 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
     var displayColumns = columns.length > 0 ? columns : allColumns;
 
     thead.innerHTML = '<tr>' + displayColumns.map(function(h) {
+        var fixed = fixedColClass(h);
+
         if (h === '機種内順位') {
             var isFiltering = (dailyBadgeFilter.tako || dailyBadgeFilter.kubi);
             var filterClass = isFiltering ? ' badge-filter-active' : '';
             var icon = isFiltering ? '🔽' : '⇅';
-            return '<th class="sortable badge-col-header' + filterClass + '" data-col="' + h + '">'
+            return '<th class="sortable badge-col-header' + filterClass + (fixed ? ' ' + fixed : '') + '" data-col="' + h + '">'
                 + h
                 + '<span class="sort-icon">' + icon + '</span>'
                 + '</th>';
         }
+
         var sortKeys = SORTABLE_COLUMNS[h];
-        if (!sortKeys) return '<th>' + h + '</th>';
+        if (!sortKeys) {
+            return '<th' + (fixed ? ' class="' + fixed + '"' : '') + '>' + h + '</th>';
+        }
+
         var isSorting = (dailySortColumn === h);
         var dirClass = isSorting ? (dailySortDir === 'asc' ? ' sort-asc' : ' sort-desc') : '';
-        var icon = isSorting ? (dailySortDir === 'asc' ? '▲' : '▼') : '⇅';
-        return '<th class="sortable' + dirClass + '" data-col="' + h + '">'
+        var icon2 = isSorting ? (dailySortDir === 'asc' ? '▲' : '▼') : '⇅';
+        return '<th class="sortable' + dirClass + (fixed ? ' ' + fixed : '') + '" data-col="' + h + '">'
             + h
-            + '<span class="sort-icon">' + icon + '</span>'
+            + '<span class="sort-icon">' + icon2 + '</span>'
             + '</th>';
     }).join('') + '</tr>';
 
@@ -1510,8 +1649,6 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
         });
     });
 
-    var tagDefs = TagEngine.getAll();
-
     var memoDateKey = dailyCurrentMemoDateKey || '';
     var memoForDate = {};
     if (typeof SeatMemo !== 'undefined' && memoDateKey) {
@@ -1520,102 +1657,7 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
 
     tbody.innerHTML = data.map(function(row) {
         return '<tr>' + displayColumns.map(function(h) {
-            var val = row[h];
-
-            if (h === 'メモ') {
-                var memoBadges = '';
-                if (typeof SeatMemo !== 'undefined') {
-                    var memo = memoForDate[String(row['台番号'])];
-                    memoBadges = SeatMemo.badgeHtml(memo);
-                }
-                var inner = memoBadges || '<span class="memo-add-hint">＋メモ</span>';
-                return '<td class="memo-col-cell memo-col-clickable" data-daiban="'
-                    + escapeHtmlTag(String(row['台番号'] || ''))
-                    + '" data-machine="' + escapeHtmlTag(String(row['機種名'] || '')) + '">'
-                    + inner + '</td>';
-            }
-
-            if (h === '状態') {
-                // その台の targetDate 時点での最新イベント日の全種別をバッジ表示（add+move 同時など複数対応）
-                var statusBase = dailyCurrentMemoDateKey || '';
-                var res = null;
-                if (HallData.utils && HallData.utils.getUnitDisplayStatuses) {
-                    res = HallData.utils.getUnitDisplayStatuses(row['台番号'], statusBase);
-                }
-                if (!res || !res.types || res.types.length === 0) {
-                    return '<td class="unit-status-cell text-center"><span class="text-muted">-</span></td>';
-                }
-                return '<td class="unit-status-cell text-center">' + renderUnitStatusBadges(res.types) + '</td>';
-            }
-
-            if (h === '設置日数') {
-                // 機種の new イベント日を起点にした経過日数
-                var ageBase = dailyCurrentMemoDateKey || '';
-                var days = null;
-                if (HallData.utils && HallData.utils.getMachineAge) {
-                    days = HallData.utils.getMachineAge(row['台番号'], ageBase);
-                }
-                if (days === null || days === undefined) {
-                    return '<td class="unit-age-cell text-center"><span class="text-muted">-</span></td>';
-                }
-                var ageLabel = days === 0 ? '設置日' : (days + '日');
-                var freshClass = days <= 6 ? ' unit-age-fresh' : '';
-                return '<td class="unit-age-cell text-center' + freshClass + '">' + ageLabel + '</td>';
-            }
-
-            if (h === '機種内順位') {
-                if (typeof MachineBadge !== 'undefined' && MachineBadge.isEnabled()) {
-                    var badgeInfo = row['_machineBadge'] || { tako: null, kubi: null };
-                    return MachineBadge.renderBadgeHtml(badgeInfo);
-                }
-                return '<td class="mb-cell">-</td>';
-            }
-
-            if (h === 'タグ') {
-                var matchedTags = row['_matchedTags'] || [];
-                if (matchedTags.length === 0) {
-                    return '<td class="text-center"><span class="text-muted">-</span></td>';
-                }
-                var tagsHtml = matchedTags.map(function(tagId) {
-                    var def = TagEngine.get(tagId);
-                    if (!def) return '';
-                    return '<span class="custom-tag-badge" style="background: ' + def.color + '20; border-color: ' + def.color + '; color: ' + def.color + ';">' + def.icon + ' ' + escapeHtmlTag(def.name) + '</span>';
-                }).join(' ');
-                return '<td class="text-center">' + tagsHtml + '</td>';
-            }
-
-            if (h === '位置') {
-                var tagsHtml2 = renderPositionTags(row['台番号'], { compact: true });
-                return '<td>' + (tagsHtml2 || '-') + '</td>';
-            }
-
-            if (h === '機械割') {
-                var rate = val;
-                if (rate === null || rate === undefined || isNaN(rate)) {
-                    return '<td>-</td>';
-                }
-                var rateClass = getMechanicalRateClass(rate);
-                var rateText = formatMechanicalRate(rate);
-                return '<td class="' + rateClass + '">' + rateText + '</td>';
-            }
-
-            if (h === '差枚') {
-                if (val === '' || val === null || val === undefined) return '<td>-</td>';
-                var numVal = parseInt(String(val).replace(/,/g, '')) || 0;
-                var cls = numVal > 0 ? 'plus' : numVal < 0 ? 'minus' : '';
-                return '<td class="' + cls + '">' + (numVal >= 0 ? '+' : '') + numVal.toLocaleString() + '</td>';
-            }
-
-            if (h === 'G数') {
-                if (val === '' || val === null || val === undefined) return '<td>-</td>';
-                var gVal = parseInt(String(val).replace(/,/g, '')) || 0;
-                return '<td>' + gVal.toLocaleString() + '</td>';
-            }
-
-            var strVal = (val === null || val === undefined) ? '' : val;
-            if (strVal === '') return '<td>-</td>';
-            if (/^-?\d+$/.test(strVal)) return '<td>' + parseInt(strVal).toLocaleString() + '</td>';
-            return '<td>' + strVal + '</td>';
+            return renderDailyCell(row, h, memoForDate, fixedColClass(h));
         }).join('') + '</tr>';
     }).join('');
 
@@ -1688,6 +1730,7 @@ function renderTableWithColumns(data, tableId, summaryId, columns) {
         }
     }
 }
+
 
 function escapeHtmlTag(str) {
     if (!str) return '';

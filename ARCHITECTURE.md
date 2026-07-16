@@ -354,6 +354,8 @@ webapp/
 | 取材ページのカラー・見た目 | `css/promotion.css`（`[data-promo="..."]` 変数 / `.promo-*` クラス） |
 | 取材掲示板のAPI接続先を変える | `js/board.js`（`BOARD_API_URL` 定数） |
 | 取材の対象機種マトリクスのロジック | `js/promotion.js`（`buildMachineMatrix` / `buildOverviewMatrix`） |
+| 固定列（機種名・台番号）の幅・固定挙動 | `css/daily.css`（セクション1 + レスポンシブ。width と left を揃える）+ `js/daily.js`（`fixedColClass`） |
+| 表示列フィルタから常に除外する列を変える | `js/daily.js`（`ALWAYS_VISIBLE_COLUMNS`） |
 
 ---
 
@@ -383,6 +385,9 @@ webapp/
 - 「状態」列の move 単独表示は正常。台数を変えずに島ごと丸移動した場合は add が発生しないため move のみになる（add+move の2バッジは「台数増＋台番号入れ替わり」が同時に起きた台でのみ出る）。
 - `utils.js` の `UNIT_STATUS_ORDER` が二重定義になっている場合がある（動作影響なし）。気になれば片方を削除する。
 - 解析タブ・島図・カレンダーは台の状態変化履歴を未使用（現状は日別タブのみ）。将来これらに展開する場合も `HallData.utils.*` をそのまま呼べる。
+- 日別タブのテーブルは機種名・台番号の2列を左固定（CSS `position: sticky`）している。固定は列名クラス（`.col-fixed-machine` / `.col-fixed-unit`）ベースで、`js/daily.js` の `fixedColClass()` がヘッダ・セル生成時にクラスを付与する。**機種名列の `width` と台番号列の `left` は必ず同値**にすること（`css/daily.css` セクション1の既定 / スマホ≤480 / PC≥769 の3箇所にペアで存在）。ズレると2列が重なる。また sticky セルは背景が透けるため、`--bg-elevated` のフォールバック背景＋行縞（even/odd）背景を固定セルに明示している。
+- 機種名・台番号の2列は表示列フィルタ（表示列モーダル）から除外され常時表示になる（`js/daily.js` の `ALWAYS_VISIBLE_COLUMNS`）。チェックボックスに出さず、`updateVisibleColumns` / `initColumnSelector` で必ず `visibleColumns` に含めるよう保証している。
+
 
 ---
 
