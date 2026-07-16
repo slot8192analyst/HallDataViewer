@@ -877,4 +877,151 @@
     .weekly-rec-badge .rec-icon {
         font-size: 10px;
     }
+
+    /* ===================
+   スマホ用リスト表示（出し分け）
+   =================== */
+
+/* デフォルト（PC・タブレット）はリストを隠し、グリッドを表示 */
+.calendar-list {
+    display: none;
+}
+
+/* スマホ（≤480px）ではグリッド系を隠してリストを表示 */
+@media (max-width: 480px) {
+    .calendar-scroll-wrapper,
+    .calendar-legend {
+        display: none;
+    }
+
+    .calendar-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        padding: var(--space-3);
+        background: var(--bg-base);
+    }
+}
+
+.calendar-list-item {
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.calendar-list-item.clickable {
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.calendar-list-item.clickable:active {
+    background: var(--bg-surface);
+}
+
+/* 日付部分 */
+.cli-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    flex-shrink: 0;
+}
+
+.cli-date .cli-day {
+    font-size: var(--font-size-2xl);
+    font-weight: bold;
+    line-height: 1;
+}
+
+.cli-date .cli-dow {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.cli-date.sunday .cli-day,
+.cli-date.sunday .cli-dow {
+    color: var(--color-danger);
+}
+
+.cli-date.saturday .cli-day,
+.cli-date.saturday .cli-dow {
+    color: var(--color-info);
+}
+
+/* 本体 */
+.cli-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    justify-content: center;
+}
+
+.cli-events,
+.cli-recs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+}
+
+/* 統計値: ラベル＋値を横並び、複数指標を横フロー */
+.cli-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+}
+
+.cli-stat {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-1);
+}
+
+.cli-stat-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.cli-stat-value {
+    font-size: var(--font-size-md);
+    font-weight: 600;
+}
+
+.cli-stat-value.plus {
+    color: var(--color-success);
+}
+
+.cli-stat-value.minus {
+    color: var(--color-danger);
+}
+
+.cli-nodata {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+}
+
+/* 遷移矢印 */
+.cli-arrow {
+    display: flex;
+    align-items: center;
+    font-size: var(--font-size-2xl);
+    color: var(--text-muted);
+    flex-shrink: 0;
+    padding-left: var(--space-1);
+}
+
+.calendar-list-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    padding: var(--space-8) 0;
 }
