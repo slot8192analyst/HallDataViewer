@@ -12,6 +12,7 @@
 <div class="analysis-subtabs">
     <button class="analysis-subtab active" data-atab="aggregate">集計</button>
     <button class="analysis-subtab" data-atab="kubi">凹み推移</button>
+    <button class="analysis-subtab" data-atab="scatter">散布分析</button>
 </div>
 
 <!-- ============ 集計タブ（既存の解析UI一式） ============ -->
@@ -266,4 +267,89 @@
             <button id="applyKubiBadgeSettings" class="modal-btn primary">閉じる</button>
         </div>
     </div>
+</div>
+
+<div id="analysisTabScatter" class="analysis-tab-panel">
+
+  <div class="ctrl-card">
+    <div class="sc-period-row">
+      <button id="openScatterCalendar" class="btn-secondary">📅 期間を選択</button>
+      <span id="scatterPeriodLabel" class="sc-period-label">7日間（デフォルト）</span>
+      <button id="loadScatter" class="btn-primary">再計算</button>
+    </div>
+  </div>
+
+  <!-- 条件 -->
+  <div class="ctrl-card">
+    <h3>機種選択</h3>
+    <div id="scatterMachineFilterContainer"></div>
+
+    <h3 style="margin-top:12px">機種内ランク（下位から）</h3>
+<div class="sc-rank-basis-row">
+  <label>ランク基準</label>
+  <select id="sc-rank-basis">
+    <option value="today">当日差枚</option>
+    <option value="cum">累積差枚</option>
+  </select>
+</div>
+<div class="sc-btn-row" id="sc-rank-btns"></div>
+
+
+    <h3 style="margin-top:12px">ルックバック（累積日数）</h3>
+    <div class="sc-slider-row">
+      <input type="range" id="sc-lookback" min="1" max="15" step="1" value="7"
+             oninput="onScatterLookback(this.value)">
+      <span class="sc-val" id="sc-lookback-val">7日</span>
+    </div>
+
+    <h3 style="margin-top:12px">累積差枚の閾値（これ以下を母集団に）</h3>
+    <div class="sc-slider-row">
+      <input type="range" id="sc-thresh" min="-25000" max="10000" step="500" value="-5000"
+             oninput="onScatterThresh(this.value)">
+      <span class="sc-val" id="sc-thresh-val">−5,000枚</span>
+    </div>
+
+    <h3 style="margin-top:12px">台番号末尾</h3>
+    <div class="sc-btn-row" id="sc-suffix-btns"></div>
+
+    <div id="scatterPositionFilter"></div>
+
+    <h3 style="margin-top:12px">設置台数レンジ（基準日の機種設置数）</h3>
+    <div class="sc-count-row">
+      <input type="number" id="sc-count-min" placeholder="下限" min="1" class="sc-num">
+      <span>〜</span>
+      <input type="number" id="sc-count-max" placeholder="上限" min="1" class="sc-num">
+      <span class="sc-hint">台</span>
+    </div>
+  </div>
+
+  <!-- KPI -->
+  <div class="sc-kpi-row">
+    <div class="sc-kpi"><div class="label">母集団n</div><div class="val" id="sc-k-n">—</div><div class="sub" id="sc-k-n-sub">—</div></div>
+    <div class="sc-kpi"><div class="label">当日プラス率</div><div class="val" id="sc-k-wr">—</div><div class="sub" id="sc-k-wr-sub">—</div></div>
+    <div class="sc-kpi"><div class="label">平均差枚</div><div class="val" id="sc-k-avg">—</div><div class="sub" id="sc-k-avg-sub">—</div></div>
+    <div class="sc-kpi"><div class="label">Fisher p値</div><div class="val" id="sc-k-pf">—</div><div class="sub" id="sc-k-pf-sub">—</div></div>
+    <div class="sc-kpi"><div class="label">二項検定p値</div><div class="val" id="sc-k-pb">—</div><div class="sub" id="sc-k-pb-sub">—</div></div>
+  </div>
+
+  <div class="sc-grid2">
+    <div class="card">
+      <h3 id="sc-scatter-title">散布図：累積差枚 vs 当日差枚</h3>
+      <div class="sc-chart-box"><canvas id="sc-scatter-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>閾値バケット別の勝率比較</h3>
+      <div class="sc-chart-box"><canvas id="sc-bucket-chart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 id="sc-trend-title">母集団の日別推移（勝率・平均差枚）</h3>
+    <div class="sc-chart-box"><canvas id="sc-trend-chart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <h3 id="sc-tbl-title">条件合致データ一覧</h3>
+    <div id="sc-data-table"></div>
+  </div>
 </div>

@@ -56,6 +56,8 @@ var Router = (function() {
                 if (typeof setupFilterPanelToggle === 'function') {
                     setupFilterPanelToggle('trendFilterToggle', 'trendFilterContent');
                 }
+                if (typeof setupScatterEventListeners === 'function') setupScatterEventListeners();
+
             },
             onShow: function() {
                 if (typeof loadTrendData === 'function') loadTrendData();

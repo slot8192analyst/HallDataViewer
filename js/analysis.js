@@ -1584,3 +1584,467 @@ function setupKubiEventListeners() {
         }
     });
 }
+
+// ===================
+// 散布分析タブ
+// ===================
+
+var scatterMachineFilterSelect = null;
+var scLookback = 7;
+var scThresh = -5000;
+var scSuffixSel = [];           // 選択された末尾（'0'〜'9'）
+var scScatterChart = null, scBucketChart = null, scTrendChart = null;
+
+// ---- 統計（プロトタイプ流用） ----
+function scLogFact(n){ var s=0; for(var i=2;i<=n;i++) s+=Math.log(i); return s; }
+function scLogComb(n,k){ if(k<0||k>n) return -Infinity; return scLogFact(n)-scLogFact(k)-scLogFact(n-k); }
+
+function scFisher(below, above){
+    var nb=below.length, na=above.length;
+    if(nb<2||na<2) return null;
+    var kb=below.filter(function(r){return r.win;}).length;
+    var ka=above.filter(function(r){return r.win;}).length;
+    var N=nb+na, K=kb+ka, n=nb, maxK=Math.min(n,K), denom=scLogComb(N,K), pval=0;
+    for(var x=kb;x<=maxK;x++){ pval += Math.exp(scLogComb(n,x)+scLogComb(N-n,K-x)-denom); }
+    return Math.min(pval,1);
+}
+function scBinom(k,n){
+    if(n<1) return null;
+    var p=0;
+    for(var x=k;x<=n;x++){ p += Math.exp(scLogComb(n,x) - n*Math.log(2)); }
+    return Math.min(p,1);
+}
+
+// ---- 差枚パース ----
+function scParseDiff(row){ return parseInt(String(row['差枚']).replace(/,/g,'')) || 0; }
+
+// ---- 累積差枚: 基準日を含まず、遡って lookback カレンダー日ぶんの窓内で
+//      「同一台番号 かつ 基準日と同じ機種」の日だけ合計する ----
+// allSortedFiles: 全ファイルを日付昇順にしたもの（キャッシュ用に外から渡す）
+function scComputeCumulative(unitNo, machine, baseFile, allSortedAsc, fileIndexMap){
+    var baseIdx = fileIndexMap[baseFile];
+    if(baseIdx === undefined || baseIdx <= 0) return null;
+    // 基準日のカレンダー日
+    var baseParsed = parseDateFromFilename(baseFile);
+    if(!baseParsed) return null;
+    var baseDayNum = baseParsed.year*10000 + baseParsed.month*100 + baseParsed.day;
+    // 窓の下限カレンダー日（基準日の lookback 日前まで。基準日は含めない）
+    var d = new Date(baseParsed.year, baseParsed.month-1, baseParsed.day);
+    d.setDate(d.getDate() - scLookback);
+    var lowDayNum = d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
+
+    var cum = 0, used = 0;
+    // baseIdx より前を遡る
+    for(var i=baseIdx-1; i>=0; i--){
+        var f = allSortedAsc[i];
+        var p = parseDateFromFilename(f);
+        if(!p) continue;
+        var dn = p.year*10000 + p.month*100 + p.day;
+        if(dn < lowDayNum) break;      // 窓を外れたら終了
+        if(dn >= baseDayNum) continue; // 念のため基準日以降は無視
+        var data = dataCache[f];
+        if(!data) continue;            // 欠損日はスキップ（窓は消費済み）
+        for(var j=0;j<data.length;j++){
+            var r = data[j];
+            if(r['台番号'] === unitNo && r['機種名'] === machine){
+                cum += scParseDiff(r);
+                used++;
+                break;
+            }
+        }
+    }
+    return { cum: cum, days: used };
+}
+
+// ランク付けの基準（'today' or 'cum'）。UIセレクタと同期。
+var scRankBasis = 'today';
+
+function scBuildRecords(){
+    var targetFiles = (selectedTrendDates && selectedTrendDates.length > 0)
+        ? sortFilesByDate(selectedTrendDates, false)
+        : sortFilesByDate(sortFilesByDate(CSV_FILES, true).slice(0, 7), false);
+
+    var allAsc = sortFilesByDate(CSV_FILES, false);
+    var idxMap = {};
+    allAsc.forEach(function(f, i){ idxMap[f] = i; });
+
+    var selectedMachines = scatterMachineFilterSelect ? scatterMachineFilterSelect.getSelectedValues() : [];
+    var posState = (typeof getPositionFilterState === 'function') ? getPositionFilterState('scatter') : { selected: [], logic: 'or' };
+    var cMin = parseInt((document.getElementById('sc-count-min')||{}).value) || null;
+    var cMax = parseInt((document.getElementById('sc-count-max')||{}).value) || null;
+
+    var records = [];
+
+    targetFiles.forEach(function(baseFile){
+        var data = dataCache[baseFile];
+        if(!data) return;
+
+        // 基準日の機種別設置台数
+        var countByMachine = {};
+        data.forEach(function(r){ var m=r['機種名']; countByMachine[m]=(countByMachine[m]||0)+1; });
+
+        // 基準日×機種ごとに、レコード候補をいったん溜める
+        // machineBuckets[machine] = [ {row, ban, machine, cum, cumDays, today, win} ]
+        var machineBuckets = {};
+
+        data.forEach(function(row){
+            var machine = row['機種名'], ban = row['台番号'];
+            if(selectedMachines.length>0 && selectedMachines.indexOf(machine)===-1) return;
+
+            // 末尾フィルター
+            if(scSuffixSel.length>0){
+                var suf = String(parseInt(ban)%10);
+                if(scSuffixSel.indexOf(suf)===-1) return;
+            }
+            // 位置フィルター
+            if(posState.selected.length>0 && typeof getPositionTags==='function'){
+                var tags = getPositionTags(ban);
+                var match = posState.logic==='and'
+                    ? posState.selected.every(function(t){return tags.indexOf(t)!==-1;})
+                    : posState.selected.some(function(t){return tags.indexOf(t)!==-1;});
+                if(!match) return;
+            }
+            // 設置台数レンジ
+            var mc = countByMachine[machine] || 0;
+            if(cMin!==null && mc<cMin) return;
+            if(cMax!==null && mc>cMax) return;
+
+            // 累積差枚
+            var cumInfo = scComputeCumulative(ban, machine, baseFile, allAsc, idxMap);
+            if(!cumInfo || cumInfo.days===0) return;
+
+            var today = scParseDiff(row);
+            if(!machineBuckets[machine]) machineBuckets[machine] = [];
+            machineBuckets[machine].push({
+                ban: ban, machine: machine,
+                cum: cumInfo.cum, cumDays: cumInfo.days,
+                today: today, win: today > 0 ? 1 : 0,
+                machineUnitCount: mc
+            });
+        });
+
+        // ── 機種ごとに機種内ランク（下位=0）を付与 ──
+        // 注意: ランクは「フィルター後に残った台」ではなく、その機種の全台で振るべきか、
+        //       残った台だけで振るべきか。ここでは「フィルター後に残った台の中で」振る。
+        //       （末尾フィルター等をかけた場合は残った母集団内での相対順位になる）
+        Object.keys(machineBuckets).forEach(function(machine){
+            var bucket = machineBuckets[machine];
+            var sortKey = scRankBasis === 'cum' ? 'cum' : 'today';
+            // 昇順（低い＝下位＝rank 0）で並べて順位付け。同値は同順位にせず出現順で連番。
+            bucket.slice().sort(function(a,b){ return a[sortKey] - b[sortKey]; })
+                  .forEach(function(item, i){ item.rankFromBottom = i; });
+
+            bucket.forEach(function(item){
+                records.push({
+                    date: formatDateShort(baseFile),
+                    file: baseFile,
+                    ban: item.ban,
+                    machine: item.machine,
+                    cum: item.cum,
+                    cumDays: item.cumDays,
+                    today: item.today,
+                    win: item.win,
+                    rankFromBottom: item.rankFromBottom,
+                    machineUnitCount: item.machineUnitCount
+                });
+            });
+        });
+    });
+
+    return { records: records, targetFiles: targetFiles };
+}
+
+var scRankSel = [];   // 選択中のランク（0始まりの数値配列）。空なら全ランク対象。
+
+// loadScatterData の冒頭、built を作った直後に挿入
+function loadScatterData(){
+    var kn = document.getElementById('sc-k-n');
+    if(!kn) return;
+
+    var built = scBuildRecords();
+    var all = built.records;
+
+    // ランクフィルター
+    if(scRankSel.length > 0){
+        all = all.filter(function(r){ return scRankSel.indexOf(r.rankFromBottom) !== -1; });
+    }
+
+    var t = scThresh;
+    var below = all.filter(function(r){ return r.cum <= t; });
+    var above = all.filter(function(r){ return r.cum > t; });
+    var n = below.length;
+    var wins = below.filter(function(r){ return r.win; }).length;
+    var wr = n>0 ? (wins/n*100) : null;
+    var avg = n>0 ? Math.round(below.reduce(function(s,r){return s+r.today;},0)/n) : null;
+
+    // KPI
+    kn.textContent = n + '件';
+    document.getElementById('sc-k-n-sub').textContent = '全' + all.length + '件中';
+    var wrEl = document.getElementById('sc-k-wr');
+    wrEl.textContent = wr===null ? '—' : wr.toFixed(1)+'%';
+    wrEl.style.color = wr===null ? '' : (wr>=60 ? 'var(--color-info)' : wr>=50 ? 'var(--text-muted)' : 'var(--color-danger)');
+    document.getElementById('sc-k-wr-sub').textContent = wins+'勝/'+n+'件';
+    var avgEl = document.getElementById('sc-k-avg');
+    avgEl.textContent = avg===null ? '—' : (avg>=0?'+':'')+avg.toLocaleString()+'枚';
+    avgEl.style.color = avg===null ? '' : (avg>=0 ? 'var(--color-info)' : 'var(--color-danger)');
+    document.getElementById('sc-k-avg-sub').textContent = '閾値以下の平均';
+
+    var pf=null, pb=null;
+    if(n>=3 && above.length>=2){ pf=scFisher(below, above); pb=scBinom(wins, n); }
+    scRenderP(pf, 'sc-k-pf', 'sc-k-pf-sub');
+    scRenderP(pb, 'sc-k-pb', 'sc-k-pb-sub');
+
+    // タイトル
+    document.getElementById('sc-scatter-title').textContent =
+        '散布図（以下'+n+'件・超'+above.length+'件 / ルックバック'+scLookback+'日）';
+    document.getElementById('sc-tbl-title').textContent =
+        '累積≤'+t.toLocaleString()+' の一覧（'+n+'件）';
+
+    scRenderScatter(below, above);
+    scRenderRankChart(built.records, t);
+    scRenderTrend(below, built.targetFiles);
+    scRenderTable(below);
+}
+
+function scRenderP(p, id, subId){
+    var el=document.getElementById(id), sub=document.getElementById(subId);
+    if(p===null){ el.textContent='—'; sub.textContent='データ不足'; el.style.color=''; return; }
+    el.textContent = p.toFixed(4);
+    el.style.color = p<0.05 ? 'var(--color-info)' : p<0.10 ? 'var(--color-warning, #eda100)' : 'var(--text-muted)';
+    sub.textContent = p<0.05 ? '★有意(p<0.05)' : p<0.10 ? '準有意(p<0.10)' : '非有意';
+}
+
+function scRenderScatter(below, above){
+    var ctx = document.getElementById('sc-scatter-chart');
+    if(!ctx || typeof Chart==='undefined') return;
+    if(scScatterChart) scScatterChart.destroy();
+    scScatterChart = new Chart(ctx.getContext('2d'), {
+        type:'scatter',
+        data:{ datasets:[
+            { label:'閾値以下',
+              data: below.map(function(r){return {x:r.cum,y:r.today,_r:r};}),
+              backgroundColor: below.map(function(r){return r.win?'rgba(38,101,253,0.8)':'rgba(136,135,128,0.5)';}),
+              pointRadius:5, pointHoverRadius:7 },
+            { label:'閾値超',
+              data: above.map(function(r){return {x:r.cum,y:r.today,_r:r};}),
+              backgroundColor:'rgba(136,135,128,0.2)', pointRadius:3, pointHoverRadius:5 }
+        ]},
+        options:{ responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:true, position:'top', labels:{boxWidth:10}},
+                tooltip:{callbacks:{label:function(c){var r=c.dataset.data[c.dataIndex]._r;
+                    return r.date+' 台'+r.ban+' 累積'+c.parsed.x.toLocaleString()+' 当日'+(c.parsed.y>=0?'+':'')+c.parsed.y.toLocaleString();}}}},
+            scales:{
+                x:{title:{display:true,text:'累積差枚（ルックバック'+scLookback+'日）'},ticks:{callback:function(v){return v.toLocaleString();}}},
+                y:{title:{display:true,text:'当日差枚'},ticks:{callback:function(v){return (v>=0?'+':'')+v.toLocaleString();}}}
+            }
+        }
+    });
+}
+
+function scRenderTrend(below, targetFiles){
+    var ctx = document.getElementById('sc-trend-chart');
+    if(!ctx || typeof Chart==='undefined') return;
+    var labels = targetFiles.map(function(f){return formatDateShort(f);});
+    var wrSeries=[], avgSeries=[];
+    targetFiles.forEach(function(f){
+        var day = below.filter(function(r){ return r.file===f; });
+        wrSeries.push(day.length ? parseFloat((day.filter(function(r){return r.win;}).length/day.length*100).toFixed(1)) : null);
+        avgSeries.push(day.length ? Math.round(day.reduce(function(s,r){return s+r.today;},0)/day.length) : null);
+    });
+    if(scTrendChart) scTrendChart.destroy();
+    scTrendChart = new Chart(ctx.getContext('2d'),{
+        type:'line',
+        data:{ labels:labels, datasets:[
+            { label:'勝率(%)', data:wrSeries, borderColor:'#2665fd', backgroundColor:'#2665fd22', yAxisID:'y', spanGaps:true, tension:0.2 },
+            { label:'平均差枚', data:avgSeries, borderColor:'#f472b6', backgroundColor:'#f472b622', yAxisID:'y1', spanGaps:true, tension:0.2 }
+        ]},
+        options:{ responsive:true, maintainAspectRatio:false,
+            interaction:{mode:'index',intersect:false},
+            scales:{
+                y:{position:'left',min:0,max:100,ticks:{callback:function(v){return v+'%';}},title:{display:true,text:'勝率'}},
+                y1:{position:'right',grid:{drawOnChartArea:false},ticks:{callback:function(v){return Math.round(v).toLocaleString();}},title:{display:true,text:'平均差枚'}}
+            }
+        }
+    });
+}
+
+function scRenderTable(below){
+    var sorted = below.slice().sort(function(a,b){return a.cum-b.cum;});
+    var html = '<div class="table-wrapper has-scrollbar"><table><thead><tr>'
+        + '<th class="l">基準日</th><th>機種</th><th>台番号</th><th>累積差枚</th><th>日数</th><th>当日差枚</th><th>勝敗</th>'
+        + '</tr></thead><tbody>';
+    sorted.forEach(function(r){
+        var dc = r.today>0?'pos':r.today<0?'neg':'';
+        html += '<tr><td class="l">'+r.date+'</td><td class="l">'+r.machine+'</td><td>台'+r.ban+'</td>'
+            + '<td class="neg">'+r.cum.toLocaleString()+'</td><td>'+r.cumDays+'</td>'
+            + '<td class="'+dc+'">'+(r.today>=0?'+':'')+r.today.toLocaleString()+'</td>'
+            + '<td>'+(r.win?'✅':'❌')+'</td></tr>';
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('sc-data-table').innerHTML = html;
+}
+
+// ---- スライダー ----
+function onScatterLookback(v){
+    scLookback = parseInt(v);
+    document.getElementById('sc-lookback-val').textContent = scLookback + '日';
+    loadScatterData();
+}
+function onScatterThresh(v){
+    scThresh = parseInt(v);
+    document.getElementById('sc-thresh-val').textContent = (scThresh>=0?'+':'−')+Math.abs(scThresh).toLocaleString()+'枚';
+    loadScatterData();
+}
+
+// ---- 初期化 ----
+function initScatterMachineFilter(){
+    var tf = (selectedTrendDates && selectedTrendDates.length>0)
+        ? selectedTrendDates : sortFilesByDate(CSV_FILES, true).slice(0,7);
+    var opts = getMachineOptionsForLatestDate(tf);
+    if(scatterMachineFilterSelect) scatterMachineFilterSelect.updateOptions(opts);
+    else scatterMachineFilterSelect = initMultiSelectMachineFilter(
+        'scatterMachineFilterContainer', opts, '全機種', loadScatterData);
+}
+
+function updateScatterPeriodLabel(){
+    var label = document.getElementById('scatterPeriodLabel');
+    if(!label) return;
+    if(!selectedTrendDates || selectedTrendDates.length===0){ label.textContent='7日間（デフォルト）'; return; }
+    if(selectedTrendDates.length===1){ label.textContent=formatDate(selectedTrendDates[0]); return; }
+    var s = sortFilesByDate(selectedTrendDates, false);
+    label.textContent = selectedTrendDates.length+'日間 ('+formatDateShort(s[0])+'〜'+formatDateShort(s[s.length-1])+')';
+}
+
+function initScatterSuffixButtons(){
+    var box = document.getElementById('sc-suffix-btns');
+    if(!box || box.childElementCount>0) return;
+    for(var i=0;i<10;i++){
+        (function(d){
+            var b = document.createElement('button');
+            b.className = 'sc-suffix-btn';
+            b.textContent = d;
+            b.onclick = function(){
+                var idx = scSuffixSel.indexOf(String(d));
+                if(idx===-1){ scSuffixSel.push(String(d)); b.classList.add('on'); }
+                else { scSuffixSel.splice(idx,1); b.classList.remove('on'); }
+                loadScatterData();
+            };
+            box.appendChild(b);
+        })(i);
+    }
+}
+
+function isScatterTabActive(){
+    var el = document.getElementById('analysisTabScatter');
+    return !!(el && el.classList.contains('active'));
+}
+
+// 既存の setupAnalysisSubtabs はサブタブ切替を担うので、
+// scatter への切替時にも初期化が走るよう、別途フックを足す。
+function setupScatterEventListeners(){
+    // サブタブボタン（scatter）クリック時の初期化
+    document.querySelectorAll('.analysis-subtab').forEach(function(btn){
+        if(btn.dataset.atab !== 'scatter') return;
+        btn.addEventListener('click', function(){
+            // パネル表示は setupAnalysisSubtabs 側で行われないため、ここで担保
+            document.querySelectorAll('.analysis-subtab').forEach(function(b){b.classList.remove('active');});
+            btn.classList.add('active');
+            ['analysisTabAggregate','analysisTabKubi','analysisTabScatter'].forEach(function(id){
+                var p=document.getElementById(id); if(p) p.classList.toggle('active', id==='analysisTabScatter');
+            });
+            initScatterMachineFilter();
+            initScatterSuffixButtons();
+            initScatterRankButtons(); 
+            var rankBasisEl = document.getElementById('sc-rank-basis');
+            if(rankBasisEl && !rankBasisEl._bound){
+                rankBasisEl._bound = true;
+                rankBasisEl.addEventListener('change', function(){
+                    scRankBasis = this.value;
+                    loadScatterData();
+                });
+            }
+            if(typeof renderMultiPositionFilter==='function'){
+                var pf=document.getElementById('scatterPositionFilter');
+                if(pf && pf.childElementCount===0){
+                    pf.innerHTML = '<h3>位置フィルター</h3>' + renderMultiPositionFilter('scatter', loadScatterData);
+                    if(typeof setupMultiPositionFilterEvents==='function')
+                        setupMultiPositionFilterEvents('scatter', loadScatterData);
+                }
+            }
+            updateScatterPeriodLabel();
+            loadScatterData();
+        });
+    });
+
+    var openBtn = document.getElementById('openScatterCalendar');
+    if(openBtn) openBtn.addEventListener('click', openTrendCalendarModal);
+
+    var loadBtn = document.getElementById('loadScatter');
+    if(loadBtn) loadBtn.addEventListener('click', loadScatterData);
+
+    ['sc-count-min','sc-count-max'].forEach(function(id){
+        var e=document.getElementById(id);
+        if(e) e.addEventListener('input', debounce(loadScatterData, 400));
+    });
+
+    // 日付モーダルの「適用」に追従
+    var applyBtn = document.getElementById('applyTrendDates');
+    if(applyBtn) applyBtn.addEventListener('click', function(){
+        if(isScatterTabActive()){
+            setTimeout(function(){ updateScatterPeriodLabel(); loadScatterData(); }, 0);
+        }
+    });
+}
+
+function scRenderRankChart(allBeforeRankFilter, thresh){
+    var ctx = document.getElementById('sc-bucket-chart');  // 既存canvasを流用
+    if(!ctx || typeof Chart==='undefined') return;
+
+    // 閾値以下に絞ったうえで、ランク別に集計（ランクフィルターは無視して全ランク並べる）
+    var below = allBeforeRankFilter.filter(function(r){ return r.cum <= thresh; });
+
+    var maxRank = 4; // 下位0〜4番目まで表示（プロトタイプ準拠）
+    var labels = ['最下位','2番目','3番目','4番目','5番目'];
+    var wrs = [], ns = [];
+    for(var rk=0; rk<=maxRank; rk++){
+        var f = below.filter(function(r){ return r.rankFromBottom === rk; });
+        ns.push(f.length);
+        wrs.push(f.length ? parseFloat((f.filter(function(r){return r.win;}).length/f.length*100).toFixed(1)) : null);
+    }
+
+    // 選択中ランクを濃い色でハイライト
+    var colors = labels.map(function(_, i){
+        return (scRankSel.length===0 || scRankSel.indexOf(i)!==-1) ? 'rgba(38,101,253,0.9)' : 'rgba(38,101,253,0.35)';
+    });
+
+    if(scBucketChart) scBucketChart.destroy();
+    scBucketChart = new Chart(ctx.getContext('2d'),{
+        type:'bar',
+        data:{ labels: labels, datasets:[{ data:wrs, backgroundColor:colors, borderRadius:4 }] },
+        options:{ responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:false},
+                tooltip:{callbacks:{label:function(c){return '勝率:'+c.raw+'% (n='+ns[c.dataIndex]+')';}}}},
+            scales:{ y:{min:0,max:100,ticks:{callback:function(v){return v+'%';}},title:{display:true,text:'勝率'}},
+                x:{grid:{display:false}} }
+        }
+    });
+}
+
+var SC_RANK_LABELS = ['最下位','2番目','3番目','4番目','5番目'];
+
+function initScatterRankButtons(){
+    var box = document.getElementById('sc-rank-btns');
+    if(!box || box.childElementCount>0) return;
+    SC_RANK_LABELS.forEach(function(label, i){
+        var b = document.createElement('button');
+        b.className = 'sc-rank-btn';
+        b.textContent = label;
+        b.onclick = function(){
+            var idx = scRankSel.indexOf(i);
+            if(idx===-1){ scRankSel.push(i); b.classList.add('on'); }
+            else { scRankSel.splice(idx,1); b.classList.remove('on'); }
+            loadScatterData();
+        };
+        box.appendChild(b);
+    });
+}
