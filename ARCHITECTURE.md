@@ -5,7 +5,7 @@
 > コードを編集する前にこのファイルだけを読めば、「どのファイルに何が書いてあるか」「どこを直せばよいか」が分かることを目指す。
 > AI / 人間どちらも対象読者。**機能を追加・変更したらこのファイルも更新すること。**
 
-最終更新: 2026-07-13（bottomsheet.js を追加（バッジ設定を共通ボトムシート化）。機種内バッジのロジックを改修：1台設置機種はバッジ非付与に変更、未ロード日の検知と警告表示、集計に使った日の可視化（集計内訳）を追加、集計期間を数値入力から選択式（1〜15日・iOSネイティブホイール）に変更。バッジ設定UIを DESIGN.md（DevFocus Dark）準拠に刷新。）
+最終更新: 2026-07-15（台の状態変化履歴機能を追加。converter/build_unit_history.py が data/*.json をスキャンして unit_history.json を生成し、日別タブに「状態」列（新台/増台/減台/移動バッジ・複数同時表示対応・新台期間90日で自動消滅）と「設置日数」列、テーブル下部に「最近撤去された台」セクションを追加。ヘルパーは utils.js の HallData.utils.getUnitStatus / getUnitAge / getMachineAge / getUnitDisplayStatus / getUnitDisplayStatuses。/ 2026-07-13 bottomsheet.js を追加（バッジ設定を共通ボトムシート化）。機種内バッジのロジックを改修：1台設置機種はバッジ非付与に変更、未ロード日の検知と警告表示、集計に使った日の可視化（集計内訳）を追加、集計期間を数値入力から選択式（1〜15日・iOSネイティブホイール）に変更。バッジ設定UIを DESIGN.md（DevFocus Dark）準拠に刷新。）
 
 ---
 
@@ -44,6 +44,7 @@ webapp/
 ├── index.html                  … ガワ（ローディング・ホーム・各ページの空コンテナ）。各ページ実体は partials/ にある
 ├── files.json                  … 読み込む月別JSONのリスト（新しい月→古い月の順）
 ├── events.json                 … イベント/取材/新台情報（カレンダー・日付セレクタで使用）
+├── unit_history.json           … 台の状態変化履歴（build_unit_history.py が生成）。新台/増台/減台/移動/撤去の履歴と台番号ごとの機種変遷
 ├── prompt.txt / README.md      … メモ書き
 ├── DESIGN.md                   … デザインシステム仕様（DevFocus Dark テーマ）
 │
@@ -87,8 +88,10 @@ webapp/
 │       ├── ougi.html           … 取材「奥義の矢」
 │       └── zombie.html         … 取材「ゾンビ狩り」
 │
-└── converter/
-    └── convert_csv_to_json.py  … HTML/CSV → 月別JSON 変換スクリプト（更新時に使う）
+├── converter/
+|   └── convert_csv_to_json.py  … HTML/CSV → 月別JSON 変換スクリプト（更新時に使う）
+└── history-maker/
+    └──  build_unit_history.py   … data/*.json をスキャンして unit_history.json を生成（独立実行専用。convert_csv_to_json.py からは呼ばない）
 ```
 
 > **注**: `prompt.txt` のディレクトリ図は古い（`stats.js` 等、現存しないファイル名が残っている）。正は本ファイル。
@@ -147,7 +150,9 @@ webapp/
 
 ### グローバル名前空間
 - `window.HallData`（`utils.js` で定義）… データストアと各タブ状態の集約オブジェクト
-  - `HallData.store`: `files / cache / headers / machines / events / positions / loadingState`
+  - `HallData.store`: `files / cache / headers / machines / events / positions / unitHistory / loadingState`
+  - `HallData.utils`: 台の状態変化履歴ヘルパー群（`getUnitStatus / getUnitAge / getMachineAge / getUnitDisplayStatus / getUnitDisplayStatuses / getNewPeriodDays / setNewPeriodDays`）
+
   - `HallData.state`: 各タブ（daily / trend …）の表示状態
 - 後方互換のため `CSV_FILES` `dataCache` `headers` `allMachines` 等のグローバル変数も併存し、`syncToStore()` / `syncFromStore()`（`data.js`）で同期する。
 
@@ -156,15 +161,15 @@ webapp/
 | ファイル | 行数目安 | 役割 | 主な公開関数 / オブジェクト |
 |----------|---------|------|------------------------------|
 | **config.js** | ~166 | サイト設定。**編集の入口**（ホール名・テーマ・色・機種プリセット）。非AT機種リスト `NON_AT_MACHINES` を冒頭に定義 | `SITE_CONFIG`, `NON_AT_MACHINES` |
-| **utils.js** | ~2200 | 共通基盤。**最重要・最大**。データストア定義、日付処理、ソート、テーブル描画、CSV/コピー、検索付きセレクト、イベント/位置データ処理。機種フィルター部品 `initMultiSelectMachineFilter` を生成（プリセット選択＋適用ボタンのみ。ユーザープリセット保存💾・管理⚙️ボタンは廃止） | `HallData`, `sortFilesByDate`, `formatDate`, `parseDateFromFilename`, `renderTable`, `convertToCSV`, `copyToClipboard`, `downloadAsCSV`, `initMultiSelectMachineFilter`, `loadEventData`, `getEventsForDate`, `loadPositionData`, `getPositionTags` |
-| **data.js** | ~450 | データ読み込み・キャッシュ・ローディング進捗・日付/機種セレクタ生成 | `loadInitialData`, `loadRemainingDataInBackground`, `loadMonthlyJSON`, `loadCSV`, `populateDateSelectors`, `populateMachineFilters`, `updateDateNav` |
+| **utils.js** | ~2500 | 共通基盤。**最重要・最大**。データストア定義、日付処理、ソート、テーブル描画、CSV/コピー、検索付きセレクト、イベント/位置データ処理。機種フィルター部品 `initMultiSelectMachineFilter` を生成。**台の状態変化履歴ヘルパー**（`HallData.utils.*`。unit_history.json を参照。未ロード時は例外を投げず null を返す） | `HallData`, `sortFilesByDate`, `formatDate`, `parseDateFromFilename`, `renderTable`, `convertToCSV`, `copyToClipboard`, `downloadAsCSV`, `initMultiSelectMachineFilter`, `loadEventData`, `getEventsForDate`, `loadPositionData`, `getPositionTags`, `HallData.utils.getUnitStatus/getUnitAge/getMachineAge/getUnitDisplayStatus/getUnitDisplayStatuses` |
+| **data.js** | ~460 | データ読み込み・キャッシュ・ローディング進捗・日付/機種セレクタ生成。`loadUnitHistory` で unit_history.json を初期ロードに並行読み込み（失敗時は unitHistory=null で既存フロー継続） | `loadInitialData`, `loadRemainingDataInBackground`, `loadMonthlyJSON`, `loadCSV`, `loadUnitHistory`, `populateDateSelectors`, `populateMachineFilters`, `updateDateNav` |
 | **chart.js** | ~190 | Chart.js ラッパ。解析タブ・カレンダーのトレンドグラフ描画 | `renderTrendChart`, `CHART_COLORS` |
 | **preset.js** | ~282 | 機種フィルタープリセット（固定＋ユーザー定義）管理。判定方式は partial / exact / exclude。除外は `excludeKeywords`（部分一致）と `excludeMachines`（完全一致）の2系統。台数フィルタは `minCount`（下限）/ `maxCount`（上限）で、**選択中の日の設置台数**で判定（`resolve` の第3引数 `machineOptions` の `count` を参照） | `MachinePreset`（IIFE） |
 | **hstag.js** | ~849 | **汎用タグ判定エンジン**。条件（差枚/G数/機械割…）でAND/ORグループ判定。日別タブ等で共用 | `TagEngine`（IIFE） |
 | **machinebadge.js** | ~520 | 機種内順位バッジ（🐙タコだし／💀死に台）。直近N日累積で順位付け。**設置台数別ロジック**: 3台以上=機種内で順位付け、2台=💀のみ1位付与（🐙なし）、1台設置機種=**バッジ非付与**（比較不能のため。旧・横断グループ方式は廃止）。**未ロード日検知**: 集計窓に含まれるがデータ未ロードの日を `missingFiles` として記録し、バッジのツールチップとボトムシートで警告表示。**集計内訳の可視化**: `renderWindowInfo` で「計算に使った日／除外日／未ロード日」を一覧描画。集計期間は選択式（1〜15日）。設定UIは共通ボトムシートに表示 | `MachineBadge`（IIFE。主要: `assignBadges`, `assignBadgesForTrend`, `renderBadgeHtml/Inner`, `renderSettingsHtml`, `setupSettingsEvents`, `getLastWindowInfo`, `renderWindowInfo`） |
 | **bottomsheet.js** | ~90 | **ボトムシート（ハーフモーダル）共通モジュール**。画面下部からスライドインする軽量シート。既存 `.app-modal` とは別系統で、DOM を動的生成する（partials に依存しない）。バッジ設定（日別・凹み推移・狙い台）の表示に共用。DESIGN.md 準拠（`--bg-elevated`・角丸8px・`--transition-normal`・44pxタップターゲット） | `BottomSheet`（IIFE: `create(id, {title})` → `setContent / open / close / isOpen / onOpen`、`get(id)`） |
 | **daily-state.js** | ~327 | **日別タブの状態管理**。localStorage + URL と双方向同期。`setState`で再描画をバッチ | `DailyState`（`get/setState/init/applyDefaultDate`） |
-| **daily.js** | ~2100 | **日別データページ**本体。テーブル描画、数値フィルター、タグ、表示列、バッジ、末尾統計、一括タグ付け、狙い台モーダル起動。初期化（`setupDailyEventListeners`+`filterAndRender`）は router の daily.init からページ初回表示時に呼ばれる。`initDailyMachineFilter` は対象コンテナ未挿入時は早期 return。バッジ設定はボトムシート（ensureDailyBadgeSheet）で表示 | `filterAndRender`, `setupDailyEventListeners`, `initDailyMachineFilter`, `dailyFilterGroups` |
+| **daily.js** | ~2400 | **日別データページ**本体。テーブル描画、数値フィルター、タグ、表示列、バッジ、末尾統計、一括タグ付け、狙い台モーダル起動。**台の状態変化列**（「状態」＝new/add/remove/move バッジ複数対応、「設置日数」＝機種のnew日起点）と**撤去台セクション**（renderWithdrawnTable）を描画。バッジ設定はボトムシート（ensureDailyBadgeSheet）で表示 | `filterAndRender`, `setupDailyEventListeners`, `initDailyMachineFilter`, `dailyFilterGroups`, `renderWithdrawnTable`, `renderUnitStatusBadges` |
 | **aim.js** | ~971 | **狙い台シート（AimSheet）**。日別タブのモーダルから起動。PC=HTML5 Drag&Drop／スマホ=長押しドラッグ＋タップメニューで凹み台を「最優先／優先／その他」ゾーンに区分け。💀🥇💀🥈💀🥉表記、機種除外（プリセット一括）、html2canvasで1枚画像出力。保存は localStorage（自動）＋**Cloudflare D1**（作成者ごとに upsert・他人のシート読込／削除）。Worker URL は `AIM_API_URL` 定数。凹み判定（バッジ）設定はボトムシート（ensureAimBadgeSheet） | `AimSheet`（IIFE） |
 | **memo.js** | ~300 | **着席メモ**。日別タブのメモ列セルタップで起動する小モーダル（SeatMemo.openEditor）。記録者/日付/台/設定をその場で記録・共有 | `SeatMemo`（IIFE） |
 | **analysis.js** | ~1218 | **解析タブ**（旧データトレンド。ファイル名のみ analysis に改称、内部の関数・変数名は trend 由来のまま）。期間集計（台別/機種別、合計/平均）、Chart.jsグラフ、3段キャッシュ最適化。凹み推移タブのバッジ設定はボトムシート（ensureKubiBadgeSheet） | `loadTrendData`, `setupTrendEventListeners`, `initTrendMachineFilter`, `trendCache`, `activeTrendFilters` |
@@ -249,6 +254,23 @@ webapp/
 - 設定は `localStorage`。設定変更後は**手動で再計算ボタン**が必要（日別タブ）
 - **設定UIはボトムシート**（`BottomSheet`）で表示。日別＝`ensureDailyBadgeSheet`、凹み推移＝`ensureKubiBadgeSheet`、狙い台＝`ensureAimBadgeSheet`。いずれも `MachineBadge.renderSettingsHtml(idPrefix)` を共用（接頭辞: `dailyMb` / `kubiMb` / `aimMb`）
 
+### 台の状態変化履歴（`converter/build_unit_history.py` → `unit_history.json` / `HallData.utils.*`）
+- **生成**: `converter/build_unit_history.py` を単体実行（`python build_unit_history.py`）すると、`data/*.json` を年月・日付の古い順にスキャンして `unit_history.json`（プロジェクトルート直下）を生成する。全再生成方式。convert_csv_to_json.py からは独立
+- **メモリ効率**: 処理中の1か月分＋直前1日分のスナップショットのみ保持。月境界は直前スナップショットで接続され、月初日が誤って全 new にならない
+- **出力構造**: `machine_history`（機種軸。events に new/add/remove/move/withdraw を date 付きで記録。`units`＝当日全体、`prev_units`＝前日全体）と `unit_history`（台番号軸。機種が変化した節目の日だけ `{date, machine}` を記録）
+- **イベント判定**: new＝機種が前日に無い / add＝台数増 / remove＝台数減 / move＝台数同じで台番号Set変化。台数変化と入れ替わりが同時なら add/remove と move を**別イベントとして両方 push**（純粋増減＝部分集合のときは move を立てない）。withdraw＝前日にあった機種が当日消滅
+- **date 表記**: unit_history.json 内の date は素の `YYYY_MM_DD`（dataCache キーの疑似CSV名とは別系統。JS 側は `normalizeDateKey` で吸収）
+- **読み込み**: `data.js` の `loadUnitHistory` が初期ロード時に `loadPositionData` と並行で読み、`HallData.store.unitHistory` に格納。失敗・不在時は `null`（既存機能に影響なし）
+- **JSヘルパー**（`utils.js` / `HallData.utils`。unitHistory が null なら全て null を返す）:
+  - `getUnitStatus(unitNo, targetDate)` … targetDate 時点で有効な機種の最新イベント1件 `{type, machine, date}`
+  - `getUnitDisplayStatuses(unitNo, targetDate)` … 最新イベント日の全 type を配列で返す（add+move 同時など複数対応。表示順 new→add→move→remove→withdraw）。**新台期間フィルタ**適用
+  - `getUnitAge(unitNo, targetDate)` … 台番号がその機種になった節目の日からの経過日数
+  - `getMachineAge(unitNo, targetDate)` … 機種の new イベント日を起点にした経過日数（増台で後から入った台も同じ機種なら同日数。90日超でもカウント継続）
+  - `getNewPeriodDays / setNewPeriodDays` … 新台期間（`localStorage('unitNewPeriodDays')`、デフォルト90日）
+- **新台期間の扱い**（日別タブ「状態」列）: new は機種設置日（getMachineAge）基準、add/move/remove はそのイベント発生日基準で、経過が新台期間（デフォルト90日、ちょうどまで表示）を超えるとバッジが消える。withdraw は状態列には出さず下部セクション専用。設置日数（「設置日数」列）は期間フィルタの影響を受けず数え続ける
+- **日別タブUI**: 「状態」列（複数バッジ `renderUnitStatusBadges`）、「設置日数」列、テーブル下部「最近撤去された台」セクション（`renderWithdrawnTable`。machine_history の withdraw を表示日以前・新しい順に最大50件）。列は `initColumnSelector` で追加、CSSは `css/daily.css` の `.unit-status-badge` 系
+
+
 ### 狙い台シート（`aim.js` / `AimSheet`）
 - 日別タブの「狙い台作成」モーダルから起動、またはホームから直接 `#aim` へ遷移可能。凹み台（💀）を「最優先 / 優先 / その他」の3ゾーンに区分けし、1枚画像（html2canvas）として出力
 - 操作: PC=HTML5 Drag&Drop、スマホ=長押しドラッグ＋タップメニューの両対応
@@ -281,6 +303,7 @@ webapp/
 - **タグ定義 / プリセット / バッジ設定 / 表示列**: それぞれ専用の `localStorage` キー
 - **狙い台シート / 取材掲示板の作成者名**: `localStorage('aimSheetAuthor')`（board.js と aim.js で共用）
 - **狙い台シート**: `localStorage('aimSheetState')` + Cloudflare D1
+- **新台期間（状態バッジ）**: `localStorage('unitNewPeriodDays')`（デフォルト90日）
 
 ### パフォーマンス最適化
 - 起動時は**最新2か月のみ**ロードし即表示 → 残りはバックグラウンドで並列ロード（`data.js`、同時3並列）
@@ -296,6 +319,7 @@ webapp/
 3. 新しい月を追加した場合は `files.json` の `monthly` 配列**先頭**に追記（新しい順）
 4. イベントは `events.json` を手動編集（取材は `target_machines` / `candidate_machines` / `report_url` / `note` も設定可）
 5. レイアウト変更時は `island-config.json` / `position.csv` を編集
+6. 台の状態変化履歴を更新する場合は `converter/build_unit_history.py` を単体実行 → ルート直下の `unit_history.json` を再生成（全再生成方式。data/*.json の追加後に実行する）
 
 ---
 
@@ -311,6 +335,9 @@ webapp/
 | テーブルの列・並び・見た目（日別） | `js/daily.js` + `css/daily.css` / `css/components.css` |
 | 日付ソートや日付フォーマット | `js/utils.js`（`sortFilesByDate` / `formatDate`） |
 | 新しい月データを追加 | `data/` に JSON 配置 → `files.json` を更新 |
+| 台の状態変化履歴を再生成 | `converter/build_unit_history.py` を単体実行 → `unit_history.json` を再生成 |
+| 「状態」「設置日数」列・撤去台セクションの見た目/挙動 | `js/daily.js`（`renderTableWithColumns` の該当分岐 / `renderWithdrawnTable`）+ `css/daily.css`（`.unit-status-badge` 系） |
+| 状態バッジの判定ロジック・新台期間 | `js/utils.js`（`HallData.utils.getUnitDisplayStatuses` / `getMachineAge` / `getNewPeriodDays`）。イベント判定は `converter/build_unit_history.py` の `diff_and_emit_events` |
 | 解析タブのグラフ表示 | `js/chart.js` + `js/analysis.js` |
 | 狙い台シートの振る舞い（ゾーン・画像出力・クラウド保存） | `js/aim.js`（`AimSheet`）+ `css/aim.css`。Worker URL は `AIM_API_URL` |
 | タグの判定条件・UI | `js/hstag.js`（`TagEngine`） |
@@ -351,7 +378,11 @@ webapp/
 - ボトムシートのスタイルは `machinebadge.css` に同梱している（`.bottom-sheet` 系）。バッジ以外の用途でボトムシートを使う場合は、独立CSS（例: `bottomsheet.css`）への切り出しを検討すること。
 - 機種内バッジの「1台設置機種はバッジ非付与」への変更に伴い、旧・横断グループ方式のロジック（`singleUnitItems` 集約）は `assignBadges` から削除済み。`assignBadgesForTrend`（解析の集計タブ）は従来どおり機種内順位のみで、台数別ロジック・1台非付与・未ロード検知は非対象。
 - 旧バッジ設定モーダル（`partials/daily.html` の `#badgeModal`、`partials/analysis.html` の `#kubiBadgeModal`、`partials/aim.html` の `#aimBadgePanel`）はボトムシート化により未使用。HTMLは残置しているが開かれない（掃除は任意）。
-
+- `unit_history.json` の `date` は素の `YYYY_MM_DD`。`dataCache` キーの疑似CSV名（`data/..._..._....csv`）とは別系統だが、JS ヘルパーは `normalizeDateKey` で吸収するため混在しても問題ない。
+- 台の状態変化履歴は**全再生成方式**。`data/*.json` を追加・修正したら `converter/build_unit_history.py` を再実行しないと `unit_history.json` は古いまま（増分ビルドはしない）。
+- 「状態」列の move 単独表示は正常。台数を変えずに島ごと丸移動した場合は add が発生しないため move のみになる（add+move の2バッジは「台数増＋台番号入れ替わり」が同時に起きた台でのみ出る）。
+- `utils.js` の `UNIT_STATUS_ORDER` が二重定義になっている場合がある（動作影響なし）。気になれば片方を削除する。
+- 解析タブ・島図・カレンダーは台の状態変化履歴を未使用（現状は日別タブのみ）。将来これらに展開する場合も `HallData.utils.*` をそのまま呼べる。
 
 ---
 
