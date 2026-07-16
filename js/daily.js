@@ -939,7 +939,7 @@ async function initDateSelectWithEvents() {
 function createDateSelectOptionForDaily(file, isSelected) {
     if (typeof isVirtualFile === 'function' && isVirtualFile(file)) {
         var dateKey = virtualFileToDateKey(file);
-        var label = formatVirtualDateLabel(dateKey) + '（稼働中・メモ用）';
+        var label = formatVirtualDateLabel(dateKey) + '（メモ用）';
         return '<option value="' + file + '"' + (isSelected ? ' selected' : '') + '>📝 ' + label + '</option>';
     }
     return createDateSelectOption(file, isSelected);
@@ -969,31 +969,11 @@ async function updateDateNavWithEvents() {
     var dateLabel = document.getElementById('currentDateLabel');
     if (dateLabel) {
         if (isVirtual) {
-            dateLabel.textContent = '📝 ' + formatVirtualDateLabel(virtualFileToDateKey(currentFile)) + ' 稼働中（メモ用）';
+            dateLabel.textContent = '📝 ' + formatVirtualDateLabel(virtualFileToDateKey(currentFile)) + ' メモ';
         } else {
             var formattedDate = formatDate(currentFile);
             var dayOfWeek = getDayOfWeekName(getDayOfWeek(currentFile));
             dateLabel.textContent = formattedDate + '（' + dayOfWeek + '）';
-        }
-    }
-
-    var eventContainer = document.getElementById('dailyEventInfo');
-    if (!eventContainer) {
-        var dateNav = document.querySelector('#daily .date-nav');
-        if (dateNav) {
-            eventContainer = document.createElement('div');
-            eventContainer.id = 'dailyEventInfo';
-            eventContainer.className = 'daily-event-info';
-            dateNav.after(eventContainer);
-        }
-    }
-    if (eventContainer) {
-        if (isVirtual) {
-            eventContainer.innerHTML = '';
-        } else {
-            var dateKey = getDateKeyFromFilename(currentFile);
-            var events = getEventsForDate(dateKey);
-            eventContainer.innerHTML = renderDailyEventBadges(events);
         }
     }
 
@@ -1999,6 +1979,12 @@ function setupDailyEventListeners() {
         }
     });
 
+    // ★日付ラベルタップでカレンダー（ボトムシート）を開く
+    var dateTrigger = document.getElementById('currentDateTrigger');
+    if (dateTrigger) {
+        dateTrigger.addEventListener('click', openDatePicker);
+    }
+
     document.getElementById('sortBy') && document.getElementById('sortBy').addEventListener('change', function(e) {
         if (typeof DailyState !== 'undefined') {
             DailyState.setState({ sortBy: e.target.value });
@@ -2416,4 +2402,167 @@ function setupSuffixStatsEventListeners() {
     }
 
     restoreSuffixStatsPanelState();
+}
+
+// ===================
+// 日付選択カレンダー（ボトムシート）
+// ===================
+
+var _dailyDatePickerSheet = null;
+var _datePickerViewYear = null;   // 表示中の年
+var _datePickerViewMonth = null;  // 表示中の月（1-12）
+
+function ensureDatePickerSheet() {
+    if (_dailyDatePickerSheet) return _dailyDatePickerSheet;
+    if (typeof BottomSheet === 'undefined') return null;
+    _dailyDatePickerSheet = BottomSheet.create('dailyDatePickerSheet', { title: '📅 日付を選択' });
+    _dailyDatePickerSheet.setContent('<div class="date-picker" id="datePickerRoot"></div>');
+    return _dailyDatePickerSheet;
+}
+
+// 存在する日付キーの Set と、仮想日キーを取得
+function getDatePickerIndex() {
+    var displayFiles = (typeof getDisplayFiles === 'function')
+        ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
+    var dateKeyToFile = {};   // 'YYYY_MM_DD' → file
+    var virtualKeys = {};     // 'YYYY_MM_DD' → true（仮想日）
+    displayFiles.forEach(function(file) {
+        var isV = (typeof isVirtualFile === 'function') && isVirtualFile(file);
+        var key = isV
+            ? (typeof virtualFileToDateKey === 'function' ? virtualFileToDateKey(file) : null)
+            : (typeof getDateKeyFromFilename === 'function' ? getDateKeyFromFilename(file) : null);
+        if (!key) return;
+        dateKeyToFile[key] = file;
+        if (isV) virtualKeys[key] = true;
+    });
+    return { dateKeyToFile: dateKeyToFile, virtualKeys: virtualKeys };
+}
+
+// 現在表示中の年月を初期表示にする
+function initDatePickerView() {
+    var key = dailyCurrentMemoDateKey || '';
+    var m = key.match(/^(\d{4})_(\d{2})_(\d{2})$/);
+    if (m) {
+        _datePickerViewYear = parseInt(m[1]);
+        _datePickerViewMonth = parseInt(m[2]);
+    } else {
+        var now = new Date();
+        _datePickerViewYear = now.getFullYear();
+        _datePickerViewMonth = now.getMonth() + 1;
+    }
+}
+
+function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+function renderDatePicker() {
+    var root = document.getElementById('datePickerRoot');
+    if (!root) return;
+
+    var idx = getDatePickerIndex();
+    var y = _datePickerViewYear, mo = _datePickerViewMonth;
+
+    // 前月/翌月にデータ（or仮想日）があるか判定してボタン活性を決める
+    var allKeys = Object.keys(idx.dateKeyToFile);
+    var minKey = allKeys.length ? allKeys.reduce(function(a, b){ return a < b ? a : b; }) : null;
+    var maxKey = allKeys.length ? allKeys.reduce(function(a, b){ return a > b ? a : b; }) : null;
+    var curFirst = y + '_' + pad2(mo) + '_01';
+    var curLast  = y + '_' + pad2(mo) + '_31';
+    var prevDisabled = minKey && curFirst <= minKey;
+    var nextDisabled = maxKey && curLast  >= maxKey;
+
+    var weekdayNames = ['日','月','火','水','木','金','土'];
+    var weekdaysHtml = weekdayNames.map(function(w, i) {
+        var cls = i === 0 ? ' dow-sun' : (i === 6 ? ' dow-sat' : '');
+        return '<div class="date-picker-weekday' + cls + '">' + w + '</div>';
+    }).join('');
+
+    var firstDow = new Date(y, mo - 1, 1).getDay();
+    var daysInMonth = new Date(y, mo, 0).getDate();
+
+    var cells = '';
+    for (var i = 0; i < firstDow; i++) {
+        cells += '<div class="date-picker-cell is-empty"></div>';
+    }
+    for (var d = 1; d <= daysInMonth; d++) {
+        var key = y + '_' + pad2(mo) + '_' + pad2(d);
+        var file = idx.dateKeyToFile[key];
+        var isVirtual = !!idx.virtualKeys[key];
+        var isCurrent = (key === dailyCurrentMemoDateKey);
+
+        if (!file) {
+            cells += '<div class="date-picker-cell no-data">' + d + '</div>';
+        } else {
+            var cls = 'date-picker-cell'
+                + (isCurrent ? ' is-current' : '')
+                + (isVirtual ? ' is-virtual' : '');
+            var mark = isVirtual ? '<span class="cell-mark">📝</span>' : '';
+            cells += '<div class="' + cls + '" data-file="' + file + '">' + d + mark + '</div>';
+        }
+    }
+
+    root.innerHTML =
+        '<div class="date-picker-header">'
+        +   '<button class="date-picker-nav" id="datePickerPrev"' + (prevDisabled ? ' disabled' : '') + '>◀</button>'
+        +   '<span class="date-picker-month-label">' + y + '年 ' + mo + '月</span>'
+        +   '<button class="date-picker-nav" id="datePickerNext"' + (nextDisabled ? ' disabled' : '') + '>▶</button>'
+        + '</div>'
+        + '<div class="date-picker-weekdays">' + weekdaysHtml + '</div>'
+        + '<div class="date-picker-grid">' + cells + '</div>';
+
+    // 月送り
+    var prevBtn = document.getElementById('datePickerPrev');
+    if (prevBtn && !prevDisabled) {
+        prevBtn.addEventListener('click', function() {
+            _datePickerViewMonth--;
+            if (_datePickerViewMonth < 1) { _datePickerViewMonth = 12; _datePickerViewYear--; }
+            ensureMonthLoadedThenRender();
+        });
+    }
+    var nextBtn = document.getElementById('datePickerNext');
+    if (nextBtn && !nextDisabled) {
+        nextBtn.addEventListener('click', function() {
+            _datePickerViewMonth++;
+            if (_datePickerViewMonth > 12) { _datePickerViewMonth = 1; _datePickerViewYear++; }
+            ensureMonthLoadedThenRender();
+        });
+    }
+
+    // 日付選択
+    root.querySelectorAll('.date-picker-cell[data-file]').forEach(function(cell) {
+        cell.addEventListener('click', function() {
+            var file = this.dataset.file;
+            if (!file) return;
+            delete dailyBadgeCache[file];
+            if (typeof DailyState !== 'undefined') {
+                DailyState.setState({ dateFile: file });
+            } else {
+                var displayFiles = (typeof getDisplayFiles === 'function')
+                    ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
+                currentDateIndex = displayFiles.indexOf(file);
+                filterAndRender();
+            }
+            if (_dailyDatePickerSheet) _dailyDatePickerSheet.close();
+        });
+    });
+}
+
+// 表示しようとしている月が未ロードなら読み込んでから再描画
+function ensureMonthLoadedThenRender() {
+    var ym = _datePickerViewYear + '_' + pad2(_datePickerViewMonth);
+    var monthFile = 'data/' + ym + '.json';
+    if (typeof loadMonthlyJSON === 'function') {
+        Promise.resolve(loadMonthlyJSON(monthFile))
+            .catch(function() {})
+            .then(function() { renderDatePicker(); });
+    } else {
+        renderDatePicker();
+    }
+}
+
+function openDatePicker() {
+    var sheet = ensureDatePickerSheet();
+    if (!sheet) return;
+    initDatePickerView();
+    renderDatePicker();
+    sheet.open();
 }

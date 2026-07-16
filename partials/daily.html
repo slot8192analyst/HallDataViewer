@@ -9,13 +9,17 @@
 </nav>
 <div class="date-nav">
     <button id="prevDate">◀ 前日</button>
-    <span class="current-date" id="currentDateLabel">-</span>
+    <button class="current-date-trigger" id="currentDateTrigger" type="button">
+        <span class="current-date" id="currentDateLabel">-</span>
+        <span class="current-date-cal-icon">📅</span>
+    </button>
     <button id="nextDate">翌日 ▶</button>
     <button id="latestDate" title="最新日のデータへ">⏭ 最新日</button>
 </div>
 
 <div class="controls">
-    <select id="dateSelect"></select>
+    <!-- dateSelect は選択UIとしては隠すが、既存の同期/オプション生成ロジック流用のため残す -->
+    <select id="dateSelect" class="date-select-hidden" aria-hidden="true" tabindex="-1"></select>
     <div id="dailyMachineFilterContainer"></div>
 </div>
 
@@ -27,7 +31,7 @@
     <div class="daily-filter-btn-group">
         <button class="daily-filter-btn" id="openNumFilterModal">
             <span class="dfb-icon">🔢</span>
-            <span class="dfb-label">数値フィルター</span>
+            <span class="dfb-label">フィルタ</span>
             <span class="dfb-preview" id="numFilterPreview"></span>
         </button>
         <button class="daily-filter-btn" id="openDailyTagModal">
@@ -42,7 +46,7 @@
         </button>
         <button class="daily-filter-btn" id="openBadgeModal">
             <span class="dfb-icon">🐙💀</span>
-            <span class="dfb-label">バッジ設定</span>
+            <span class="dfb-label">バッジ</span>
             <span class="dfb-preview" id="badgePreview"></span>
         </button>
     </div>
@@ -57,7 +61,7 @@
 <div class="app-modal" id="numFilterModal">
     <div class="app-modal-content">
         <div class="app-modal-header">
-            <h3>🔢 数値フィルター</h3>
+            <h3>🔢 フィルタ</h3>
             <button class="close-btn" id="closeNumFilterModal">×</button>
         </div>
         <div class="app-modal-body">
@@ -80,7 +84,7 @@
 <div class="app-modal" id="dailyTagModal">
     <div class="app-modal-content">
         <div class="app-modal-header">
-            <h3>🏷️ タグ設定</h3>
+            <h3>🏷️ タグ</h3>
             <button class="close-btn" id="closeDailyTagModal">×</button>
         </div>
         <div class="app-modal-body">
@@ -132,7 +136,7 @@
 <div class="app-modal" id="badgeModal">
     <div class="app-modal-content">
         <div class="app-modal-header">
-            <h3>🐙💀 機種内バッジ設定</h3>
+            <h3>🐙💀 バッジ</h3>
             <button class="close-btn" id="closeBadgeModal">×</button>
         </div>
         <div class="app-modal-body">

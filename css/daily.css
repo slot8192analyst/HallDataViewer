@@ -6,7 +6,7 @@
      3. アクティブフィルター チップバー
      4. 汎用モーダル（app-modal）
      5. イベントバッジ / サマリー
-     6. 日付セレクト
+     6. 日付セレクト / 日付ラベルトリガー / 日付ピッカー
      7. 台番号末尾統計テーブル（トグル）
      8. 列ヘッダ クリックソート
      9. 機種内順位ヘッダ クリックフィルター
@@ -470,8 +470,10 @@
 
 
 /* ===================================================================
-   6. 日付セレクト
+   6. 日付セレクト / 日付ラベルトリガー / 日付ピッカー
    =================================================================== */
+
+/* --- 隠し日付セレクト（同期・オプション生成ロジック流用のため残置） --- */
 #dateSelect {
     min-width: 280px;
     max-width: 400px;
@@ -479,6 +481,149 @@
 
 select option {
     padding: 4px 8px;
+}
+
+.date-select-hidden {
+    display: none !important;
+}
+
+/* --- 日付ラベル トリガー（タップでカレンダーを開く） --- */
+.current-date-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 44px;
+    padding: 0 var(--space-3);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: var(--font-size-md);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.current-date-trigger:hover { border-color: var(--primary-color); }
+.current-date-trigger:active { opacity: 0.75; }
+.current-date-trigger .current-date { white-space: nowrap; }
+.current-date-trigger .current-date-cal-icon { flex-shrink: 0; font-size: 0.95em; }
+
+/* --- 日付ピッカー（カレンダー本体） --- */
+.date-picker {
+    padding: 0 var(--space-2) var(--space-2);
+}
+
+.date-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+}
+
+.date-picker-nav {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.date-picker-nav:hover:not(:disabled) { border-color: var(--primary-color); }
+.date-picker-nav:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.date-picker-month-label {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* 曜日ヘッダ（1段のみ。行数指定しない） */
+.date-picker-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: var(--space-1);
+    margin-bottom: var(--space-1);
+}
+
+.date-picker-weekday {
+    text-align: center;
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    padding: var(--space-1) 0;
+}
+.date-picker-weekday.dow-sat { color: #60a5fa; }
+.date-picker-weekday.dow-sun { color: #f87171; }
+
+/* 日付グリッド本体（常に6段固定＝月送りでガタつかない） */
+.date-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(6, 44px);
+    gap: var(--space-1);
+}
+
+.date-picker-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.date-picker-cell:hover { border-color: var(--primary-color); }
+
+/* 前後の空きマス（当月外） */
+.date-picker-cell.is-empty {
+    background: transparent;
+    cursor: default;
+    border-color: transparent;
+}
+
+/* データのない日 = グレーアウト・無効 */
+.date-picker-cell.no-data {
+    color: var(--text-disabled);
+    background: transparent;
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+.date-picker-cell.no-data:hover { border-color: transparent; }
+
+/* 選択中の日 */
+.date-picker-cell.is-current {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+    font-weight: 600;
+}
+
+/* 仮想日（📝翌日） */
+.date-picker-cell.is-virtual {
+    border-color: var(--color-warning);
+    color: var(--color-warning);
+}
+
+.date-picker-cell .cell-mark {
+    font-size: 9px;
+    line-height: 1;
+    margin-top: 1px;
 }
 
 
