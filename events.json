@@ -219,9 +219,11 @@
       "type": "dmm",
       "media": "DMMぱちタウン",
       "name": ["天運総撃"],
-      "report_url": "",
-      "target_machines": [],
-      "candidate_machines": [],
+      "report_url": "https://p-town.dmm.com/shop_reports/527118",
+      "target_machines": [
+          "真打 吉宗",
+          "Lパチスロ からくりサーカス",
+          "L 東京喰種"],
       "note":[
         "天の河に伏せた結びがほどけ笹は名を抱き夜へ沈む。",
         "星を数えるほど物語は深まり甘い気配を追うほど灯は遠のく。",
@@ -242,6 +244,13 @@
       "type": "dmm",
       "media": "DMMぱちタウン",
       "name": ["奥義ノ矢"],
+      "report_url": "https://p-town.dmm.com/free_pages/32173",
+      "target_machines": [
+        "スロット ソードアートオンラインⅡ",
+        "スマスロ サンダーV",
+        "パチスロ かぐや様は告らせたい",
+        "Lパチスロ からくりサーカス2",
+        "スマート沖スロ スターハナハナ"],
       "note": ""
     },
     {
@@ -249,6 +258,13 @@
       "type": "dmm",
       "media": "DMMぱちタウン",
       "name": ["奥義ノ矢"],
+      "report_url": "hhttps://p-town.dmm.com/shop_reports/532138",
+      "target_machines": [
+        "スロット ソードアートオンラインⅡ",
+        "いざ！番長",
+        "真打 吉宗",
+        "吉宗",
+        "スマスロ 秘宝伝"],
       "note": ""
     },
     {
