@@ -97,7 +97,7 @@
       ]
     },
     {
-      "date": "2026_4_06",
+      "date": "2026_04_06",
       "type": "new_machine",
       "media": "真打吉宗、ヨルムンガンド、アクダマドライブ",
       "name": ["新台入替"]
@@ -272,8 +272,15 @@
       "type": "dmm",
       "media": "DMMぱちタウン",
       "name": ["ゾンビ狩り取材"],
-      "report_url": "",
-      "target_machines": [],
+      "report_url": "https://p-town.dmm.com/shops/shizuoka/12073/reports/532139",
+      "target_machines": [
+        "スマート沖スロ スターハナハナ",
+        "化物語",
+        "Lパチスロ からくりサーカス",
+        "ファンキージャグラー2",
+        "攻殻機動隊",
+        "スマスロ シャーマンキング"
+      ],
       "note": ""
     },
     {
@@ -300,6 +307,28 @@
         "水面に沈んだ記憶の欠片は、誰にも拾われぬまま漂い続ける。",
         "やがて満ちる刻を前に、淡い気配だけが夜の奥で息づいている。"
       ]
+    },
+    {
+      "date": "2026_08_08",
+      "type": "dmm",
+      "media": "DMMぱちタウン",
+      "name": ["ゾンビ狩り取材"],
+      "report_url": "",
+      "target_machines": [],
+      "note": ""
+    },
+    {
+      "date": "2026_08_22",
+      "type": "dmm",
+      "media": "DMMぱちタウン",
+      "name": ["奥義ノ矢"],
+      "report_url": "hhttps://p-town.dmm.com/shop_reports/532138",
+      "target_machines": [
+        "",
+        "",
+        "",
+        ""],
+      "note": ""
     }
   ],
       "recurringEvents": [
