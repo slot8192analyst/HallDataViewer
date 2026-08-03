@@ -318,11 +318,24 @@
       "note": ""
     },
     {
+      "date": "2026_08_12",
+      "type": "dmm",
+      "media": "DMMぱちタウン",
+      "name": ["奥義ノ矢"],
+      "report_url": "",
+      "target_machines": [
+        "",
+        "",
+        "",
+        ""],
+      "note": ""
+    },
+    {
       "date": "2026_08_22",
       "type": "dmm",
       "media": "DMMぱちタウン",
       "name": ["奥義ノ矢"],
-      "report_url": "hhttps://p-town.dmm.com/shop_reports/532138",
+      "report_url": "",
       "target_machines": [
         "",
         "",
