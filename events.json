@@ -7,7 +7,7 @@
       "name": ["天運総撃"],
       "report_url": "https://p-town.dmm.com/shop_reports/455489",
       "target_machines": [
-        "東京喰種",
+        "L 東京喰種",
         "化物語",
         "新鬼武者3",
         "甲鉄城のカバネリ",
@@ -83,7 +83,7 @@
       "name": ["天運総撃"],
       "report_url": "https://p-town.dmm.com/shop_reports/457478",
       "target_machines": [
-        "東京喰種",
+        "L 東京喰種",
         "スマスロ炎炎ノ消防隊2",
         "甲鉄城のカバネリ"],
       "candidate_machines": [],
@@ -130,7 +130,7 @@
       "target_machines": [
         "甲鉄城のカバネリ 海門(うなと)決戦",
         "スマート沖スロ ニューキングハナハナV",
-        "東京喰種"],
+        "L 東京喰種"],
       "note": ""
     },
     {
@@ -178,7 +178,7 @@
       "name": ["奥義ノ矢"],
       "report_url": "https://p-town.dmm.com/shop_reports/519104",
       "target_machines": [
-        "東京喰種",
+        "L 東京喰種",
         "真打 吉宗",
         "ビッグドリーム THE GOLDEN PUSHER"]
     },
@@ -212,6 +212,13 @@
       "type": "dmm",
       "media": "DMMぱちタウン",
       "name": ["奥義ノ矢"],
+      "report_url": "https://p-town.dmm.com/shop_reports/527048",
+      "target_machines": [
+          "ゴーゴージャグラー3",
+          "スマート沖スロ ニューキングハナハナV",
+          "ジャグラーガールズSS",
+          "スーパーブラックジャック",
+          "攻殻機動隊"],
       "note": ""
     },
     {
@@ -309,6 +316,25 @@
       ]
     },
     {
+      "date": "2026_08_04",
+      "type": "",
+      "media": "",
+      "name": ["新台入替"],
+      "report_url": "",
+      "target_machines": [
+        "とある魔術の禁書目録2",
+        "やじきた道中記参る！",
+        "ストリートファイター6",
+        "ワールドダイスター",
+        "邪神ちゃんドロップキック",
+        "とんでもスキルで異世界放浪メシ",
+        "【増台】鋼鉄城のカバネリ海門決戦",
+        "【増台】スマスロミリオンゴッド",
+        "【増台】ソードアート・オンラインII"
+      ],
+      "note": ""
+    },
+    {
       "date": "2026_08_08",
       "type": "dmm",
       "media": "DMMぱちタウン",
@@ -318,24 +344,11 @@
       "note": ""
     },
     {
-      "date": "2026_08_12",
-      "type": "dmm",
-      "media": "DMMぱちタウン",
-      "name": ["奥義ノ矢"],
-      "report_url": "",
-      "target_machines": [
-        "",
-        "",
-        "",
-        ""],
-      "note": ""
-    },
-    {
       "date": "2026_08_22",
       "type": "dmm",
       "media": "DMMぱちタウン",
       "name": ["奥義ノ矢"],
-      "report_url": "",
+      "report_url": "hhttps://p-town.dmm.com/shop_reports/532138",
       "target_machines": [
         "",
         "",
