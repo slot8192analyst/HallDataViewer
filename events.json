@@ -304,12 +304,15 @@
       "type": "dmm",
       "media": "DMMぱちタウン",
       "name": ["天運総撃"],
-      "report_url": "",
+      "report_url": "https://p-town.dmm.com/shop_reports/537939",
       "target_machines": [
-          "",
-          "",
-          ""],
+          "スロット ソードアートオンラインⅡ",
+          "ミリオンゴッド‐神々の軌跡‐",
+          "Lアズールレーン THE ANIMATION",
+          "スマスロケロットBT",
+          "攻殻機動隊"],
       "note":[
+        "からくり2も対象の可能性アリ",
         "宵を染める残熱がゆるやかに揺らぎ、遠い灯は静かに瞬く。",
         "水面に沈んだ記憶の欠片は、誰にも拾われぬまま漂い続ける。",
         "やがて満ちる刻を前に、淡い気配だけが夜の奥で息づいている。"
@@ -340,7 +343,24 @@
       "media": "DMMぱちタウン",
       "name": ["ゾンビ狩り取材"],
       "report_url": "",
-      "target_machines": [],
+      "target_machines": [
+        "ゴーゴージャグラー3",
+        "スマスロモンキーターンV",
+        "マギアレコード 魔法少女まどか☆マギカ外伝"
+      ],
+      "note": ""
+    },
+        {
+      "date": "2026_08_12",
+      "type": "dmm",
+      "media": "DMMぱちタウン",
+      "name": ["奥義ノ矢"],
+      "report_url": "hhttps://p-town.dmm.com/shop_reports/532138",
+      "target_machines": [
+        "",
+        "",
+        "",
+        ""],
       "note": ""
     },
     {
@@ -618,6 +638,18 @@
       "startDate": "2026_07_24",
       "endDate": "2026_07_31",
       "machines": ["喰種"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_08_10",
+      "endDate": "2026_08_16",
+      "machines": ["カバネリ海門"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_08_17",
+      "endDate": "2026_08_23",
+      "machines": ["ネオアイムEX"],
       "color": "#3b82f6"
     }
  ],
