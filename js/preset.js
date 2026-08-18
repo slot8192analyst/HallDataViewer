@@ -19,13 +19,8 @@ var MachinePreset = (function() {
         }
     }
 
-    function saveUserPresets(presets) {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(presets));
-        } catch (e) {
-            console.warn('プリセット保存エラー:', e);
-        }
-    }
+    // 旧 saveUserPresets は、書き込み側（ユーザープリセットCRUD）の削除に伴い
+    // 呼び出し元が無くなったため削除。localStorage への書き込みは現状発生しない。
 
     // ========== 固定プリセット ==========
 
@@ -191,81 +186,10 @@ var MachinePreset = (function() {
         });
     }
 
-    // ========== ユーザープリセットCRUD ==========
-
-    function addUserPreset(name, machines) {
-        if (!name || !machines || machines.length === 0) return null;
-
-        var presets = loadUserPresets();
-        var id = 'user_' + Date.now();
-
-        var newPreset = {
-            id: id,
-            name: name,
-            matchMode: 'exact',
-            keywords: [],
-            machines: machines.slice(),
-            excludeKeywords: [],
-            excludeMachines: [],
-            minCount: 0,
-            maxCount: 0,
-            type: 'user'
-        };
-
-        presets.push(newPreset);
-        saveUserPresets(presets);
-
-        return newPreset;
-    }
-
-    function removeUserPreset(id) {
-        var presets = loadUserPresets();
-        var filtered = presets.filter(function(p) { return p.id !== id; });
-
-        if (filtered.length !== presets.length) {
-            saveUserPresets(filtered);
-            return true;
-        }
-        return false;
-    }
-
-    function renameUserPreset(id, newName) {
-        if (!newName) return false;
-
-        var presets = loadUserPresets();
-        var found = false;
-
-        presets.forEach(function(p) {
-            if (p.id === id) {
-                p.name = newName;
-                found = true;
-            }
-        });
-
-        if (found) {
-            saveUserPresets(presets);
-        }
-        return found;
-    }
-
-    function updateUserPresetMachines(id, machines) {
-        if (!machines) return false;
-
-        var presets = loadUserPresets();
-        var found = false;
-
-        presets.forEach(function(p) {
-            if (p.id === id) {
-                p.machines = machines.slice();
-                found = true;
-            }
-        });
-
-        if (found) {
-            saveUserPresets(presets);
-        }
-        return found;
-    }
+    // 旧・ユーザープリセットCRUD（addUserPreset / removeUserPreset /
+    // renameUserPreset / updateUserPresetMachines）は、機種フィルターの
+    // 💾保存・⚙️管理ボタン廃止に伴い呼び出し元が無くなったため削除。
+    // 保存済みプリセットの読み出し（getUserPresets）のみ継続利用する。
 
     // ========== 公開API ==========
 
@@ -273,10 +197,6 @@ var MachinePreset = (function() {
         getAll: getAll,
         getBuiltinPresets: getBuiltinPresets,
         getUserPresets: loadUserPresets,
-        resolve: resolve,
-        add: addUserPreset,
-        remove: removeUserPreset,
-        rename: renameUserPreset,
-        updateMachines: updateUserPresetMachines
+        resolve: resolve
     };
 })();

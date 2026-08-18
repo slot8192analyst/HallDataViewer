@@ -5,7 +5,7 @@
 > コードを編集する前にこのファイルだけを読めば、「どのファイルに何が書いてあるか」「どこを直せばよいか」が分かることを目指す。
 > AI / 人間どちらも対象読者。**機能を追加・変更したらこのファイルも更新すること。**
 
-最終更新: 2026-07-15（台の状態変化履歴機能を追加。converter/build_unit_history.py が data/*.json をスキャンして unit_history.json を生成し、日別タブに「状態」列（新台/増台/減台/移動バッジ・複数同時表示対応・新台期間90日で自動消滅）と「設置日数」列、テーブル下部に「最近撤去された台」セクションを追加。ヘルパーは utils.js の HallData.utils.getUnitStatus / getUnitAge / getMachineAge / getUnitDisplayStatus / getUnitDisplayStatuses。/ 2026-07-13 bottomsheet.js を追加（バッジ設定を共通ボトムシート化）。機種内バッジのロジックを改修：1台設置機種はバッジ非付与に変更、未ロード日の検知と警告表示、集計に使った日の可視化（集計内訳）を追加、集計期間を数値入力から選択式（1〜15日・iOSネイティブホイール）に変更。バッジ設定UIを DESIGN.md（DevFocus Dark）準拠に刷新。）
+最終更新: 2026-08-18（デッドコード削除フェーズ1: ボトムシート化で未使用になった旧バッジ設定モーダル（`#badgeModal` / `#kubiBadgeModal` / `#aimBadgePanel`）のHTMLと関連JS配線・CSSを削除。`preset.js` のユーザープリセットCRUD（`add`/`remove`/`rename`/`updateMachines`/`saveUserPresets`）と`components.css` の `.preset-manage-*` / `.preset-action-btn` 系スタイルを削除。既に削除済みだった `tagmatch.js` / `tagmatch.css` の記述、および実在しない `UNIT_STATUS_ORDER` 二重定義の記述を本ドキュメントから除去。機能変更なし。 / 旧: 2026-07-15（台の状態変化履歴機能を追加。converter/build_unit_history.py が data/*.json をスキャンして unit_history.json を生成し、日別タブに「状態」列（新台/増台/減台/移動バッジ・複数同時表示対応・新台期間90日で自動消滅）と「設置日数」列、テーブル下部に「最近撤去された台」セクションを追加。ヘルパーは utils.js の HallData.utils.getUnitStatus / getUnitAge / getMachineAge / getUnitDisplayStatus / getUnitDisplayStatuses。/ 2026-07-13 bottomsheet.js を追加（バッジ設定を共通ボトムシート化）。機種内バッジのロジックを改修：1台設置機種はバッジ非付与に変更、未ロード日の検知と警告表示、集計に使った日の可視化（集計内訳）を追加、集計期間を数値入力から選択式（1〜15日・iOSネイティブホイール）に変更。バッジ設定UIを DESIGN.md（DevFocus Dark）準拠に刷新。））
 
 ---
 
@@ -57,8 +57,7 @@ webapp/
 │   ├── daily.css / analysis.css / calendar.css / island.css
 │   ├── machinebadge.css / aim.css
 │   ├── memo.css                … 着席メモのバッジ／メモ列セル／メモ入力モーダルのスタイル
-│   ├── promotion.css           … 取材ページ（カード・マトリクス・詳細テーブル・掲示板）のスタイル
-│   └── tagmatch.css            … （※index.htmlで未読み込み・無効）
+│   └── promotion.css           … 取材ページ（カード・マトリクス・詳細テーブル・掲示板）のスタイル
 │
 ├── data/
 │   ├── YYYY_MM.json            … ★本体データ。月単位。{ "YYYY_MM_DD": [ {台レコード}, ... ] }
@@ -73,8 +72,7 @@ webapp/
 │   ├── calendar.js  island.js
 │   ├── promotion.js            … 取材ページ共通モジュール（一覧・詳細・機種マトリクス・全体マトリクス）
 │   ├── board.js                … 取材掲示板モジュール（投稿・編集・削除・Cloudflare D1連携）
-│   ├── router.js  app.js
-│   └── tagmatch.js             … （※index.htmlで未読み込み・無効）
+│   └── router.js  app.js
 │
 ├── partials/                   … 各ページのHTML断片（初回アクセス時に router.js が fetch して挿入）
 │   ├── daily.html              … 日別データページの中身
@@ -94,7 +92,7 @@ webapp/
     └──  build_unit_history.py   … data/*.json をスキャンして unit_history.json を生成（独立実行専用。convert_csv_to_json.py からは呼ばない）
 ```
 
-> **注**: `prompt.txt` のディレクトリ図は古い（`stats.js` 等、現存しないファイル名が残っている）。正は本ファイル。
+> **注**: `prompt.txt` は「やりたいこと」メモ。ディレクトリ構成の正は本ファイル。
 
 ---
 
@@ -145,7 +143,7 @@ webapp/
 読み込み順序（`index.html` 末尾）＝依存関係の順序：
 `config → utils → data → chart → preset → hstag → machinebadge → bottomsheet → daily-state → daily → aim → memo → analysis → calendar → island → promotion → board → router → app`
 
-> `tagmatch.js` は `index.html` から読み込まれていない（タブUIも無いため事実上無効）。`compare.js` / `trend.js` は存在しない（廃止／改称済み）。
+> `tagmatch.js` / `compare.js` / `trend.js` は存在しない（廃止／改称済み）。
 > `router.js` は全ページJSの後・`app.js` の直前に読み込む。`app.js` の `init()` 末尾で `Router.start()` を呼ぶことで初期表示が確定する。
 
 ### グローバル名前空間
@@ -197,7 +195,6 @@ webapp/
 | `aim.css` | 狙い台シート（ゾーンボード、チップ、画像出力レイアウト、クラウド操作UI） |
 | `memo.css` | 着席メモのバッジ／メモ列セル／メモ入力モーダル |
 | `promotion.css` | 取材ページ全体（取材カラー変数・開催日カード・対象機種マトリクス・詳細テーブル・取材掲示板）|
-| `tagmatch.css` | タグマッチタブ（※index.html未読み込み・無効） |
 
 `config.js` の `customColors` は実行時に CSS変数へ上書き注入される（`theme.css`の変数が初期値）。
 
@@ -363,12 +360,10 @@ webapp/
 
 - `dataCache` のキーは `data/YYYY_MM_DD.csv` という**疑似CSVファイル名**（実体はJSON）。`loadCSV()` は実際にはキャッシュ参照のみ。日付URLでは `.csv` を省く（`daily-state.js` の `stripDateFileExt/restoreDateFileExt` で変換、内部キーは従来どおり `.csv` 付き）
 - グローバル変数（`CSV_FILES` 等）と `HallData.store` が**二重管理**。`syncToStore/syncFromStore` で都度同期している。
-- `tagmatch.js` / `tagmatch.css` はファイルとしては残るが、`index.html` から読み込まれておらずタブUIも無い（事実上無効）。
 - `compare.js` / `compare.css` / `trend.js` / `trend.css` は**存在しない**（廃止・リネーム済み）。
 - 解析タブ（`analysis.js`）は**ファイル名のみ改称**されており、内部の関数・変数名（`loadTrendData` / `setupTrendEventListeners` / `trendCache` / `activeTrendFilters` など）は依然 trend 由来の名前のまま。
-- `prompt.txt` のファイル一覧は古い。正は本 `ARCHITECTURE.md`。
 - 全データを文字列で保持しているため、数値比較・ソート時は各所でパースしている。
-- 機種フィルターの💾保存・⚙️管理ボタンは廃止したが、`preset.js` の `add/remove/rename/updateMachines` と `components.css` の `.preset-save-btn` `.preset-manage-btn` `.preset-manage-panel` 系スタイルは未使用のまま残置している。
+- 機種フィルターの💾保存・⚙️管理ボタンは廃止済み。これに伴い `preset.js` のユーザープリセットCRUD（`add`/`remove`/`rename`/`updateMachines` と `saveUserPresets`）および `components.css` の `.preset-save-btn` / `.preset-manage-btn` / `.preset-manage-panel` 系・`.preset-action-btn` 系スタイルは**削除済み**。`MachinePreset` の公開APIは `getAll` / `getBuiltinPresets` / `getUserPresets` / `resolve` の4つ。ユーザープリセットは読み出し専用（新規保存する導線は現状無い）。
 - プリセットの `exact` / `excludeMachines` はデータの `機種名` と**完全一致**が前提。表記ゆれがあるとマッチしないため、機種追加時は実データと突き合わせて都度修正する運用。
 - バッジの台数別ロジックは日別タブ（`assignBadges`）のみ。解析タブ（`assignBadgesForTrend`）は従来の機種内順位のまま二系統が併存している。
 - 狙い台シート・取材掲示板のクラウド保存はそれぞれ `aim.js` の `AIM_API_URL`、`board.js` の `BOARD_API_URL` にハードコードされた Cloudflare Worker URL に依存。Worker/D1 未デプロイ時は localStorage 保存のみ動作し、クラウド操作は失敗する。
@@ -379,11 +374,10 @@ webapp/
 - `board.js` の `startEdit` 内のキャンセル処理に `null` 参照の可能性がある（`list.closest('.promo-memo')` の戻り値を `loadPosts` に渡している箇所）。現状は `reloadByBoard` で回避しているが、将来の改修時に注意。
 - ボトムシートのスタイルは `machinebadge.css` に同梱している（`.bottom-sheet` 系）。バッジ以外の用途でボトムシートを使う場合は、独立CSS（例: `bottomsheet.css`）への切り出しを検討すること。
 - 機種内バッジの「1台設置機種はバッジ非付与」への変更に伴い、旧・横断グループ方式のロジック（`singleUnitItems` 集約）は `assignBadges` から削除済み。`assignBadgesForTrend`（解析の集計タブ）は従来どおり機種内順位のみで、台数別ロジック・1台非付与・未ロード検知は非対象。
-- 旧バッジ設定モーダル（`partials/daily.html` の `#badgeModal`、`partials/analysis.html` の `#kubiBadgeModal`、`partials/aim.html` の `#aimBadgePanel`）はボトムシート化により未使用。HTMLは残置しているが開かれない（掃除は任意）。
+- 旧バッジ設定モーダル（`partials/daily.html` の `#badgeModal`、`partials/analysis.html` の `#kubiBadgeModal`、`partials/aim.html` の `#aimBadgePanel`）はボトムシート化に伴い**HTMLごと削除済み**。現行のバッジ設定UIは `BottomSheet`（日別: `ensureDailyBadgeSheet` / `dailyMb*`、狙い台: `ensureAimBadgeSheet` / `aimMb*`、解析: `ensureKubiBadgeSheet`）に一本化されている。開閉ボタン（`#openBadgeModal` / `#aimBadgeToggle` / `#openKubiBadgeSettings`）はシートを開く役割で残置。
 - `unit_history.json` の `date` は素の `YYYY_MM_DD`。`dataCache` キーの疑似CSV名（`data/..._..._....csv`）とは別系統だが、JS ヘルパーは `normalizeDateKey` で吸収するため混在しても問題ない。
 - 台の状態変化履歴は**全再生成方式**。`data/*.json` を追加・修正したら `converter/build_unit_history.py` を再実行しないと `unit_history.json` は古いまま（増分ビルドはしない）。
 - 「状態」列の move 単独表示は正常。台数を変えずに島ごと丸移動した場合は add が発生しないため move のみになる（add+move の2バッジは「台数増＋台番号入れ替わり」が同時に起きた台でのみ出る）。
-- `utils.js` の `UNIT_STATUS_ORDER` が二重定義になっている場合がある（動作影響なし）。気になれば片方を削除する。
 - 解析タブ・島図・カレンダーは台の状態変化履歴を未使用（現状は日別タブのみ）。将来これらに展開する場合も `HallData.utils.*` をそのまま呼べる。
 - 日別タブのテーブルは機種名・台番号の2列を左固定（CSS `position: sticky`）している。固定は列名クラス（`.col-fixed-machine` / `.col-fixed-unit`）ベースで、`js/daily.js` の `fixedColClass()` がヘッダ・セル生成時にクラスを付与する。**機種名列の `width` と台番号列の `left` は必ず同値**にすること（`css/daily.css` セクション1の既定 / スマホ≤480 / PC≥769 の3箇所にペアで存在）。ズレると2列が重なる。また sticky セルは背景が透けるため、`--bg-elevated` のフォールバック背景＋行縞（even/odd）背景を固定セルに明示している。
 - 機種名・台番号の2列は表示列フィルタ（表示列モーダル）から除外され常時表示になる（`js/daily.js` の `ALWAYS_VISIBLE_COLUMNS`）。チェックボックスに出さず、`updateVisibleColumns` / `initColumnSelector` で必ず `visibleColumns` に含めるよう保証している。

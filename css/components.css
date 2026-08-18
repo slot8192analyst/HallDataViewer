@@ -641,145 +641,9 @@
     background: var(--primary-hover);
 }
 
-/* .preset-save-btn / .preset-manage-btn: Ghost相当（保存・管理補助ボタン） */
-.preset-row .preset-save-btn,
-.preset-row .preset-manage-btn {
-    min-height: 44px;             /* 親コンテナと高さを揃える */
-    padding: 0 var(--space-2);    /* 直書き 6px/8px → 変数に統一 */
-    font-size: var(--font-size-sm);
-    flex-shrink: 0;
-    min-width: 36px;
-    text-align: center;
-}
-
-/* 管理パネル */
-.preset-manage-panel {
-    margin-top: var(--space-2);
-    padding: var(--space-3);
-    background: var(--bg-base);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.preset-manage-title {
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: var(--space-2);
-    padding-bottom: var(--space-2);
-    border-bottom: 1px solid var(--border-color);
-}
-
-.preset-manage-empty {
-    text-align: center;
-    padding: var(--space-4) var(--space-3);
-    color: var(--text-muted);
-    font-size: var(--font-size-sm);
-}
-
-.preset-manage-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-}
-
-.preset-manage-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--space-2) var(--space-3);
-    background: var(--bg-input);
-    border-radius: var(--radius-sm);
-    transition: background var(--transition-fast);
-}
-
-.preset-manage-item:hover {
-    background: var(--bg-elevated);
-}
-
-.preset-manage-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    flex: 1;
-}
-
-.preset-manage-name {
-    font-size: var(--font-size-sm);
-    color: var(--text-primary);
-    font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.preset-manage-meta {
-    font-size: var(--font-size-xs);
-    color: var(--text-muted);
-}
-
-.preset-manage-actions {
-    display: flex;
-    gap: 4px;
-    flex-shrink: 0;
-    margin-left: 8px;
-}
-
-.preset-action-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: var(--radius-sm);
-    background: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    font-size: var(--font-size-sm);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    transition: all var(--transition-fast);
-}
-
-.preset-action-btn:hover {
-    background: var(--bg-surface);
-    border-color: var(--border-light);
-}
-
-.preset-action-btn.preset-delete-btn:hover {
-    background: var(--color-danger);
-    border-color: var(--color-danger);
-    color: #fff;
-}
-
-.preset-action-btn.preset-update-btn:hover {
-    background: var(--color-info);
-    border-color: var(--color-info);
-    color: #fff;
-}
-
-.preset-action-btn.preset-rename-btn:hover {
-    background: var(--color-warning);
-    border-color: var(--color-warning);
-    color: #fff;
-}
-
-/* プリセット管理パネルスクロールバー */
-.preset-manage-panel::-webkit-scrollbar {
-    width: 6px;
-}
-
-.preset-manage-panel::-webkit-scrollbar-track {
-    background: var(--bg-base);
-}
-
-.preset-manage-panel::-webkit-scrollbar-thumb {
-    background: var(--primary-color);
-    border-radius: 3px;
-}
+/* 旧・機種フィルターの💾保存・⚙️管理UI（.preset-save-btn / .preset-manage-btn /
+   .preset-manage-panel 系 / .preset-action-btn 系）は、当該ボタンと
+   preset.js のユーザープリセットCRUD廃止に伴い未使用となったため削除。 */
 
 /* ===================
    位置タグ
@@ -1718,29 +1582,9 @@ td:has(.position-tags) {
         font-size: var(--font-size-lg);
     }
 
-    .preset-row .preset-save-btn,
-    .preset-row .preset-manage-btn {
-        min-height: var(--btn-touch-low);    /* Ghost相当 → 低優先度 44px */
-    }
-
     /* multi-select内ボタン */
     .multi-select-btn {
         min-height: var(--btn-touch-mid);    /* Secondary相当 → 中優先度 60px */
-    }
-
-
-    .preset-manage-panel {
-        max-height: 160px;
-    }
-
-    .preset-manage-item {
-        padding: 6px 8px;
-    }
-
-    .preset-action-btn {
-        width: 26px;
-        height: 26px;
-        font-size: var(--font-size-xs);
     }
 }
 
