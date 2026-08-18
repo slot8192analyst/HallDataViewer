@@ -52,8 +52,8 @@
 }
 button.aim-btn { border: 1px solid var(--border-light); }
 
-/* 凹み判定（バッジ）設定パネル */
-.aim-badge-panel,
+/* 機種の表示/除外パネル
+   （旧 .aim-badge-panel 系は #aimBadgePanel 削除に伴い撤去） */
 .aim-hidden-panel {
     margin-bottom: var(--space-3);
     border: 1px solid var(--border-light);
@@ -61,16 +61,13 @@ button.aim-btn { border: 1px solid var(--border-light); }
     overflow: hidden;
     display: none;
 }
-.aim-badge-panel.open,
 .aim-hidden-panel.open { display: block; }
-.aim-badge-panel-head,
 .aim-hidden-panel-head {
     padding: var(--space-2) var(--space-3);
     font-size: var(--font-size-xs);
     color: var(--text-muted);
     background: rgba(0, 0, 0, 0.15);
 }
-.aim-badge-panel #aimBadgeSettings { padding: 10px; }
 
 /* 空ガイド */
 .aim-empty-guide {

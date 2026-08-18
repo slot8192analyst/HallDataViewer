@@ -50,13 +50,9 @@
         <span class="aim-meta" id="aimMeta"></span>
     </div>
 
-    <!-- 凹み判定（バッジ）設定パネル（トグルで開閉） -->
-    <div class="aim-badge-panel" id="aimBadgePanel">
-        <div class="aim-badge-panel-head">
-            基準日を含む直近N日間の累積差枚（またはG数）で凹み台（💀）を判定します。変更すると即座に再計算されます。
-        </div>
-        <div id="aimBadgeSettings"></div>
-    </div>
+    <!-- 旧・凹み判定（バッジ）設定パネル（#aimBadgePanel）は BottomSheet
+         （js/aim.js の ensureAimBadgeSheet）へ移行済みのため削除。
+         開閉ボタン #aimBadgeToggle はシートを開くため残置。 -->
 
     <!-- 機種の表示/除外パネル（トグルで開閉） -->
     <div class="aim-hidden-panel" id="aimHiddenPanel">

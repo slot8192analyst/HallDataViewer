@@ -768,7 +768,7 @@ function renderBadgeSettings() {
     updateBadgePreview();
 }
 
-/** 再計算ボタンの状態（ラベル）を更新する（既存ボタン＋シート内ボタン両対応） */
+/** 再計算ボタンの状態（ラベル）を更新する（ボトムシート内ボタン） */
 function updateBadgeRecalcButton() {
     var displayFiles = (typeof getDisplayFiles === 'function') ? getDisplayFiles() : sortFilesByDate(CSV_FILES, true);
     var _s = (typeof DailyState !== 'undefined') ? DailyState.get() : {};
@@ -777,11 +777,6 @@ function updateBadgeRecalcButton() {
     var hasCached = !!(cf && dailyBadgeCache[cf]);
     var label = hasCached ? '🔄 再計算' : '▶ バッジを計算';
 
-    var btn = document.getElementById('badgeRecalcBtn');
-    if (btn) {
-        btn.textContent = label;
-        btn.classList.toggle('badge-needs-calc', !hasCached);
-    }
     var sheetBtn = document.getElementById('dailyMbRecalcBtn');
     if (sheetBtn) {
         sheetBtn.textContent = label;
@@ -794,13 +789,8 @@ function updateDailyBadgeRecalcButton() {
     updateBadgeRecalcButton();
 }
 
-/** バッジフィルター（🐙あり／💀あり）のチェックボックス状態をDOMに反映（既存＋シート両対応） */
+/** バッジフィルター（🐙あり／💀あり）のチェックボックス状態をボトムシートに反映する */
 function syncBadgeFilterCheckboxes() {
-    var tako = document.getElementById('badgeFilterTako');
-    var kubi = document.getElementById('badgeFilterKubi');
-    if (tako) tako.checked = dailyBadgeFilter.tako;
-    if (kubi) kubi.checked = dailyBadgeFilter.kubi;
-
     var sTako = document.getElementById('dailyMbFilterTako');
     var sKubi = document.getElementById('dailyMbFilterKubi');
     if (sTako) sTako.checked = dailyBadgeFilter.tako;
@@ -1882,17 +1872,11 @@ function setupDailyModalEvents() {
         closeAppModal('columnModal');
     });
 
-    // バッジ設定はボトムシートで開く（旧 badgeModal は使わない）
+    // バッジ設定はボトムシートで開く（旧 badgeModal は削除済み）
     var openBadgeBtn = document.getElementById('openBadgeModal');
     if (openBadgeBtn) openBadgeBtn.addEventListener('click', function() {
         var sheet = ensureDailyBadgeSheet();
         if (sheet) sheet.open();
-    });
-
-    bindModalClose('closeBadgeModal', 'badgeModal');
-    var applyBadgeBtn = document.getElementById('applyBadgeModal');
-    if (applyBadgeBtn) applyBadgeBtn.addEventListener('click', function() {
-        closeAppModal('badgeModal');
     });
 
     document.querySelectorAll('.app-modal').forEach(function(modal) {
@@ -2016,30 +2000,8 @@ function setupDailyEventListeners() {
         });
     }
 
-    var badgeRecalcBtn = document.getElementById('badgeRecalcBtn');
-    if (badgeRecalcBtn) {
-        badgeRecalcBtn.addEventListener('click', function() {
-            recalcBadgeCache();
-            updateBadgeRecalcButton();
-            filterAndRender();
-        });
-    }
-
-    var badgeFilterTakoEl = document.getElementById('badgeFilterTako');
-    if (badgeFilterTakoEl) {
-        badgeFilterTakoEl.addEventListener('change', function(e) {
-            dailyBadgeFilter.tako = e.target.checked;
-            filterAndRender();
-        });
-    }
-
-    var badgeFilterKubiEl = document.getElementById('badgeFilterKubi');
-    if (badgeFilterKubiEl) {
-        badgeFilterKubiEl.addEventListener('change', function(e) {
-            dailyBadgeFilter.kubi = e.target.checked;
-            filterAndRender();
-        });
-    }
+    // 旧 badgeModal 内の「計算」ボタン／バッジ存在フィルターの配線は削除。
+    // 現行はボトムシート側（dailyMbRecalcBtn / dailyMbFilterTako / dailyMbFilterKubi）が担当。
 
     loadDailyFilterGroups();
     renderDailyFilterGroups();

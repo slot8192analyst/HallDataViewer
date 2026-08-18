@@ -660,7 +660,7 @@ var AimSheet = (function() {
         return _aimBadgeSheet;
     }
 
-    // 旧: renderBadgePanel（#aimBadgeSettings への直接描画）は廃止し、シート初期化に委譲
+    // renderBadgePanel: 呼び出し互換のため名前を残し、ボトムシート初期化に委譲
     function renderBadgePanel() {
         ensureAimBadgeSheet();
     }
