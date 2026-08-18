@@ -1,0 +1,23 @@
+# ---------------------------------------------------------------------------
+# 巨大データファイルを diff 対象外にする
+#
+# 目的:
+#   data/*.json は1ファイル約3.5MB（約68万トークン相当）。
+#   git diff / git show でこれが展開されると、AIのコンテキストに乗って
+#   莫大なクレジットを消費する。-diff を付けることで
+#   「Binary files differ」表示になり、中身が展開されなくなる。
+#
+#   linguist-generated は GitHub の PR 画面でも差分を折りたたむ効果があります。
+# ---------------------------------------------------------------------------
+
+data/*.json       -diff linguist-generated
+unit_history.json -diff linguist-generated
+
+# 自動生成物（レビュー不要・diffノイズを抑える）
+CODEMAP.md        -diff linguist-generated
+.codemap/*.tsv    -diff linguist-generated
+
+# 画像
+*.jpg binary
+*.png binary
+*.ico binary
