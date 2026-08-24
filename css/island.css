@@ -65,6 +65,7 @@
     background: var(--bg-card);
     border-radius: var(--radius-lg);
     align-items: center;
+    justify-content: space-between;
 }
 
 .island-view-modes {
@@ -104,6 +105,23 @@
     display: flex;
     gap: 10px;
     margin-left: auto;
+}
+
+/* バッジ設定ボタン */
+.island-badge-settings-btn {
+    padding: 8px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.island-badge-settings-btn:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-color);
 }
 
 /* 凡例 */
@@ -286,6 +304,11 @@
     margin-top: 1px;
 }
 
+/* 累積差枚（バッジモード）: 個別指定せず、getUnitStyleが決めた白/黒の文字色を継承する */
+.unit-sub-neutral {
+    color: inherit;
+}
+
 /* 台詳細モーダル */
 .island-unit-modal {
     display: none;
@@ -394,87 +417,92 @@
     .island-date-nav {
         gap: var(--space-2);
     }
-    
+
     .island-date-nav button {
         padding: var(--space-2) var(--space-3);
         font-size: var(--font-size-sm);
     }
-    
+
     .island-date-nav .current-date {
         font-size: var(--font-size-md);
         min-width: 140px;
     }
-    
+
     .island-controls {
         flex-direction: column;
         align-items: stretch;
         gap: var(--space-3);
         padding: var(--space-3);
     }
-    
+
     .island-view-modes {
         flex-direction: column;
         align-items: stretch;
     }
-    
+
     .island-mode-buttons {
         flex-wrap: wrap;
     }
-    
+
     .island-mode-btn {
         flex: 1;
         text-align: center;
         padding: var(--space-2);
         min-width: 60px;
     }
-    
+
+    .island-badge-settings-btn {
+        width: 100%;
+        margin-top: var(--space-2);
+    }
+
     .island-filters {
         margin-left: 0;
     }
-    
+
     .island-list {
         gap: var(--space-5);
     }
-    
+
     .island-area {
         margin-bottom: var(--space-6);
     }
-    
+
     .island-area-title {
         font-size: var(--font-size-md);
         padding: var(--space-2) var(--space-3);
     }
-    
+
     .island-unit {
         width: 38px;
         height: 42px;
     }
-    
+
     .unit-number {
         font-size: var(--font-size-xs);
     }
-    
+
     .unit-machine {
         font-size: 6px;
     }
-    
+
     .unit-sub {
         font-size: 7px;
     }
-    
+
     .legend-items {
         gap: var(--space-2);
     }
-    
+
     .legend-color {
         width: 14px;
         height: 14px;
     }
-    
+
     .legend-label {
         font-size: var(--font-size-xs);
     }
-    
+
     .island-unit-modal-content {
         max-width: 95%;
     }
@@ -486,19 +514,19 @@
         width: 48px;
         height: 52px;
     }
-    
+
     .unit-number {
         font-size: var(--font-size-sm);
     }
-    
+
     .unit-machine {
         font-size: 8px;
     }
-    
+
     .unit-sub {
         font-size: 9px;
     }
-    
+
     .island-list {
         gap: var(--space-6);
     }
@@ -510,19 +538,19 @@
         width: 52px;
         height: 56px;
     }
-    
+
     .unit-number {
         font-size: 12px;
     }
-    
+
     .unit-machine {
         font-size: 9px;
     }
-    
+
     .unit-sub {
         font-size: 10px;
     }
-    
+
     .island-list {
         gap: var(--space-6);
     }
@@ -539,39 +567,4 @@
 .island-unit.spacer:hover {
     transform: none;
     box-shadow: none;
-}
-
-/* 日付セレクター */
-.island-date-select-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 15px;
-}
-
-#islandDateSelect {
-    min-width: 280px;
-    max-width: 400px;
-    padding: 10px 12px;
-    font-size: var(--font-size-md);
-    background: var(--bg-input);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    color: var(--text-primary);
-}
-
-#islandDateSelect:focus {
-    outline: none;
-    border-color: var(--border-focus);
-}
-
-/* 禁止BP修正: 600px → 480px */
-@media (max-width: 480px) {
-    #islandDateSelect {
-        min-width: 100%;
-        max-width: 100%;
-    }
-    
-    .island-date-select-wrapper {
-        padding: 0 var(--space-3);
-    }
 }
