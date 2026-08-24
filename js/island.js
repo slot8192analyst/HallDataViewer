@@ -4,62 +4,57 @@
 
 var IslandMap = (function() {
     'use strict';
-    
+
     // 状態管理
     var state = {
         config: null,
         unitDataMap: {},
         machineShortNames: {},
         currentDateIndex: 0,
-        viewMode: 'machine',
+        viewMode: 'diff',
         selectedUnit: null,
         initialized: false
     };
-    
-    // ヒートマップの色設定（赤系統一）
+
+    // ヒートマップの色設定（赤系統一・差枚モード用）
     var HEATMAP_COLORS = {
         positive: [
-            '#5a3a3a',
-            '#6a3030',
-            '#7a2828',
-            '#8a2020',
-            '#aa1818',
-            '#cc1010',
-            '#ee0808',
-            '#ff0000'
+            '#5a3a3a', '#6a3030', '#7a2828', '#8a2020',
+            '#aa1818', '#cc1010', '#ee0808', '#ff0000'
         ],
         negative: [
-            '#3a3232',
-            '#322828',
-            '#2a2020',
-            '#221818',
-            '#1a1212',
-            '#140c0c',
-            '#0e0808',
-            '#080404'
+            '#3a3232', '#322828', '#2a2020', '#221818',
+            '#1a1212', '#140c0c', '#0e0808', '#080404'
         ],
         zero: '#2a2a2a'
     };
 
+    // 凹みバッジ用の配色（死に台=暖色/タコだし=寒色、1〜3位を濃淡で表現）
+    var BADGE_COLORS = {
+        kubi: { 1: '#FF3B30', 2: '#FF8C42', 3: '#FFC98C' },
+        tako: { 1: '#4A3AFF', 2: '#6C7CE0', 3: '#AAB8F0' }
+    };
+
+    function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
     // ===================
     // 初期化
     // ===================
-    
+
     async function init() {
         if (state.initialized) {
             await render();
             return;
         }
-        
+
         await loadMachineShortNames();
         await loadIslandConfig();
         setupEventListeners();
-        await initDateSelect();
         await render();
-        
+
         state.initialized = true;
     }
-    
+
     async function loadMachineShortNames() {
         try {
             var response = await fetch('data/machine-short-names.json');
@@ -71,7 +66,7 @@ var IslandMap = (function() {
             state.machineShortNames = {};
         }
     }
-    
+
     async function loadIslandConfig() {
         try {
             var response = await fetch('data/island-config.json');
@@ -83,81 +78,28 @@ var IslandMap = (function() {
             state.config = { areas: [], islands: [] };
         }
     }
-    
-    // ===================
-    // 日付セレクター
-    // ===================
-    
-    async function initDateSelect() {
-        var dateSelect = document.getElementById('islandDateSelect');
-        if (!dateSelect) return;
-        
-        var sortedFiles = sortFilesByDate(CSV_FILES, true);
-        
-        // イベント情報を読み込み
-        if (typeof loadEventData === 'function') {
-            await loadEventData();
-        }
-        
-        dateSelect.innerHTML = sortedFiles.map(function(file, index) {
-            if (typeof createDateSelectOption === 'function') {
-                return createDateSelectOption(file, index === state.currentDateIndex);
-            }
-            // createDateSelectOptionがない場合のフォールバック
-            var dateStr = file.replace('data/', '').replace('.csv', '');
-            var formatted = formatDateFromFilename(dateStr);
-            var selected = index === state.currentDateIndex ? ' selected' : '';
-            return '<option value="' + file + '"' + selected + '>' + formatted + '</option>';
-        }).join('');
-    }
-    
-    function formatDateFromFilename(dateStr) {
-        // YYYYMMDD → YYYY/MM/DD (曜日)
-        if (dateStr.length === 8) {
-            var year = dateStr.substring(0, 4);
-            var month = dateStr.substring(4, 6);
-            var day = dateStr.substring(6, 8);
-            var date = new Date(year, parseInt(month) - 1, parseInt(day));
-            var dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-            var dayOfWeek = dayNames[date.getDay()];
-            return year + '/' + month + '/' + day + '（' + dayOfWeek + '）';
-        }
-        return dateStr;
-    }
-    
-    function updateDateSelect() {
-        var dateSelect = document.getElementById('islandDateSelect');
-        if (!dateSelect) return;
-        
-        var sortedFiles = sortFilesByDate(CSV_FILES, true);
-        var currentFile = sortedFiles[state.currentDateIndex];
-        
-        if (currentFile && dateSelect.value !== currentFile) {
-            dateSelect.value = currentFile;
-        }
-    }
-    
+
     // ===================
     // データ取得
     // ===================
-    
+
     async function loadUnitData() {
         var sortedFiles = sortFilesByDate(CSV_FILES, true);
         var currentFile = sortedFiles[state.currentDateIndex];
-        
+
         if (!currentFile) {
             state.unitDataMap = {};
             return;
         }
-        
+
         var data = await loadCSV(currentFile);
         if (!data) {
             state.unitDataMap = {};
             return;
         }
-        
+
         data = addMechanicalRateToData(data);
-        
+
         if (typeof TagEngine !== 'undefined') {
             data = data.map(function(row) {
                 var newRow = Object.assign({}, row);
@@ -165,7 +107,7 @@ var IslandMap = (function() {
                 return newRow;
             });
         }
-        
+
         state.unitDataMap = {};
         data.forEach(function(row) {
             var unitNum = String(row['台番号']).replace(/\D/g, '');
@@ -174,11 +116,229 @@ var IslandMap = (function() {
             }
         });
     }
-    
+
+    // ===================
+    // 凹みバッジ（🐙タコだし / 💀死に台）
+    // 日別タブと同じ MachineBadge モジュール・localStorage設定を共有する
+    // ===================
+
+    async function ensureBadgeWindowLoaded(currentFile) {
+        if (typeof getDateKeyFromFilename !== 'function' || typeof loadMonthlyJSON !== 'function') return;
+        var dateKey = getDateKeyFromFilename(currentFile);
+        if (!dateKey) return;
+        var parts = dateKey.split('_');
+        var y = parseInt(parts[0], 10);
+        var m = parseInt(parts[1], 10);
+        if (isNaN(y) || isNaN(m)) return;
+
+        // 集計期間が月をまたぐ場合に備えて、対象月＋前月をロードしておく
+        var months = [y + '_' + pad2(m)];
+        var prevM = m - 1, prevY = y;
+        if (prevM < 1) { prevM = 12; prevY -= 1; }
+        months.push(prevY + '_' + pad2(prevM));
+
+        for (var i = 0; i < months.length; i++) {
+            try {
+                await loadMonthlyJSON('data/' + months[i] + '.json');
+            } catch (e) {
+                // 読み込めなくても、集計側で「未ロードで欠落」として警告表示される
+            }
+        }
+    }
+
+    async function computeIslandBadges() {
+        if (typeof MachineBadge === 'undefined') return;
+
+        var sortedFiles = sortFilesByDate(CSV_FILES, true);
+        var currentFile = sortedFiles[state.currentDateIndex];
+        if (!currentFile) return;
+
+        await ensureBadgeWindowLoaded(currentFile);
+
+        var rows = Object.keys(state.unitDataMap).map(function(k) {
+            return state.unitDataMap[k];
+        });
+        if (rows.length === 0) return;
+
+        var badged = MachineBadge.assignBadges(
+            rows,
+            currentFile,
+            dataCache,
+            MachineBadge.getTargetColumn(),
+            {}
+        );
+
+        badged.forEach(function(row) {
+            var unitNum = String(row['台番号']).replace(/\D/g, '');
+            if (unitNum) {
+                state.unitDataMap[unitNum] = row;
+            }
+        });
+    }
+
+    var _islandBadgeSheet = null;
+
+    function ensureIslandBadgeSheet() {
+        if (_islandBadgeSheet) return _islandBadgeSheet;
+        if (typeof BottomSheet === 'undefined') return null;
+
+        _islandBadgeSheet = BottomSheet.create('islandBadgeSheet', { title: '🐙💀 凹みバッジ設定' });
+        _islandBadgeSheet.setContent(MachineBadge.renderSettingsHtml('islandMb'));
+
+        MachineBadge.setupSettingsEvents('islandMb', function() {
+            computeIslandBadges().then(function() {
+                renderLegend();
+                renderIslandMap();
+            });
+        });
+
+        _islandBadgeSheet.onOpen(function() {
+            MachineBadge.renderWindowInfo('islandMb');
+        });
+
+        return _islandBadgeSheet;
+    }
+
+    // ===================
+    // 日付選択カレンダー（ボトムシート）
+    // ===================
+
+    var _islandDatePickerSheet = null;
+    var _idpViewYear = null;
+    var _idpViewMonth = null;
+
+    function ensureIslandDatePickerSheet() {
+        if (_islandDatePickerSheet) return _islandDatePickerSheet;
+        if (typeof BottomSheet === 'undefined') return null;
+        _islandDatePickerSheet = BottomSheet.create('islandDatePickerSheet', { title: '📅 日付を選択' });
+        _islandDatePickerSheet.setContent('<div class="date-picker" id="islandDatePickerRoot"></div>');
+        return _islandDatePickerSheet;
+    }
+
+    function getIslandDateIndex() {
+        var sortedFiles = sortFilesByDate(CSV_FILES, true);
+        var map = {};
+        sortedFiles.forEach(function(file) {
+            var key = (typeof getDateKeyFromFilename === 'function') ? getDateKeyFromFilename(file) : null;
+            if (key) map[key] = file;
+        });
+        return map;
+    }
+
+    function initIslandDatePickerView() {
+        var sortedFiles = sortFilesByDate(CSV_FILES, true);
+        var currentFile = sortedFiles[state.currentDateIndex];
+        var key = currentFile && typeof getDateKeyFromFilename === 'function'
+            ? getDateKeyFromFilename(currentFile) : '';
+        var m = key && key.match(/^(\d{4})_(\d{2})_(\d{2})$/);
+        if (m) {
+            _idpViewYear = parseInt(m[1]);
+            _idpViewMonth = parseInt(m[2]);
+        } else {
+            var now = new Date();
+            _idpViewYear = now.getFullYear();
+            _idpViewMonth = now.getMonth() + 1;
+        }
+    }
+
+    function renderIslandDatePicker() {
+        var root = document.getElementById('islandDatePickerRoot');
+        if (!root) return;
+
+        var dateMap = getIslandDateIndex();
+        var y = _idpViewYear, mo = _idpViewMonth;
+
+        var allKeys = Object.keys(dateMap);
+        var minKey = allKeys.length ? allKeys.reduce(function(a, b) { return a < b ? a : b; }) : null;
+        var maxKey = allKeys.length ? allKeys.reduce(function(a, b) { return a > b ? a : b; }) : null;
+        var curFirst = y + '_' + pad2(mo) + '_01';
+        var curLast  = y + '_' + pad2(mo) + '_31';
+        var prevDisabled = minKey && curFirst <= minKey;
+        var nextDisabled = maxKey && curLast  >= maxKey;
+
+        var sortedFiles = sortFilesByDate(CSV_FILES, true);
+        var currentFile = sortedFiles[state.currentDateIndex];
+        var currentKey = currentFile && typeof getDateKeyFromFilename === 'function'
+            ? getDateKeyFromFilename(currentFile) : '';
+
+        var weekdayNames = ['日', '月', '火', '水', '木', '金', '土'];
+        var weekdaysHtml = weekdayNames.map(function(w, i) {
+            var cls = i === 0 ? ' dow-sun' : (i === 6 ? ' dow-sat' : '');
+            return '<div class="date-picker-weekday' + cls + '">' + w + '</div>';
+        }).join('');
+
+        var firstDow = new Date(y, mo - 1, 1).getDay();
+        var daysInMonth = new Date(y, mo, 0).getDate();
+
+        var cells = '';
+        for (var i = 0; i < firstDow; i++) {
+            cells += '<div class="date-picker-cell is-empty"></div>';
+        }
+        for (var d = 1; d <= daysInMonth; d++) {
+            var key = y + '_' + pad2(mo) + '_' + pad2(d);
+            var file = dateMap[key];
+            var isCurrent = (key === currentKey);
+            if (!file) {
+                cells += '<div class="date-picker-cell no-data">' + d + '</div>';
+            } else {
+                var cls = 'date-picker-cell' + (isCurrent ? ' is-current' : '');
+                cells += '<div class="' + cls + '" data-file="' + file + '">' + d + '</div>';
+            }
+        }
+
+        root.innerHTML =
+            '<div class="date-picker-header">'
+            +   '<button class="date-picker-nav" id="islandDatePickerPrev"' + (prevDisabled ? ' disabled' : '') + '>◀</button>'
+            +   '<span class="date-picker-month-label">' + y + '年 ' + mo + '月</span>'
+            +   '<button class="date-picker-nav" id="islandDatePickerNext"' + (nextDisabled ? ' disabled' : '') + '>▶</button>'
+            + '</div>'
+            + '<div class="date-picker-weekdays">' + weekdaysHtml + '</div>'
+            + '<div class="date-picker-grid">' + cells + '</div>';
+
+        var prevBtnEl = document.getElementById('islandDatePickerPrev');
+        if (prevBtnEl && !prevDisabled) {
+            prevBtnEl.addEventListener('click', function() {
+                _idpViewMonth--;
+                if (_idpViewMonth < 1) { _idpViewMonth = 12; _idpViewYear--; }
+                renderIslandDatePicker();
+            });
+        }
+        var nextBtnEl = document.getElementById('islandDatePickerNext');
+        if (nextBtnEl && !nextDisabled) {
+            nextBtnEl.addEventListener('click', function() {
+                _idpViewMonth++;
+                if (_idpViewMonth > 12) { _idpViewMonth = 1; _idpViewYear++; }
+                renderIslandDatePicker();
+            });
+        }
+
+        root.querySelectorAll('.date-picker-cell[data-file]').forEach(function(cell) {
+            cell.addEventListener('click', function() {
+                var file = this.dataset.file;
+                if (!file) return;
+                var sortedFiles2 = sortFilesByDate(CSV_FILES, true);
+                var idx = sortedFiles2.indexOf(file);
+                if (idx !== -1) {
+                    state.currentDateIndex = idx;
+                    render();
+                }
+                if (_islandDatePickerSheet) _islandDatePickerSheet.close();
+            });
+        });
+    }
+
+    function openIslandDatePicker() {
+        var sheet = ensureIslandDatePickerSheet();
+        if (!sheet) return;
+        initIslandDatePickerView();
+        renderIslandDatePicker();
+        sheet.open();
+    }
+
     // ===================
     // 機種名の省略
     // ===================
-    
+
     function getShortMachineName(fullName) {
         if (!fullName) return '';
         if (state.machineShortNames[fullName]) {
@@ -186,45 +346,45 @@ var IslandMap = (function() {
         }
         return fullName.length > 5 ? fullName.substring(0, 5) : fullName;
     }
-    
+
     // ===================
     // 描画
     // ===================
-    
+
     async function render() {
         await loadUnitData();
         updateDateNav();
-        updateDateSelect();
+        if (state.viewMode === 'badge') {
+            await computeIslandBadges();
+        }
         renderLegend();
         renderIslandMap();
     }
-    
+
     function updateDateNav() {
         var sortedFiles = sortFilesByDate(CSV_FILES, true);
         var currentFile = sortedFiles[state.currentDateIndex];
-        
+
         var label = document.getElementById('islandDateLabel');
         if (label && currentFile) {
             var formattedDate = formatDate(currentFile);
             var dayOfWeek = getDayOfWeekName(getDayOfWeek(currentFile));
             label.textContent = formattedDate + '（' + dayOfWeek + '）';
         }
-        
+
         var prevBtn = document.getElementById('islandPrevDate');
         var nextBtn = document.getElementById('islandNextDate');
         if (prevBtn) prevBtn.disabled = state.currentDateIndex >= sortedFiles.length - 1;
         if (nextBtn) nextBtn.disabled = state.currentDateIndex <= 0;
     }
-    
+
     function renderLegend() {
         var container = document.getElementById('islandLegendItems');
         if (!container) return;
-        
+
         var html = '';
-        
-        if (state.viewMode === 'machine') {
-            html = '<span class="legend-hint">台をクリックで詳細表示</span>';
-        } else if (state.viewMode === 'diff') {
+
+        if (state.viewMode === 'diff') {
             html = renderHeatmapLegend([
                 { color: HEATMAP_COLORS.positive[7], label: '+3000↑' },
                 { color: HEATMAP_COLORS.positive[4], label: '+1000' },
@@ -234,40 +394,21 @@ var IslandMap = (function() {
                 { color: HEATMAP_COLORS.negative[4], label: '-1000' },
                 { color: HEATMAP_COLORS.negative[7], label: '-3000↓' }
             ]);
-        } else if (state.viewMode === 'rate') {
+        } else if (state.viewMode === 'badge') {
             html = renderHeatmapLegend([
-                { color: HEATMAP_COLORS.positive[7], label: '115%↑' },
-                { color: HEATMAP_COLORS.positive[4], label: '105%' },
-                { color: HEATMAP_COLORS.zero, label: '100%' },
-                { color: HEATMAP_COLORS.negative[4], label: '95%' },
-                { color: HEATMAP_COLORS.negative[7], label: '85%↓' }
+                { color: BADGE_COLORS.kubi[1], label: '死に台 1位（熱）' },
+                { color: BADGE_COLORS.kubi[2], label: '死に台 2位' },
+                { color: BADGE_COLORS.kubi[3], label: '死に台 3位' },
+                { color: BADGE_COLORS.tako[1], label: 'タコだし 1位' },
+                { color: BADGE_COLORS.tako[2], label: 'タコだし 2位' },
+                { color: BADGE_COLORS.tako[3], label: 'タコだし 3位' }
             ]);
-        } else if (state.viewMode === 'games') {
-            html = renderHeatmapLegend([
-                { color: HEATMAP_COLORS.positive[7], label: '9000G↑' },
-                { color: HEATMAP_COLORS.positive[5], label: '7000G' },
-                { color: HEATMAP_COLORS.positive[3], label: '5000G' },
-                { color: HEATMAP_COLORS.positive[1], label: '3000G' },
-                { color: HEATMAP_COLORS.negative[4], label: '3000G未満' }
-            ]);
-        } else if (state.viewMode === 'tag') {
-            if (typeof TagEngine !== 'undefined') {
-                var tagDefs = TagEngine.getAll();
-                tagDefs.forEach(function(tag) {
-                    html += '<div class="legend-item">';
-                    html += '<span class="legend-color" style="background:' + tag.color + '"></span>';
-                    html += '<span class="legend-label">' + tag.icon + ' ' + tag.name + '</span>';
-                    html += '</div>';
-                });
-                if (tagDefs.length === 0) {
-                    html += '<span class="legend-hint">タグ未設定</span>';
-                }
-            }
+            html += '<span class="legend-hint">両方に該当する台は死に台側の色を優先表示／数値は累積差枚（設定は⚙️）</span>';
         }
-        
+
         container.innerHTML = html;
     }
-    
+
     function renderHeatmapLegend(items) {
         var html = '';
         items.forEach(function(item) {
@@ -278,32 +419,31 @@ var IslandMap = (function() {
         });
         return html;
     }
-    
+
     function renderIslandMap() {
         var container = document.getElementById('islandMap');
         if (!container || !state.config) return;
-        
+
         var html = '';
-        
-        // エリアごとにグループ化
+
         var areas = state.config.areas || [];
-        
+
         if (areas.length > 0) {
             areas.forEach(function(area) {
                 var areaIslands = state.config.islands.filter(function(island) {
                     return island.area === area.id;
                 });
-                
+
                 if (areaIslands.length === 0) return;
-                
+
                 html += '<div class="island-area" data-area="' + area.id + '">';
                 html += '<div class="island-area-title">' + area.name + '</div>';
                 html += '<div class="island-list">';
-                
+
                 areaIslands.forEach(function(island) {
                     html += renderIsland(island);
                 });
-                
+
                 html += '</div></div>';
             });
         } else {
@@ -313,10 +453,10 @@ var IslandMap = (function() {
             });
             html += '</div>';
         }
-        
+
         container.innerHTML = html;
-        
-        // 台クリックイベント
+        container.classList.toggle('mode-badge', state.viewMode === 'badge');
+
         container.querySelectorAll('.island-unit').forEach(function(unitEl) {
             unitEl.addEventListener('click', function() {
                 var unitNum = this.dataset.unit;
@@ -326,164 +466,138 @@ var IslandMap = (function() {
             });
         });
     }
-    
+
     function renderIsland(island) {
         var rowCount = island.rows.length;
         var typeClass = island.type === 'vertical' ? 'island-vertical' : '';
         var sizeClass = rowCount === 1 ? 'island-single' : 'island-double';
-        
+
         var html = '<div class="island-block ' + typeClass + ' ' + sizeClass + '" data-island="' + island.id + '">';
         html += '<div class="island-rows">';
-        
+
         island.rows.forEach(function(row) {
             html += renderIslandRow(row);
         });
-        
+
         html += '</div></div>';
-        
+
         return html;
     }
-    
+
     function renderIslandRow(row) {
         var html = '<div class="island-row">';
-        
+
         row.units.forEach(function(unitNum) {
             html += renderUnit(unitNum);
         });
-        
+
         html += '</div>';
         return html;
     }
-    
+
+    // ===================
+    // インジケーター判定（🐙タコだし / 💀死に台）
+    // 同一台が両方の条件に該当する場合（3台設置機種など）は
+    // 死に台（凹み＝我々の間で「熱い」）側を優先して色をつける
+    // ===================
+    function getIndicatorInfo(badge) {
+        if (!badge || typeof MachineBadge === 'undefined') return null;
+
+        var kubiRanks = MachineBadge.getKubiRanks();
+        var takoRanks = MachineBadge.getTakoRanks();
+
+        var showKubi = badge.kubi !== null && badge.kubi !== undefined &&
+            MachineBadge.isShowKubi() && kubiRanks.indexOf(badge.kubi) !== -1;
+        var showTako = badge.tako !== null && badge.tako !== undefined &&
+            MachineBadge.isShowTako() && takoRanks.indexOf(badge.tako) !== -1;
+
+        // 優先順位: 死に台 > タコだし
+        if (showKubi) return { type: 'kubi', rank: badge.kubi };
+        if (showTako) return { type: 'tako', rank: badge.tako };
+        return null;
+    }
+
     function renderUnit(unitNum) {
-        // null または 0 はスペーサー
         if (unitNum === null || unitNum === 0) {
             return '<div class="island-unit spacer"></div>';
         }
-        
+
         var unitStr = String(unitNum);
         var data = state.unitDataMap[unitStr] || null;
-        
+
         var style = getUnitStyle(data);
         var subText = getUnitSubText(data);
         var machineName = data ? getShortMachineName(data['機種名']) : '';
         var dataClass = data ? '' : ' no-data';
-        
+
         var html = '<div class="island-unit' + dataClass + '" data-unit="' + unitStr + '" style="' + style + '">';
         html += '<div class="unit-number">' + unitStr + '</div>';
         html += '<div class="unit-machine">' + machineName + '</div>';
         if (subText) {
-            html += '<div class="unit-sub">' + subText + '</div>';
+            html += '<div class="unit-sub unit-sub-neutral">' + subText + '</div>';
         }
         html += '</div>';
-        
+
         return html;
     }
-    
+
     function getUnitStyle(data) {
         if (!data) return 'background: var(--bg-base); opacity: 0.4;';
-        
+
         var bgColor = '';
         var textColor = '';
-        
+
         switch (state.viewMode) {
-            case 'machine':
-                bgColor = '#3a3a3a';
-                textColor = '#fff';
-                break;
-                
             case 'diff':
                 var diff = parseInt(String(data['差枚']).replace(/[+,]/g, '')) || 0;
-                bgColor = getColorByValue(diff, 'diff');
+                bgColor = getColorByValue(diff);
                 textColor = getBrightness(bgColor) > 100 ? '#000' : '#fff';
                 break;
-                
-            case 'rate':
-                var rate = data['機械割'] || 100;
-                bgColor = getColorByValue(rate - 100, 'rate');
-                textColor = getBrightness(bgColor) > 100 ? '#000' : '#fff';
-                break;
-                
-            case 'games':
-                var games = parseInt(String(data['G数']).replace(/,/g, '')) || 0;
-                bgColor = getColorByValue(games, 'games');
-                textColor = getBrightness(bgColor) > 100 ? '#000' : '#fff';
-                break;
-                
-            case 'tag':
-                var tags = data['_matchedTags'] || [];
-                if (tags.length > 0 && typeof TagEngine !== 'undefined') {
-                    var firstTag = TagEngine.get(tags[0]);
-                    bgColor = firstTag ? firstTag.color : '#3a3a3a';
+
+            case 'badge':
+                var info = getIndicatorInfo(data['_machineBadge']);
+                if (info) {
+                    bgColor = BADGE_COLORS[info.type][info.rank];
+                    textColor = getBrightness(bgColor) > 100 ? '#000' : '#fff';
                 } else {
                     bgColor = '#2a2a2a';
+                    textColor = '#fff';
                 }
-                textColor = getBrightness(bgColor) > 100 ? '#000' : '#fff';
                 break;
-                
+
             default:
                 bgColor = '#3a3a3a';
                 textColor = '#fff';
         }
-        
+
         return 'background: ' + bgColor + '; color: ' + textColor + ';';
     }
-    
+
     function getUnitSubText(data) {
         if (!data) return '';
-        
+
         switch (state.viewMode) {
             case 'diff':
                 var diff = parseInt(String(data['差枚']).replace(/[+,]/g, '')) || 0;
                 return (diff >= 0 ? '+' : '') + diff.toLocaleString();
-                
-            case 'rate':
-                var rate = data['機械割'];
-                return rate ? rate.toFixed(1) + '%' : '-';
-                
-            case 'games':
-                var games = parseInt(String(data['G数']).replace(/,/g, '')) || 0;
-                return games.toLocaleString();
-                
-            case 'tag':
-                var tags = data['_matchedTags'] || [];
-                if (tags.length > 0 && typeof TagEngine !== 'undefined') {
-                    var firstTag = TagEngine.get(tags[0]);
-                    return firstTag ? firstTag.icon : '';
-                }
-                return '';
-                
+
+            case 'badge':
+                var badge = data['_machineBadge'];
+                if (!badge || badge.cumVal === null || badge.cumVal === undefined) return '-';
+                // 数値色は個別指定せず、getUnitStyleが決めた文字色（白/黒）を継承する
+                return (badge.cumVal >= 0 ? '+' : '') + badge.cumVal.toLocaleString();
+
             default:
                 return '';
         }
     }
-    
+
     // ===================
-    // 統一カラー計算
+    // 差枚モード用カラー計算
     // ===================
-    
-    function getColorByValue(value, type) {
-        var thresholds;
-        
-        switch (type) {
-            case 'diff':
-                thresholds = [200, 500, 1000, 1500, 2000, 2500, 3000];
-                break;
-            case 'rate':
-                thresholds = [1, 2, 3, 5, 7, 10, 15];
-                break;
-            case 'games':
-                if (value < 3000) return HEATMAP_COLORS.negative[4];
-                var gameThresholds = [3000, 4000, 5000, 6000, 7000, 8000, 9000];
-                for (var g = gameThresholds.length - 1; g >= 0; g--) {
-                    if (value >= gameThresholds[g]) {
-                        return HEATMAP_COLORS.positive[g + 1];
-                    }
-                }
-                return HEATMAP_COLORS.positive[0];
-            default:
-                thresholds = [200, 500, 1000, 1500, 2000, 2500, 3000];
-        }
+
+    function getColorByValue(value) {
+        var thresholds = [200, 500, 1000, 1500, 2000, 2500, 3000];
 
         if (value === 0) return HEATMAP_COLORS.zero;
 
@@ -514,43 +628,47 @@ var IslandMap = (function() {
         var b = parseInt(hex.substr(4, 2), 16);
         return (r * 299 + g * 587 + b * 114) / 1000;
     }
-    
+
     // ===================
     // 台詳細モーダル
     // ===================
-    
+
     function showUnitDetail(unitNum) {
         var data = state.unitDataMap[unitNum];
         var modal = document.getElementById('islandUnitModal');
         var title = document.getElementById('islandUnitModalTitle');
         var body = document.getElementById('islandUnitModalBody');
-        
+
         if (!modal || !title || !body) return;
-        
+
         title.textContent = '台番号: ' + unitNum;
-        
+
         if (!data) {
             body.innerHTML = '<div class="unit-detail-empty">この台のデータはありません</div>';
         } else {
             var html = '<div class="unit-detail-grid">';
-            
+
             html += renderDetailRow('機種名', data['機種名'] || '-');
-            
+
             var diff = parseInt(String(data['差枚']).replace(/[+,]/g, '')) || 0;
             var diffClass = diff > 0 ? 'plus' : diff < 0 ? 'minus' : '';
             html += renderDetailRow('差枚', '<span class="' + diffClass + '">' + (diff >= 0 ? '+' : '') + diff.toLocaleString() + '枚</span>');
-            
+
             var games = parseInt(String(data['G数']).replace(/,/g, '')) || 0;
             html += renderDetailRow('G数', games.toLocaleString() + ' G');
-            
+
             var rate = data['機械割'];
             var rateClass = rate >= 100 ? 'plus' : 'minus';
             html += renderDetailRow('機械割', '<span class="' + rateClass + '">' + (rate ? rate.toFixed(2) + '%' : '-') + '</span>');
-            
+
             html += renderDetailRow('BB', data['BB'] || '0');
             html += renderDetailRow('RB', data['RB'] || '0');
             html += renderDetailRow('ART', data['ART'] || '0');
-            
+
+            if (data['_machineBadge']) {
+                html += renderDetailRow('凹みバッジ', MachineBadge.renderBadgeInner(data['_machineBadge']));
+            }
+
             var tags = data['_matchedTags'] || [];
             if (tags.length > 0 && typeof TagEngine !== 'undefined') {
                 var tagHtml = tags.map(function(tagId) {
@@ -560,29 +678,29 @@ var IslandMap = (function() {
                 }).join(' ');
                 html += renderDetailRow('タグ', tagHtml);
             }
-            
+
             if (typeof renderPositionTags === 'function') {
                 var positionTags = renderPositionTags(unitNum, { compact: false });
                 if (positionTags) {
                     html += renderDetailRow('位置', positionTags);
                 }
             }
-            
+
             html += '</div>';
             body.innerHTML = html;
         }
-        
+
         modal.classList.add('active');
         state.selectedUnit = unitNum;
     }
-    
+
     function renderDetailRow(label, value) {
         return '<div class="unit-detail-row">' +
                '<span class="unit-detail-label">' + label + '</span>' +
                '<span class="unit-detail-value">' + value + '</span>' +
                '</div>';
     }
-    
+
     function hideUnitDetail() {
         var modal = document.getElementById('islandUnitModal');
         if (modal) {
@@ -590,16 +708,32 @@ var IslandMap = (function() {
         }
         state.selectedUnit = null;
     }
-    
+
     // ===================
     // イベントリスナー
     // ===================
-    
+
+    function switchViewMode(mode) {
+        state.viewMode = mode;
+
+        var settingsBtn = document.getElementById('islandBadgeSettingsBtn');
+        if (settingsBtn) settingsBtn.hidden = (mode !== 'badge');
+
+        if (mode === 'badge') {
+            computeIslandBadges().then(function() {
+                renderLegend();
+                renderIslandMap();
+            });
+        } else {
+            renderLegend();
+            renderIslandMap();
+        }
+    }
+
     function setupEventListeners() {
-        // 前日・翌日ボタン
         var prevBtn = document.getElementById('islandPrevDate');
         var nextBtn = document.getElementById('islandNextDate');
-        
+
         if (prevBtn) {
             prevBtn.addEventListener('click', function() {
                 var sortedFiles = sortFilesByDate(CSV_FILES, true);
@@ -609,7 +743,7 @@ var IslandMap = (function() {
                 }
             });
         }
-        
+
         if (nextBtn) {
             nextBtn.addEventListener('click', function() {
                 if (state.currentDateIndex > 0) {
@@ -618,39 +752,35 @@ var IslandMap = (function() {
                 }
             });
         }
-        
-        // 日付セレクター
-        var dateSelect = document.getElementById('islandDateSelect');
-        if (dateSelect) {
-            dateSelect.addEventListener('change', function(e) {
-                var sortedFiles = sortFilesByDate(CSV_FILES, true);
-                var newIndex = sortedFiles.indexOf(e.target.value);
-                if (newIndex !== -1) {
-                    state.currentDateIndex = newIndex;
-                    render();
-                }
-            });
+
+        var dateTrigger = document.getElementById('islandDateTrigger');
+        if (dateTrigger) {
+            dateTrigger.addEventListener('click', openIslandDatePicker);
         }
-        
-        // 表示モード切り替え
+
         document.querySelectorAll('.island-mode-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.island-mode-btn').forEach(function(b) {
                     b.classList.remove('active');
                 });
                 this.classList.add('active');
-                state.viewMode = this.dataset.mode;
-                renderLegend();
-                renderIslandMap();
+                switchViewMode(this.dataset.mode);
             });
         });
-        
-        // モーダル閉じる
+
+        var badgeSettingsBtn = document.getElementById('islandBadgeSettingsBtn');
+        if (badgeSettingsBtn) {
+            badgeSettingsBtn.addEventListener('click', function() {
+                var sheet = ensureIslandBadgeSheet();
+                if (sheet) sheet.open();
+            });
+        }
+
         var closeBtn = document.getElementById('islandUnitModalClose');
         if (closeBtn) {
             closeBtn.addEventListener('click', hideUnitDetail);
         }
-        
+
         var modal = document.getElementById('islandUnitModal');
         if (modal) {
             modal.addEventListener('click', function(e) {
@@ -659,30 +789,27 @@ var IslandMap = (function() {
                 }
             });
         }
-        
-        // ESCキーでモーダル閉じる
+
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 hideUnitDetail();
             }
         });
     }
-    
+
     // ===================
     // 公開API
     // ===================
-    
+
     return {
         init: init,
         render: render,
         setViewMode: function(mode) {
-            state.viewMode = mode;
-            renderLegend();
-            renderIslandMap();
+            switchViewMode(mode);
         },
         getState: function() {
             return state;
         }
     };
-    
+
 })();

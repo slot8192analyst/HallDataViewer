@@ -1,27 +1,16 @@
-<nav class="page-nav">
-    <button class="page-nav-btn" data-nav="home">🏠 ホーム</button>
-    <button class="page-nav-btn" data-nav="daily">📋 日別</button>
-    <button class="page-nav-btn" data-nav="analysis">📊 解析</button>
-    <button class="page-nav-btn" data-nav="calendar">📅 カレンダー</button>
-    <button class="page-nav-btn active" data-nav="island">🗺️ 島図</button>
-    <button class="page-nav-btn" data-nav="aim">🎯 狙い台</button>
-    <button class="page-nav-btn" data-nav="promotion">📣 取材</button>
-</nav>
 <div class="island-header">
     <h2>🗺️ 島図</h2>
     <p class="island-description">フロアレイアウトと台データを視覚的に確認できます</p>
 </div>
 
-<!-- 日付ナビゲーション -->
+<!-- 日付ナビゲーション（日付ラベルをタップでカレンダーを開く） -->
 <div class="island-date-nav">
     <button id="islandPrevDate">◀ 前日</button>
-    <span class="current-date" id="islandDateLabel">-</span>
+    <button class="current-date-trigger" id="islandDateTrigger" type="button">
+        <span class="current-date-cal-icon">📅</span>
+        <span class="current-date" id="islandDateLabel">-</span>
+    </button>
     <button id="islandNextDate">翌日 ▶</button>
-</div>
-
-<!-- 日付セレクター追加 -->
-<div class="island-date-select-wrapper">
-    <select id="islandDateSelect"></select>
 </div>
 
 <!-- 表示モード選択 -->
@@ -29,13 +18,11 @@
     <div class="island-view-modes">
         <span class="control-label">表示:</span>
         <div class="island-mode-buttons">
-            <button class="island-mode-btn active" data-mode="machine">機種名</button>
-            <button class="island-mode-btn" data-mode="diff">差枚</button>
-            <button class="island-mode-btn" data-mode="rate">機械割</button>
-            <button class="island-mode-btn" data-mode="games">G数</button>
-            <button class="island-mode-btn" data-mode="tag">タグ</button>
+            <button class="island-mode-btn active" data-mode="diff">差枚</button>
+            <button class="island-mode-btn" data-mode="badge">🐙💀 バッジ</button>
         </div>
     </div>
+    <button class="island-badge-settings-btn" id="islandBadgeSettingsBtn" type="button" hidden>⚙️ バッジ設定</button>
 </div>
 
 <!-- 凡例 -->
