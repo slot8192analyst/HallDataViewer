@@ -368,12 +368,12 @@
       "type": "dmm",
       "media": "DMMぱちタウン",
       "name": ["奥義ノ矢"],
-      "report_url": "hhttps://p-town.dmm.com/shop_reports/532138",
+      "report_url": "hhttps://p-town.dmm.com/shop_reports/542685",
       "target_machines": [
-        "",
-        "",
-        "",
-        ""],
+        "スマスロハナビ",
+        "マギアレコード 魔法少女まどか☆マギカ外伝",
+        "スロット ソードアートオンラインⅡ",
+        "真打 吉宗"],
       "note": ""
     },
     {
@@ -675,6 +675,12 @@
       "startDate": "2026_08_24",
       "endDate": "2026_08_30",
       "machines": ["喰種"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_08_31",
+      "endDate": "2026_09_06",
+      "machines": ["マイジャグ,乙女5"],
       "color": "#3b82f6"
     }
  ],
