@@ -87,6 +87,8 @@ HallData.sort = {
      * 台番号から数値を抽出
      */
     extractUnitNumber: function(unitStr) {
+        // 新スキーマで台番号が数値型になったため、数値はそのまま返す
+        if (typeof unitStr === 'number') return unitStr;
         const numOnly = (unitStr || '').replace(/\D/g, '');
         return numOnly ? parseInt(numOnly, 10) : 0;
     },

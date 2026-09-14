@@ -268,7 +268,7 @@ function renderDailyFilterGroups() {
 
 function getRowValueForFilter(row, column) {
     if (column === '台番号末尾') {
-        var numOnly = (row['台番号'] || '').replace(/\D/g, '');
+        var numOnly = String(row['台番号'] || 0).replace(/\D/g, '');
         if (numOnly.length === 0) return null;
         return parseInt(numOnly.slice(-1));
     }
@@ -2083,7 +2083,7 @@ function calculateSuffixStats(data) {
     }
 
     data.forEach(function(row) {
-        var unitNum = (row['台番号'] || '').replace(/\D/g, '');
+        var unitNum = String(row['台番号'] || 0).replace(/\D/g, '');
         if (unitNum.length === 0) return;
 
         var suffix = parseInt(unitNum.slice(-1));
