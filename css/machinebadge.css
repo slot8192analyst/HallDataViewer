@@ -51,6 +51,16 @@
     color: #fff;
     border-color: #a05c20;
 }
+.mb-tako-4 {
+    background: linear-gradient(135deg, #1e3a2f, #34a06b);
+    color: #d1fae5;
+    border-color: #16a34a;
+}
+.mb-tako-5 {
+    background: linear-gradient(135deg, #1a2e3a, #2ea8d4);
+    color: #e0f2fe;
+    border-color: #0284c7;
+}
 
 /* ----- 💀 死に台（下位差枚）----- */
 .mb-kubi-1 {
@@ -68,6 +78,16 @@
     background: linear-gradient(135deg, #422006, #d97706);
     color: #fff;
     border-color: #b45309;
+}
+.mb-kubi-4 {
+    background: linear-gradient(135deg, #1e1e3a, #7c6fcd);
+    color: #ede9fe;
+    border-color: #6d28d9;
+}
+.mb-kubi-5 {
+    background: linear-gradient(135deg, #1a1a2e, #4b5563);
+    color: #d1d5db;
+    border-color: #374151;
 }
 
 /* なし */

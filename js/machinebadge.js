@@ -35,9 +35,9 @@ var MachineBadge = (function() {
     var showKubi  = true;       // 常にオン（チェックボックス廃止）
     var badgeDays = 7;          // 過去何日分累積するか（1〜31）
     var badgeBase = 'current';  // 'current'=当日含む / 'prev'=前日から遡る
-    var topN      = 3;          // 上位・下位何位まで
-    var takoRanks = [1, 2, 3];  // タコだし表示する順位リスト（デフォルト全表示）
-    var kubiRanks = [1, 2, 3];  // 死に台表示する順位リスト（デフォルト全表示）
+    var topN      = 5;          // 上位・下位何位まで
+    var takoRanks = [1, 2, 3, 4, 5];  // タコだし表示する順位リスト（デフォルト全表示）
+    var kubiRanks = [1, 2, 3, 4, 5];  // 死に台表示する順位リスト（デフォルト全表示）
     var exEvent   = false;      // イベント日を除外するか
     var exTail05  = false;      // 末尾0・5の日を除外するか
     var fillMode  = 'fill';     // 'fill'=有効日がN日たまるまで遡る / 'trim'=直近Nカレンダー日から抜くだけ
@@ -445,7 +445,7 @@ var MachineBadge = (function() {
     // 集計期間（数値入力）・基準日・基準列・除外設定・補完モード・順位表示を表示する。
 
     function renderRankCheckboxes(idPrefix, kind, ranks) {
-        return [1, 2, 3].map(function(n) {
+        return [1, 2, 3, 4, 5].map(function(n) {
             var chkId = idPrefix + 'Rank' + kind + n;
             var checked = ranks.indexOf(n) !== -1 ? ' checked' : '';
             return '<label class="mb-rank-label">'
@@ -615,16 +615,16 @@ var MachineBadge = (function() {
             if (exTail05El) exTail05  = exTail05El.checked;
             if (fillModeEl) fillMode  = fillModeEl.value;
 
-            takoRanks = [1, 2, 3].filter(function(n) {
+            takoRanks = [1, 2, 3, 4, 5].filter(function(n) {
                 var el = document.getElementById(idPrefix + 'RankTako' + n);
                 return el ? el.checked : true;
             });
-            kubiRanks = [1, 2, 3].filter(function(n) {
+            kubiRanks = [1, 2, 3, 4, 5].filter(function(n) {
                 var el = document.getElementById(idPrefix + 'RankKubi' + n);
                 return el ? el.checked : true;
             });
-            if (takoRanks.length === 0) takoRanks = [1, 2, 3];
-            if (kubiRanks.length === 0) kubiRanks = [1, 2, 3];
+            if (takoRanks.length === 0) takoRanks = [1, 2, 3, 4, 5];
+            if (kubiRanks.length === 0) kubiRanks = [1, 2, 3, 4, 5];
 
             saveSettings();
             if (onChange) onChange();
@@ -637,7 +637,7 @@ var MachineBadge = (function() {
         if (exTail05El) exTail05El.addEventListener('change', update);
         if (fillModeEl) fillModeEl.addEventListener('change', update);
 
-        [1, 2, 3].forEach(function(n) {
+        [1, 2, 3, 4, 5].forEach(function(n) {
             var takoEl = document.getElementById(idPrefix + 'RankTako' + n);
             var kubiEl = document.getElementById(idPrefix + 'RankKubi' + n);
             if (takoEl) takoEl.addEventListener('change', update);
