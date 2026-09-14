@@ -1,6 +1,6 @@
 # CODEMAP — 軽量コード地図（自動生成・手編集禁止）
 
-生成: 2026-08-19 03:43 JST / `python3 tools/gen_codemap.py`
+生成: 2026-09-14 15:42 JST / `python3 tools/gen_codemap.py`
 
 ## 使い方（AIも人間もまずここを読む）
 
@@ -34,42 +34,42 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 | `js/machinebadge.js` | 698 | ~10,596 | ⚠️部分のみ |
 | `css/style.css` | 1332 | ~10,569 | ⚠️部分のみ |
 | `css/daily.css` | 1239 | ~10,216 | ⚠️部分のみ |
-| `js/island.js` | 688 | ~8,209 | ⚠️部分のみ |
+| `js/island.js` | 815 | ~9,765 | ⚠️部分のみ |
 | `css/analysis.css` | 909 | ~7,753 | ✅ |
+| `events.json` | 781 | ~7,413 | ✅ |
 | `css/calendar.css` | 1027 | ~6,836 | ✅ |
 | `js/data.js` | 590 | ~6,827 | ✅ |
-| `events.json` | 668 | ~6,567 | ✅ |
 | `css/aim.css` | 558 | ~5,995 | ✅ |
 | `js/memo.js` | 419 | ~5,455 | ✅ |
-| `partials/analysis.html` | 342 | ~5,059 | ✅ |
+| `partials/analysis.html` | 332 | ~4,872 | ✅ |
 | `DESIGN.md` | 329 | ~4,614 | ✅ |
-| `CODEMAP.md` | 221 | ~4,442 | ✅ |
+| `CODEMAP.md` | 221 | ~4,429 | ✅ |
 | `js/daily-state.js` | 355 | ~4,366 | ✅ |
 | `js/router.js` | 291 | ~3,591 | ✅ |
-| `css/island.css` | 577 | ~3,556 | ✅ |
+| `css/island.css` | 570 | ~3,530 | ✅ |
 | `js/board.js` | 229 | ~3,415 | ✅ |
 | `css/machinebadge.css` | 402 | ~3,345 | ✅ |
 | `css/promotion.css` | 363 | ~3,265 | ✅ |
 | `index.html` | 191 | ~3,164 | ✅ |
-| `partials/daily.html` | 186 | ~2,789 | ✅ |
+| `partials/daily.html` | 177 | ~2,595 | ✅ |
 | `js/preset.js` | 202 | ~2,428 | ✅ |
 | `js/chart.js` | 190 | ~2,358 | ✅ |
 | `js/floating-nav.js` | 208 | ~2,346 | ✅ |
 | `css/memo.css` | 172 | ~2,071 | ✅ |
-| `partials/aim.html` | 105 | ~2,039 | ✅ |
 | `js/config.js` | 166 | ~1,935 | ✅ |
+| `partials/aim.html` | 94 | ~1,823 | ✅ |
 | `css/theme.css` | 122 | ~1,337 | ✅ |
 | `js/app.js` | 121 | ~1,313 | ✅ |
 | `js/bottomsheet.js` | 97 | ~1,179 | ✅ |
-| `partials/calendar.html` | 59 | ~995 | ✅ |
-| `partials/island.html` | 67 | ~854 | ✅ |
-| `partials/promotion/promotion.html` | 33 | ~650 | ✅ |
-| `partials/promotion/zombie.html` | 12 | ~247 | ✅ |
-| `partials/promotion/tenun.html` | 12 | ~246 | ✅ |
-| `partials/promotion/ougi.html` | 12 | ~246 | ✅ |
-| `files.json` | 24 | ~173 | ✅ |
+| `partials/calendar.html` | 50 | ~808 | ✅ |
+| `partials/island.html` | 54 | ~662 | ✅ |
+| `partials/promotion/promotion.html` | 24 | ~463 | ✅ |
+| `files.json` | 25 | ~182 | ✅ |
+| `partials/promotion/zombie.html` | 3 | ~61 | ✅ |
+| `partials/promotion/tenun.html` | 3 | ~59 | ✅ |
+| `partials/promotion/ougi.html` | 3 | ~59 | ✅ |
 
-**⛔ `data/*.json`（23ファイル）+ `unit_history.json` = 67.4MB / 概算 23,570,378 トークン**
+**⛔ `data/*.json`（24ファイル）+ `unit_history.json` = 25.8MB / 概算 9,007,765 トークン**
 
 → この中身を開くと1回で月間クレジットが消える。**絶対に Read しない。**
 　 集計は `jq` / `tools/peek.sh` を使う（トークン0）。スキーマは §3 にある。
@@ -117,8 +117,8 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 **`js/hstag.js`** 849行/~10,729tok ⚠️ 関数41個
 　L1 汎用タグ判定エンジン（複数タグ定義対応） / L7 定数 / L68 状態 / L78 ストレージ / L134 タグ定義CRUD / L180 グループ・条件操作 / L247 プリセット / L271 判定ロジック / L381 UI描画 / L548 UIイベント / L695 UI登録 / L708 初期化 / L714 公開API / L801 後方互換性のためのラッパー関数
 
-**`js/island.js`** 688行/~8,209tok ⚠️ 関数26個
-　L1 島図タブ / L44 初期化 / L87 日付セレクター / L140 データ取得 / L178 機種名の省略 / L190 描画 / L461 統一カラー計算 / L518 台詳細モーダル / L594 イベントリスナー / L671 公開API
+**`js/island.js`** 815行/~9,765tok ⚠️ 関数34個
+　L1 島図タブ / L40 初期化 / L82 データ取得 / L120 凹みバッジ（🐙タコだし / 💀死に台） / L202 日付選択カレンダー（ボトムシート） / L338 機種名の省略 / L350 描画 / L498 インジケーター判定（🐙タコだし / 💀死に台） / L595 差枚モード用カラー計算 / L632 台詳細モーダル / L712 イベントリスナー / L800 公開API
 
 **`js/machinebadge.js`** 698行/~10,596tok ⚠️ 関数31個
 　L1 機種内バッジシステム / L21 設定 / L49 ストレージ / L93 日付・除外判定ヘルパ / L144 累積計算 / L235 コアランク計算 / L274 日別タブ用: 累積でバッジ付与 / L365 トレンドタブ用: aggregated結果に対してバッジ付与 / L399 HTML描画 / L443 設定UI / L649 ゲッター / L668 初期化 / L672 公開API
@@ -147,7 +147,7 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 - `css/calendar.css` 1027行/~6,836tok （セレクタ178個）
 - `css/components.css` 1703行/~13,068tok （セレクタ233個）
 - `css/daily.css` 1239行/~10,216tok （セレクタ199個）
-- `css/island.css` 577行/~3,556tok （セレクタ77個）
+- `css/island.css` 570行/~3,530tok （セレクタ77個）
 - `css/machinebadge.css` 402行/~3,345tok （セレクタ59個）
 - `css/memo.css` 172行/~2,071tok （セレクタ60個）
 - `css/promotion.css` 363行/~3,265tok （セレクタ85個）
@@ -159,26 +159,26 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 ## 4. partials/ 一覧（id の位置は `tools/find.sh '#myId'`）
 
 - `index.html` 191行/~3,164tok （id 19個）
-- `partials/aim.html` 105行/~2,039tok （id 25個）
-- `partials/analysis.html` 342行/~5,059tok （id 82個）
-- `partials/calendar.html` 59行/~995tok （id 8個）
-- `partials/daily.html` 186行/~2,789tok （id 52個）
-- `partials/island.html` 67行/~854tok （id 11個）
-- `partials/promotion/ougi.html` 12行/~246tok （id 0個）
-- `partials/promotion/promotion.html` 33行/~650tok （id 0個）
-- `partials/promotion/tenun.html` 12行/~246tok （id 0個）
-- `partials/promotion/zombie.html` 12行/~247tok （id 0個）
+- `partials/aim.html` 94行/~1,823tok （id 24個）
+- `partials/analysis.html` 332行/~4,872tok （id 82個）
+- `partials/calendar.html` 50行/~808tok （id 8個）
+- `partials/daily.html` 177行/~2,595tok （id 52個）
+- `partials/island.html` 54行/~662tok （id 12個）
+- `partials/promotion/ougi.html` 3行/~59tok （id 0個）
+- `partials/promotion/promotion.html` 24行/~463tok （id 0個）
+- `partials/promotion/tenun.html` 3行/~59tok （id 0個）
+- `partials/promotion/zombie.html` 3行/~61tok （id 0個）
 
 ---
 
 ## 5. データスキーマ（これを読めば data/*.json を開く必要はない）
 
-取得元 `data/2026_08.json` の実レコード:
+取得元 `data/2026_09.json` の実レコード:
 
 ```
 data/YYYY_MM.json = {
   "YYYY_MM_DD": [        // 日付キー → その日の全台レコード配列
-    { "機種名", "台番号", "G数", "差枚", "BB", "RB", "ART", "合成確率", "BB確率", "RB確率", "ART確率" },
+    { "機種名", "台番号", "G数", "差枚", "BB", "RB", "ART" },
     ...
   ], ...
 }
