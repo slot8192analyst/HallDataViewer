@@ -1,6 +1,6 @@
 # CODEMAP — 軽量コード地図（自動生成・手編集禁止）
 
-生成: 2026-09-14 15:42 JST / `python3 tools/gen_codemap.py`
+生成: 2026-09-14 16:02 JST / `python3 tools/gen_codemap.py`
 
 ## 使い方（AIも人間もまずここを読む）
 
@@ -26,7 +26,7 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 | `js/analysis.js` | 2050 | ~33,193 | ⛔全読み禁止 |
 | `js/utils.js` | 2630 | ~29,988 | ⛔全読み禁止 |
 | `js/aim.js` | 1851 | ~25,956 | ⛔全読み禁止 |
-| `ARCHITECTURE.md` | 411 | ~16,249 | ⚠️部分のみ |
+| `ARCHITECTURE.md` | 400 | ~16,323 | ⚠️部分のみ |
 | `css/components.css` | 1703 | ~13,068 | ⚠️部分のみ |
 | `js/calendar.js` | 973 | ~12,113 | ⚠️部分のみ |
 | `js/promotion.js` | 789 | ~11,231 | ⚠️部分のみ |
@@ -43,7 +43,7 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 | `js/memo.js` | 419 | ~5,455 | ✅ |
 | `partials/analysis.html` | 332 | ~4,872 | ✅ |
 | `DESIGN.md` | 329 | ~4,614 | ✅ |
-| `CODEMAP.md` | 221 | ~4,429 | ✅ |
+| `CODEMAP.md` | 222 | ~4,509 | ✅ |
 | `js/daily-state.js` | 355 | ~4,366 | ✅ |
 | `js/router.js` | 291 | ~3,591 | ✅ |
 | `css/island.css` | 570 | ~3,530 | ✅ |

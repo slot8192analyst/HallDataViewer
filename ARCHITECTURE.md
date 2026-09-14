@@ -99,22 +99,11 @@ webapp/
 ## 3. データモデル
 
 ### 3.1 台レコード（`data/YYYY_MM.json` 内の1要素）
-全フィールドは**文字列**で保存される（数値処理側でパースする）。
+**機種名のみ文字列**。台番号・G数・差枚・BB・RB・ART は**数値（int）**で保存される。
+確率4列（合成確率・BB確率・RB確率・ART確率）は**廃止**。フロント側で `G数/(BB+RB)` 等により導出する。
 
 ```json
-{
-  "機種名":   "ネオアイムジャグラーEX",
-  "台番号":   "881",
-  "G数":      "7682",
-  "差枚":     "1651",
-  "BB":       "32",
-  "RB":       "29",
-  "ART":      "0",
-  "合成確率": "1/125.9",
-  "BB確率":   "1/240.1",
-  "RB確率":   "1/264.9",
-  "ART確率":  "1/0.0"
-}
+{"機種名": "ネオアイムジャグラーEX", "台番号": 881, "G数": 7682, "差枚": 1651, "BB": 32, "RB": 29, "ART": 0}
 ```
 
 ### 3.2 月別ファイルの構造
@@ -362,7 +351,7 @@ webapp/
 - グローバル変数（`CSV_FILES` 等）と `HallData.store` が**二重管理**。`syncToStore/syncFromStore` で都度同期している。
 - `compare.js` / `compare.css` / `trend.js` / `trend.css` は**存在しない**（廃止・リネーム済み）。
 - 解析タブ（`analysis.js`）は**ファイル名のみ改称**されており、内部の関数・変数名（`loadTrendData` / `setupTrendEventListeners` / `trendCache` / `activeTrendFilters` など）は依然 trend 由来の名前のまま。
-- 全データを文字列で保持しているため、数値比較・ソート時は各所でパースしている。
+- ~~全データを文字列で保持しているため、数値比較・ソート時は各所でパースしている。~~ → データ形式変更済み。台番号・G数・差枚・BB・RB・ART はint型で保存されるため、JS側の `parseInt` 処理は不要になった（既存コードに残っている箇所は順次整理）。
 - 機種フィルターの💾保存・⚙️管理ボタンは廃止済み。これに伴い `preset.js` のユーザープリセットCRUD（`add`/`remove`/`rename`/`updateMachines` と `saveUserPresets`）および `components.css` の `.preset-save-btn` / `.preset-manage-btn` / `.preset-manage-panel` 系・`.preset-action-btn` 系スタイルは**削除済み**。`MachinePreset` の公開APIは `getAll` / `getBuiltinPresets` / `getUserPresets` / `resolve` の4つ。ユーザープリセットは読み出し専用（新規保存する導線は現状無い）。
 - プリセットの `exact` / `excludeMachines` はデータの `機種名` と**完全一致**が前提。表記ゆれがあるとマッチしないため、機種追加時は実データと突き合わせて都度修正する運用。
 - バッジの台数別ロジックは日別タブ（`assignBadges`）のみ。解析タブ（`assignBadgesForTrend`）は従来の機種内順位のまま二系統が併存している。
