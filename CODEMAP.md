@@ -1,6 +1,6 @@
 # CODEMAP — 軽量コード地図（自動生成・手編集禁止）
 
-生成: 2026-09-14 15:42 JST / `python3 tools/gen_codemap.py`
+生成: 2026-09-14 15:53 JST / `python3 tools/gen_codemap.py`
 
 ## 使い方（AIも人間もまずここを読む）
 
@@ -43,7 +43,7 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 | `js/memo.js` | 419 | ~5,455 | ✅ |
 | `partials/analysis.html` | 332 | ~4,872 | ✅ |
 | `DESIGN.md` | 329 | ~4,614 | ✅ |
-| `CODEMAP.md` | 221 | ~4,429 | ✅ |
+| `CODEMAP.md` | 221 | ~4,465 | ✅ |
 | `js/daily-state.js` | 355 | ~4,366 | ✅ |
 | `js/router.js` | 291 | ~3,591 | ✅ |
 | `css/island.css` | 570 | ~3,530 | ✅ |
@@ -69,7 +69,7 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 | `partials/promotion/tenun.html` | 3 | ~59 | ✅ |
 | `partials/promotion/ougi.html` | 3 | ~59 | ✅ |
 
-**⛔ `data/*.json`（24ファイル）+ `unit_history.json` = 25.8MB / 概算 9,007,765 トークン**
+**⛔ `data/*.json`（24ファイル）+ `unit_history.json` = 29.9MB / 概算 10,456,635 トークン**
 
 → この中身を開くと1回で月間クレジットが消える。**絶対に Read しない。**
 　 集計は `jq` / `tools/peek.sh` を使う（トークン0）。スキーマは §3 にある。

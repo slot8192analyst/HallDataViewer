@@ -71,23 +71,30 @@ def convert_month_data(data: dict) -> dict:
 
 def build_compact_json(data: dict) -> str:
     """
-    月別JSONを「日付キーごとに1行」のコンパクト形式にシリアライズする。
+    月別JSONを「1台1行」のコンパクト形式にシリアライズする。
 
     出力イメージ:
     {
-    "2026_08_16": [{"機種名": "...", "台番号": 881, ...}, {"機種名": "...", ...}],
-    "2026_08_15": [...],
-    ...
+      "2026_08_16": [
+        {"機種名": "...", "台番号": 881, "G数": 4002, ...},
+        {"機種名": "...", "台番号": 882, "G数": 3941, ...}
+      ],
+      "2026_08_15": [
+        ...
+      ]
     }
     """
     lines = ['{']
     date_keys = list(data.keys())
     for i, date_key in enumerate(date_keys):
         records = data[date_key]
-        # 各レコードをインラインJSONに（ensure_ascii=False で日本語をそのまま）
-        records_json = json.dumps(records, ensure_ascii=False, separators=(',', ':'))
-        comma = ',' if i < len(date_keys) - 1 else ''
-        lines.append(f'  "{date_key}": {records_json}{comma}')
+        date_comma = ',' if i < len(date_keys) - 1 else ''
+        lines.append(f'  "{date_key}": [')
+        for j, rec in enumerate(records):
+            rec_json = json.dumps(rec, ensure_ascii=False, separators=(', ', ': '))
+            rec_comma = ',' if j < len(records) - 1 else ''
+            lines.append(f'    {rec_json}{rec_comma}')
+        lines.append(f'  ]{date_comma}')
     lines.append('}')
     return '\n'.join(lines) + '\n'
 
