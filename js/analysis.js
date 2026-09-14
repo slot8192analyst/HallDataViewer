@@ -56,56 +56,71 @@ var TREND_COLUMN_CONFIG = {
     '差枚': {
         label: '差枚', unit: '枚',
         format: function(val) { return (val >= 0 ? '+' : '') + Math.round(val).toLocaleString(); },
-        parseRow: function(row) { return parseInt(String(row['差枚']).replace(/,/g, '')) || 0; },
+        parseRow: function(row) { return row['差枚'] || 0; },
         colorClass: function(val) { return val > 0 ? 'plus' : val < 0 ? 'minus' : ''; },
         canSum: true, chartLabel: '差枚', summaryPrefix: '差枚'
     },
     'G数': {
         label: 'G数', unit: 'G',
         format: function(val) { return Math.round(val).toLocaleString(); },
-        parseRow: function(row) { return parseInt(String(row['G数']).replace(/,/g, '')) || 0; },
+        parseRow: function(row) { return row['G数'] || 0; },
         colorClass: function() { return ''; },
         canSum: true, chartLabel: 'G数', summaryPrefix: 'G数'
     },
     'BB': {
         label: 'BB回数', unit: '回',
         format: function(val) { return Math.round(val).toLocaleString(); },
-        parseRow: function(row) { return parseInt(String(row['BB']).replace(/,/g, '')) || 0; },
+        parseRow: function(row) { return row['BB'] || 0; },
         colorClass: function() { return ''; },
         canSum: true, chartLabel: 'BB回数', summaryPrefix: 'BB'
     },
     'RB': {
         label: 'RB回数', unit: '回',
         format: function(val) { return Math.round(val).toLocaleString(); },
-        parseRow: function(row) { return parseInt(String(row['RB']).replace(/,/g, '')) || 0; },
+        parseRow: function(row) { return row['RB'] || 0; },
         colorClass: function() { return ''; },
         canSum: true, chartLabel: 'RB回数', summaryPrefix: 'RB'
     },
     'ART': {
         label: 'ART回数', unit: '回',
         format: function(val) { return Math.round(val).toLocaleString(); },
-        parseRow: function(row) { return parseInt(String(row['ART']).replace(/,/g, '')) || 0; },
+        parseRow: function(row) { return row['ART'] || 0; },
         colorClass: function() { return ''; },
         canSum: true, chartLabel: 'ART回数', summaryPrefix: 'ART'
     },
+    // 合成確率・BB確率・RB確率 は廃止（データから削除済み）。フロントで G数/BB・RB より導出する。
     '合成確率': {
         label: '合成確率', unit: '',
         format: function(val) { return val === null ? '-' : '1/' + val.toFixed(1); },
-        parseRow: function(row) { return parseProbability(row['合成確率']); },
+        parseRow: function(row) {
+            var g = row['G数'] || 0;
+            var bb = row['BB'] || 0;
+            var rb = row['RB'] || 0;
+            var total = bb + rb;
+            return (g > 0 && total > 0) ? g / total : null;
+        },
         colorClass: function(val) { if (val === null) return ''; return val <= 150 ? 'plus' : val >= 300 ? 'minus' : ''; },
         canSum: false, isInverse: true, chartLabel: '合成確率 (1/x)', summaryPrefix: '合成確率'
     },
     'BB確率': {
         label: 'BB確率', unit: '',
         format: function(val) { return val === null ? '-' : '1/' + val.toFixed(1); },
-        parseRow: function(row) { return parseProbability(row['BB確率']); },
+        parseRow: function(row) {
+            var g = row['G数'] || 0;
+            var bb = row['BB'] || 0;
+            return (g > 0 && bb > 0) ? g / bb : null;
+        },
         colorClass: function(val) { if (val === null) return ''; return val <= 250 ? 'plus' : val >= 400 ? 'minus' : ''; },
         canSum: false, isInverse: true, chartLabel: 'BB確率 (1/x)', summaryPrefix: 'BB確率'
     },
     'RB確率': {
         label: 'RB確率', unit: '',
         format: function(val) { return val === null ? '-' : '1/' + val.toFixed(1); },
-        parseRow: function(row) { return parseProbability(row['RB確率']); },
+        parseRow: function(row) {
+            var g = row['G数'] || 0;
+            var rb = row['RB'] || 0;
+            return (g > 0 && rb > 0) ? g / rb : null;
+        },
         colorClass: function(val) { if (val === null) return ''; return val <= 300 ? 'plus' : val >= 500 ? 'minus' : ''; },
         canSum: false, isInverse: true, chartLabel: 'RB確率 (1/x)', summaryPrefix: 'RB確率'
     },
@@ -113,8 +128,8 @@ var TREND_COLUMN_CONFIG = {
         label: '機械割', unit: '%',
         format: function(val) { return val === null ? '-' : val.toFixed(2) + '%'; },
         parseRow: function(row) {
-            var g = parseInt(String(row['G数']).replace(/,/g, '')) || 0;
-            var sa = parseInt(String(row['差枚']).replace(/,/g, '')) || 0;
+            var g = row['G数'] || 0;
+            var sa = row['差枚'] || 0;
             if (g <= 0) return null;
             return ((g * 3 + sa) / (g * 3)) * 100;
         },
@@ -123,12 +138,7 @@ var TREND_COLUMN_CONFIG = {
     }
 };
 
-function parseProbability(probStr) {
-    if (!probStr || probStr === '-' || probStr === '') return null;
-    var match = String(probStr).trim().match(/1\/([\d.]+)/);
-    if (match) { var val = parseFloat(match[1]); return (val > 0 && isFinite(val)) ? val : null; }
-    return null;
-}
+
 
 function getCurrentColumnConfig() {
     return TREND_COLUMN_CONFIG[trendDataColumn] || TREND_COLUMN_CONFIG['差枚'];

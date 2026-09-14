@@ -802,8 +802,7 @@ function syncBadgeFilterCheckboxes() {
 // ===================
 
 var COLUMN_GROUPS = [
-    { id: '__group_atari_count', label: '当たり回数', members: ['BB', 'RB', 'ART'] },
-    { id: '__group_atari_rate',  label: '当たり確率', members: ['合成確率', 'BB確率', 'RB確率', 'ART確率'] }
+    { id: '__group_atari_count', label: '当たり回数', members: ['BB', 'RB', 'ART'] }
 ];
 
 // 表示列フィルタから常に除外する列（必ず表示・固定列）

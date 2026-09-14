@@ -129,7 +129,7 @@ function buildVirtualRows() {
     var baseRows = dataCache[baseFile];
 
     // 数値系の列は空にする（台番号・機種名・位置情報のみ残す）
-    var NUMERIC_BLANK_KEYS = ['G数', '差枚', 'BB', 'RB', 'ART', '合成確率', 'BB確率', 'RB確率', 'ART確率'];
+    var NUMERIC_BLANK_KEYS = ['G数', '差枚', 'BB', 'RB', 'ART'];
 
     return baseRows.map(function(row) {
         var newRow = Object.assign({}, row);
