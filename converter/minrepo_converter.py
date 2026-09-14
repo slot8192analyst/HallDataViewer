@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-みんれぽ HTMLファイルを月別JSONに統合するスクリプト（CSV同時出力対応）
+みんれぽ HTMLファイルを月別JSONに統合するスクリプト
 
-anaslo_converter (convert_html_to_json.py) と同じ階層に配置して使用する。
-出力先のディレクトリ構造・JSON/CSVの形式は anaslo_converter と共通。
+anaslo_converter.py と同じ階層に配置して使用する。
+出力先のディレクトリ構造・JSONの形式は anaslo_converter と共通。
 
 使い方:
     python minrepo_converter.py [HTMLフォルダパス]
@@ -12,19 +12,23 @@ anaslo_converter (convert_html_to_json.py) と同じ階層に配置して使用�
 例:
     python minrepo_converter.py C:/Downloads/minrepo_html
     → 指定フォルダ内の「9_2(水) ○○店 ...html」形式のファイルを読み込んで
-      converter/YYYY_MM_DD.csv と data/YYYY_MM.json を生成/更新
+      data/YYYY_MM.json を生成/更新
 
     python minrepo_converter.py
     → 対話形式でHTMLフォルダを指定
 
 機能:
-    - みんれぽのHTMLテーブル（機種名・台番号・G数・差枚）をCSVとJSONに同時変換
+    - みんれぽのHTMLテーブル（機種名・台番号・G数・差枚）をJSONに変換
     - 出率は取得しない（anaslo_converter側のJSON構造に合わせるため不要）
-    - 不足しているBB・RB・ART・合成確率・BB確率・RB確率・ART確率は "0" で埋めて追記
+    - 不足しているBB・RB・ARTは 0（数値）で埋めて追記
+    - 廃止フィールド（合成確率・BB確率・RB確率・ART確率）は出力しない
     - 既存のJSONファイルがある場合、新しいデータを追加更新
     - 同じ日付のデータがある場合はHTMLで上書き
-    - 変換後のHTMLファイル削除オプション
+    - 変換後のHTMLファイルを自動削除
     - files.json の自動更新
+
+データ構造（最新）:
+    {"機種名": str, "台番号": int, "G数": int, "差枚": int, "BB": int, "RB": int, "ART": int}
 """
 
 import os
@@ -35,7 +39,6 @@ import glob
 from pathlib import Path
 from collections import defaultdict
 
-import pandas as pd
 from bs4 import BeautifulSoup
 
 
@@ -54,11 +57,6 @@ def get_data_dir() -> str:
     script_dir = get_script_dir()
     parent_dir = os.path.dirname(script_dir)
     return os.path.join(parent_dir, 'data')
-
-
-def get_csv_dir() -> str:
-    """CSV出力ディレクトリのパスを取得（スクリプトと同じ場所）"""
-    return get_script_dir()
 
 
 def get_files_json_path() -> str:
@@ -131,19 +129,20 @@ def extract_records_from_html(soup: BeautifulSoup):
         samai_text = cells[2].get_text(strip=True).replace(",", "")
         game_text = cells[3].get_text(strip=True).replace(",", "")
 
-        # anaslo_converter側のJSON構造に合わせて不足項目は "0" 埋めで追加する
+        def _int(s):
+            try:
+                return int(str(s).replace(',', ''))
+            except (ValueError, TypeError):
+                return 0
+
         results.append({
             "機種名": kishu_name,
-            "台番号": num_text,
-            "G数": game_text,
-            "差枚": samai_text,
-            "BB": "0",
-            "RB": "0",
-            "ART": "0",
-            "合成確率": "0",
-            "BB確率": "0",
-            "RB確率": "0",
-            "ART確率": "0",
+            "台番号": _int(num_text),
+            "G数": _int(game_text),
+            "差枚": _int(samai_text),
+            "BB": 0,
+            "RB": 0,
+            "ART": 0,
         })
 
     return results
@@ -187,16 +186,6 @@ def load_existing_json(json_path: str) -> dict:
         return {}
 
 
-def save_csv(df: pd.DataFrame, csv_path: str) -> bool:
-    """DataFrameをCSVとして保存"""
-    try:
-        df.to_csv(csv_path, index=False, encoding='utf-8-sig')
-        return True
-    except Exception as e:
-        print(f"    エラー: CSV保存失敗 - {e}")
-        return False
-
-
 def save_json(data: dict, json_path: str) -> bool:
     """辞書をJSONとして保存"""
     try:
@@ -210,13 +199,12 @@ def save_json(data: dict, json_path: str) -> bool:
 
 def convert_html_to_json(input_folder: str) -> dict:
     """
-    みんれぽのHTMLファイルをCSV/JSONに変換する
+    みんれぽのHTMLファイルをJSONに変換する
 
     Returns:
         変換結果の統計情報
     """
     data_dir = get_data_dir()
-    csv_dir = get_csv_dir()
 
     if not os.path.exists(data_dir):
         print(f"エラー: dataディレクトリが見つかりません: {data_dir}")
@@ -234,8 +222,6 @@ def convert_html_to_json(input_folder: str) -> dict:
         'success': True,
         'total_files': len(html_files),
         'months_processed': [],
-        'csv_created': 0,
-        'csv_files': [],
         'json_updated': 0,
         'errors': 0,
         'converted_html_files': []
@@ -300,14 +286,6 @@ def convert_html_to_json(input_folder: str) -> dict:
 
             print(f"\n  処理中: {filename}")
 
-            # CSV保存（スクリプトと同じディレクトリ）
-            df = pd.DataFrame(records)
-            csv_path = os.path.join(csv_dir, f"{date_key}.csv")
-            if save_csv(df, csv_path):
-                print(f"    ✓ CSV保存: {date_key}.csv ({len(df)}件)")
-                stats['csv_created'] += 1
-                stats['csv_files'].append(csv_path)
-
             if date_key in existing_dates:
                 update_count += 1
                 print(f"    ↻ JSON更新: {date_key} ({len(records)}件)")
@@ -342,60 +320,17 @@ def convert_html_to_json(input_folder: str) -> dict:
 
 
 def delete_converted_html_files(html_files: list):
-    """変換済みのHTMLファイルを削除"""
+    """変換済みのHTMLファイルを自動削除"""
     if not html_files:
-        print("\n削除対象のHTMLファイルはありません")
         return
-
-    print(f"\n変換元のHTMLファイルを削除しますか？")
-    print(f"対象: {len(html_files)}ファイル")
-
-    if len(html_files) <= 10:
-        for f in html_files:
-            print(f"  - {os.path.basename(f)}")
-    else:
-        for f in html_files[:5]:
-            print(f"  - {os.path.basename(f)}")
-        print(f"  ... (他 {len(html_files) - 10}件)")
-        for f in html_files[-5:]:
-            print(f"  - {os.path.basename(f)}")
-
-    response = input("\n削除する場合は 'yes' と入力: ").strip().lower()
-
-    if response == 'yes':
-        deleted = 0
-        for filepath in html_files:
-            try:
-                os.remove(filepath)
-                deleted += 1
-            except Exception as e:
-                print(f"  エラー: {os.path.basename(filepath)} - {e}")
-        print(f"削除完了: {deleted}ファイル")
-    else:
-        print("削除をスキップしました")
-
-
-def delete_csv_files(csv_files: list):
-    """作成したCSVファイルを削除"""
-    if not csv_files:
-        return
-
-    print(f"\n作成したCSVファイルを削除しますか？")
-    print(f"対象: {len(csv_files)}ファイル")
-
-    response = input("削除する場合は 'yes' と入力: ").strip().lower()
-
-    if response == 'yes':
-        deleted = 0
-        for filepath in csv_files:
-            try:
-                os.remove(filepath)
-                deleted += 1
-            except Exception as e:
-                print(f"  エラー: {os.path.basename(filepath)} - {e}")
-        print(f"削除完了: {deleted}ファイル")
-    else:
-        print("CSVファイルを保持しました")
+    deleted = 0
+    for filepath in html_files:
+        try:
+            os.remove(filepath)
+            deleted += 1
+        except Exception as e:
+            print(f"  エラー: {os.path.basename(filepath)} - {e}")
+    print(f"HTML削除完了: {deleted}ファイル")
 
 
 def update_files_json():
@@ -438,7 +373,6 @@ def show_summary(stats: dict):
     print("変換完了サマリー")
     print("="*50)
     print(f"処理HTMLファイル: {stats['total_files']}件")
-    print(f"作成CSV: {stats['csv_created']}件")
     print(f"更新JSON: {stats['json_updated']}件")
     if stats['errors'] > 0:
         print(f"エラー: {stats['errors']}件")
@@ -456,7 +390,6 @@ def main():
     print("="*60)
 
     data_dir = get_data_dir()
-    csv_dir = get_csv_dir()
 
     if not os.path.exists(data_dir):
         print(f"\nエラー: dataディレクトリが見つかりません")
@@ -464,7 +397,6 @@ def main():
         sys.exit(1)
 
     print(f"\nJSON出力先: {data_dir}")
-    print(f"CSV出力先: {csv_dir}")
 
     if len(sys.argv) > 1:
         input_folder = sys.argv[1]
@@ -494,9 +426,6 @@ def main():
 
     if stats.get('converted_html_files'):
         delete_converted_html_files(stats['converted_html_files'])
-
-    if stats.get('csv_files'):
-        delete_csv_files(stats['csv_files'])
 
     print("\nfiles.json を更新しますか？")
     response = input("更新する場合は 'yes' と入力: ").strip().lower()
