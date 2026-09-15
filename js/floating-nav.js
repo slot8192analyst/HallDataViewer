@@ -98,8 +98,11 @@ var FloatingNav = (function () {
         if (closeBtn) closeBtn.addEventListener('click', _closeModal);
 
         // ナビアイテムクリック → 遷移 & 閉じる
+        // stopPropagation で Router のドキュメント委譲リスナーへの伝播を止め、
+        // Router.navigate() が二重呼び出しされる問題を防ぐ
         _modal.querySelectorAll('.half-modal-nav-item[data-nav]').forEach(function (item) {
-            item.addEventListener('click', function () {
+            item.addEventListener('click', function (e) {
+                e.stopPropagation();
                 var page = item.getAttribute('data-nav');
                 _closeModal();
                 if (typeof Router !== 'undefined') {

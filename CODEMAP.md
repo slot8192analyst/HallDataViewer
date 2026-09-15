@@ -1,6 +1,6 @@
 # CODEMAP — 軽量コード地図（自動生成・手編集禁止）
 
-生成: 2026-09-14 16:30 JST / `python3 tools/gen_codemap.py`
+生成: 2026-09-15 11:21 JST / `python3 tools/gen_codemap.py`
 
 ## 使い方（AIも人間もまずここを読む）
 
@@ -26,7 +26,7 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 | `js/analysis.js` | 2060 | ~33,180 | ⛔全読み禁止 |
 | `js/utils.js` | 2632 | ~30,040 | ⛔全読み禁止 |
 | `js/aim.js` | 1851 | ~25,956 | ⛔全読み禁止 |
-| `ARCHITECTURE.md` | 430 | ~16,828 | ⚠️部分のみ |
+| `ARCHITECTURE.md` | 470 | ~17,526 | ⚠️部分のみ |
 | `css/components.css` | 1703 | ~13,068 | ⚠️部分のみ |
 | `js/calendar.js` | 973 | ~12,113 | ⚠️部分のみ |
 | `js/promotion.js` | 789 | ~11,231 | ⚠️部分のみ |
@@ -53,8 +53,8 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 | `index.html` | 191 | ~3,164 | ✅ |
 | `partials/daily.html` | 177 | ~2,595 | ✅ |
 | `js/preset.js` | 202 | ~2,428 | ✅ |
+| `js/floating-nav.js` | 211 | ~2,418 | ✅ |
 | `js/chart.js` | 190 | ~2,358 | ✅ |
-| `js/floating-nav.js` | 208 | ~2,346 | ✅ |
 | `css/memo.css` | 172 | ~2,071 | ✅ |
 | `js/config.js` | 166 | ~1,935 | ✅ |
 | `partials/aim.html` | 94 | ~1,823 | ✅ |
@@ -69,7 +69,7 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 | `partials/promotion/tenun.html` | 3 | ~59 | ✅ |
 | `partials/promotion/ougi.html` | 3 | ~59 | ✅ |
 
-**⛔ `data/*.json`（24ファイル）+ `unit_history.json` = 29.9MB / 概算 10,456,635 トークン**
+**⛔ `data/*.json`（24ファイル）+ `unit_history.json` = 30.3MB / 概算 10,588,054 トークン**
 
 → この中身を開くと1回で月間クレジットが消える。**絶対に Read しない。**
 　 集計は `jq` / `tools/peek.sh` を使う（トークン0）。スキーマは §3 にある。
@@ -111,7 +111,7 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 **`js/data.js`** 590行/~6,809tok 関数30個
 　L1 データ読み込み・管理 / L36 仮想翌日（稼働中メモ用） / L143 ローディング制御 / L200 データ読み込み
 
-**`js/floating-nav.js`** 208行/~2,346tok 関数12個 — 公開 `window.FloatingNav`
+**`js/floating-nav.js`** 211行/~2,418tok 関数12個 — 公開 `window.FloatingNav`
 　L1 floating-nav.js
 
 **`js/hstag.js`** 849行/~10,729tok ⚠️ 関数41個
