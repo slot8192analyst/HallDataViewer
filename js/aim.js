@@ -48,7 +48,7 @@ var AimSheet = (function() {
     // 未配置エリア（擬似ゾーン）。placement には記録しない＝シート非掲載。
     var UNPLACED = 'unplaced';
 
-    var KUBI_RANKS = [1, 2, 3];
+    var KUBI_RANKS = [1, 2, 3, 4, 5];
     var LONGPRESS_MS = 350;
     var MOVE_TOLERANCE = 10;
 
@@ -92,8 +92,7 @@ var AimSheet = (function() {
         perUnit: {},
         excluded: {},
         hiddenMachines: {},
-        showRank3: true,
-        rank3ByPreset: {},
+        hiddenRanksByPreset: {},
         order: {},
         schemaVersion: SCHEMA_VERSION
     };
@@ -114,8 +113,7 @@ var AimSheet = (function() {
         perUnit: {},
         excluded: {},
         hiddenMachines: {},
-        showRank3: true,
-        rank3ByPreset: {}
+        hiddenRanksByPreset: {}
     };
     var reviewSheetSel = '__current__';
     var reviewCloudCache = {};
@@ -126,8 +124,7 @@ var AimSheet = (function() {
             perUnit: state.perUnit,
             excluded: state.excluded,
             hiddenMachines: state.hiddenMachines,
-            showRank3: state.showRank3,
-            rank3ByPreset: state.rank3ByPreset,
+            hiddenRanksByPreset: state.hiddenRanksByPreset,
             order: state.order,
             schemaVersion: SCHEMA_VERSION
         };
@@ -138,16 +135,29 @@ var AimSheet = (function() {
         state.perUnit        = p.perUnit        || {};
         state.excluded       = p.excluded       || {};
         state.hiddenMachines = p.hiddenMachines || {};
-        state.showRank3      = (p.showRank3 !== undefined) ? p.showRank3 : true;
-        state.rank3ByPreset  = p.rank3ByPreset  || {};
+        // 旧フォーマット (rank3ByPreset) からのマイグレーション
+        var legacyRank3 = p.rank3ByPreset || {};
+        var migratedHidden = p.hiddenRanksByPreset || {};
+        if (Object.keys(legacyRank3).length > 0 && Object.keys(migratedHidden).length === 0) {
+            Object.keys(legacyRank3).forEach(function(pk) {
+                if (!migratedHidden[pk]) migratedHidden[pk] = {};
+                // rank3ByPreset の値が false = 3位を非表示
+                if (legacyRank3[pk] === false) migratedHidden[pk][3] = true;
+            });
+        }
+        // showRank3 (旧グローバルフラグ) からのマイグレーション
+        if (p.showRank3 === false && Object.keys(migratedHidden).length === 0) {
+            // 全プリセット一括非表示は再現できないため、そのまま捨てる（初期化扱い）
+        }
+        state.hiddenRanksByPreset = migratedHidden;
         state.order          = p.order          || {};
         state.schemaVersion  = SCHEMA_VERSION;   // 取り込んだら最新版として扱う
     }
 
     function blankState() {
         state.placement = {}; state.perUnit = {}; state.excluded = {};
-        state.hiddenMachines = {}; state.showRank3 = true;
-        state.rank3ByPreset = {}; state.order = {};
+        state.hiddenMachines = {};
+        state.hiddenRanksByPreset = {}; state.order = {};
         state.schemaVersion = SCHEMA_VERSION;
     }
 
@@ -416,11 +426,17 @@ var AimSheet = (function() {
         return map[machine] || OTHER_PRESET_KEY;
     }
 
-    function isRank3VisibleForPresetKey(presetKey, st) {
+    // rank: 数値(3/4/5)。hiddenRanksByPreset[presetKey][rank] === true なら非表示。
+    function isRankVisibleForPresetKey(presetKey, rank, st) {
         st = st || state;
-        var byPreset = st.rank3ByPreset || {};
-        if (byPreset[presetKey] !== undefined) return byPreset[presetKey];
-        return (st.showRank3 !== undefined) ? st.showRank3 : true;
+        var byPreset = st.hiddenRanksByPreset || {};
+        var rankMap = byPreset[presetKey] || {};
+        return !rankMap[rank];
+    }
+
+    // 後方互換ラッパー（3位専用）
+    function isRank3VisibleForPresetKey(presetKey, st) {
+        return isRankVisibleForPresetKey(presetKey, 3, st);
     }
 
     function isRank3VisibleForMachine(machine) {
@@ -483,8 +499,10 @@ var AimSheet = (function() {
     function chipKey(machine, kubi) { return machine + '_' + kubi; }
 
     function visibleItems(machine, items) {
-        if (isRank3VisibleForMachine(machine)) return items;
-        return items.filter(function(it) { return it.kubi !== 3; });
+        var pkey = presetKeyOfMachine(machine);
+        return items.filter(function(it) {
+            return isRankVisibleForPresetKey(pkey, it.kubi, state);
+        });
     }
 
     // 機種の「基準ゾーン」。未配置なら UNPLACED。
@@ -621,12 +639,18 @@ var AimSheet = (function() {
         if (meta) meta.textContent = dateLabel + ' / 凹み判定: ' + days + '日累積・' + base + '・' + col;
     }
 
-    function toggleRank3ForPreset(presetKey) {
-        var cur = isRank3VisibleForPresetKey(presetKey, state);
-        state.rank3ByPreset[presetKey] = !cur;
+    function toggleRankForPreset(presetKey, rank) {
+        if (!state.hiddenRanksByPreset[presetKey]) state.hiddenRanksByPreset[presetKey] = {};
+        var cur = isRankVisibleForPresetKey(presetKey, rank, state);
+        state.hiddenRanksByPreset[presetKey][rank] = cur; // cur=true → 非表示にする(true=hidden)
         saveState();
         renderHiddenList();
         renderBoard();
+    }
+
+    // 後方互換ラッパー（3位専用）
+    function toggleRank3ForPreset(presetKey) {
+        toggleRankForPreset(presetKey, 3);
     }
 
     // ========== 凹み判定（バッジ）設定：ボトムシート ==========
@@ -754,15 +778,23 @@ var AimSheet = (function() {
         });
 
         var html = groups.map(function(g) {
-            var rank3On = isRank3VisibleForPresetKey(g.key, state);
-            var rank3Label = rank3On ? '💀🥉 3位を隠す' : '💀🥉 3位を表示';
-            var rank3Cls = 'btn-small aim-group-rank3' + (rank3On ? '' : ' aim-rank3-off');
+            var r3On = isRankVisibleForPresetKey(g.key, 3, state);
+            var r4On = isRankVisibleForPresetKey(g.key, 4, state);
+            var r5On = isRankVisibleForPresetKey(g.key, 5, state);
+
+            var mkRankBtn = function(rank, on, medal) {
+                var label = medal + ' ' + rank + '位を' + (on ? '隠す' : '表示');
+                var cls = 'btn-small aim-group-rank' + rank + (on ? '' : ' aim-rank-off');
+                return '<button class="' + cls + '" data-preset="' + escapeAttr(g.key) + '" data-rank="' + rank + '">' + label + '</button>';
+            };
 
             var headBtns = ''
                 + '<div class="aim-hidden-group-btns">'
                 + '<button class="btn-small aim-preset-show" data-preset="' + escapeAttr(g.key) + '">表示</button>'
                 + '<button class="btn-small aim-preset-hide" data-preset="' + escapeAttr(g.key) + '">除外</button>'
-                + '<button class="' + rank3Cls + '" data-preset="' + escapeAttr(g.key) + '">' + rank3Label + '</button>'
+                + mkRankBtn(3, r3On, '💀🥉')
+                + mkRankBtn(4, r4On, '💀4')
+                + mkRankBtn(5, r5On, '💀5')
                 + '</div>';
 
             var items = g.machines.map(function(m) {
@@ -803,8 +835,10 @@ var AimSheet = (function() {
         panel.querySelectorAll('.aim-preset-hide').forEach(function(btn) {
             btn.addEventListener('click', function() { applyPresetToHidden(this.dataset.preset, true); });
         });
-        panel.querySelectorAll('.aim-group-rank3').forEach(function(btn) {
-            btn.addEventListener('click', function() { toggleRank3ForPreset(this.dataset.preset); });
+        panel.querySelectorAll('.aim-group-rank3, .aim-group-rank4, .aim-group-rank5').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                toggleRankForPreset(this.dataset.preset, parseInt(this.dataset.rank, 10));
+            });
         });
     }
 
@@ -1400,9 +1434,10 @@ var AimSheet = (function() {
             var zone = reviewZoneOf(it.machine, it.kubi);
             if (zone === null) return;
 
-            if (it.kubi === 3) {
+            // 3〜5位の表示/非表示チェック
+            if (it.kubi >= 3) {
                 var pkey = reviewPresetKeyOf(it.machine);
-                if (!isRank3VisibleForPresetKey(pkey, reviewState)) return;
+                if (!isRankVisibleForPresetKey(pkey, it.kubi, reviewState)) return;
             }
 
             var key = chipKey(it.machine, it.kubi);
@@ -1491,8 +1526,7 @@ var AimSheet = (function() {
             reviewState.perUnit        = Object.assign({}, state.perUnit);
             reviewState.excluded       = Object.assign({}, state.excluded);
             reviewState.hiddenMachines = Object.assign({}, state.hiddenMachines);
-            reviewState.showRank3      = state.showRank3;
-            reviewState.rank3ByPreset  = Object.assign({}, state.rank3ByPreset);
+            reviewState.hiddenRanksByPreset = JSON.parse(JSON.stringify(state.hiddenRanksByPreset || {}));
             return Promise.resolve();
         }
 
@@ -1522,8 +1556,16 @@ var AimSheet = (function() {
         reviewState.perUnit        = data.perUnit        || {};
         reviewState.excluded       = data.excluded       || {};
         reviewState.hiddenMachines = data.hiddenMachines || {};
-        reviewState.showRank3      = (data.showRank3 !== undefined) ? data.showRank3 : true;
-        reviewState.rank3ByPreset  = data.rank3ByPreset  || {};
+        // hiddenRanksByPreset のマイグレーション入りロード
+        var legacyRank3 = data.rank3ByPreset || {};
+        var hidden = data.hiddenRanksByPreset || {};
+        if (Object.keys(legacyRank3).length > 0 && Object.keys(hidden).length === 0) {
+            Object.keys(legacyRank3).forEach(function(pk) {
+                if (!hidden[pk]) hidden[pk] = {};
+                if (legacyRank3[pk] === false) hidden[pk][3] = true;
+            });
+        }
+        reviewState.hiddenRanksByPreset = hidden;
     }
 
     function renderReview() {
@@ -1717,7 +1759,7 @@ var AimSheet = (function() {
     function close() { closeCardMenu(); removeAllGhosts(); clearDropMarkers(); }
 
     function resetPlacement() {
-        if (!confirm('シートを白紙に戻しますか?（配置・除外・機種除外・並び順・3位設定がすべてクリアされます）')) return;
+        if (!confirm('シートを白紙に戻しますか?（配置・除外・機種除外・並び順・凹みランク表示設定がすべてクリアされます）')) return;
         blankState();
         saveState();
         buildData();
