@@ -56,46 +56,48 @@ var TREND_COLUMN_CONFIG = {
     '差枚': {
         label: '差枚', unit: '枚',
         format: function(val) { return (val >= 0 ? '+' : '') + Math.round(val).toLocaleString(); },
-        parseRow: function(row) { return row['差枚'] || 0; },
+        parseRow: function(row) { return parseInt(row['差枚'], 10) || 0; },
         colorClass: function(val) { return val > 0 ? 'plus' : val < 0 ? 'minus' : ''; },
         canSum: true, chartLabel: '差枚', summaryPrefix: '差枚'
     },
     'G数': {
         label: 'G数', unit: 'G',
         format: function(val) { return Math.round(val).toLocaleString(); },
-        parseRow: function(row) { return row['G数'] || 0; },
+        parseRow: function(row) { return parseInt(row['G数'], 10) || 0; },
         colorClass: function() { return ''; },
         canSum: true, chartLabel: 'G数', summaryPrefix: 'G数'
     },
     'BB': {
         label: 'BB回数', unit: '回',
         format: function(val) { return Math.round(val).toLocaleString(); },
-        parseRow: function(row) { return row['BB'] || 0; },
+        parseRow: function(row) { return parseInt(row['BB'], 10) || 0; },
         colorClass: function() { return ''; },
         canSum: true, chartLabel: 'BB回数', summaryPrefix: 'BB'
     },
     'RB': {
         label: 'RB回数', unit: '回',
         format: function(val) { return Math.round(val).toLocaleString(); },
-        parseRow: function(row) { return row['RB'] || 0; },
+        parseRow: function(row) { return parseInt(row['RB'], 10) || 0; },
         colorClass: function() { return ''; },
         canSum: true, chartLabel: 'RB回数', summaryPrefix: 'RB'
     },
     'ART': {
         label: 'ART回数', unit: '回',
         format: function(val) { return Math.round(val).toLocaleString(); },
-        parseRow: function(row) { return row['ART'] || 0; },
+        parseRow: function(row) { return parseInt(row['ART'], 10) || 0; },
         colorClass: function() { return ''; },
         canSum: true, chartLabel: 'ART回数', summaryPrefix: 'ART'
     },
     // 合成確率・BB確率・RB確率 は廃止（データから削除済み）。フロントで G数/BB・RB より導出する。
+    // 旧フォーマットのデータには確率フィールドが文字列で残っている場合があるが、
+    // G数/BB/RB を parseInt で数値化してから計算するため影響なし。
     '合成確率': {
         label: '合成確率', unit: '',
         format: function(val) { return val === null ? '-' : '1/' + val.toFixed(1); },
         parseRow: function(row) {
-            var g = row['G数'] || 0;
-            var bb = row['BB'] || 0;
-            var rb = row['RB'] || 0;
+            var g = parseInt(row['G数'], 10) || 0;
+            var bb = parseInt(row['BB'], 10) || 0;
+            var rb = parseInt(row['RB'], 10) || 0;
             var total = bb + rb;
             return (g > 0 && total > 0) ? g / total : null;
         },
@@ -106,8 +108,8 @@ var TREND_COLUMN_CONFIG = {
         label: 'BB確率', unit: '',
         format: function(val) { return val === null ? '-' : '1/' + val.toFixed(1); },
         parseRow: function(row) {
-            var g = row['G数'] || 0;
-            var bb = row['BB'] || 0;
+            var g = parseInt(row['G数'], 10) || 0;
+            var bb = parseInt(row['BB'], 10) || 0;
             return (g > 0 && bb > 0) ? g / bb : null;
         },
         colorClass: function(val) { if (val === null) return ''; return val <= 250 ? 'plus' : val >= 400 ? 'minus' : ''; },
@@ -117,8 +119,8 @@ var TREND_COLUMN_CONFIG = {
         label: 'RB確率', unit: '',
         format: function(val) { return val === null ? '-' : '1/' + val.toFixed(1); },
         parseRow: function(row) {
-            var g = row['G数'] || 0;
-            var rb = row['RB'] || 0;
+            var g = parseInt(row['G数'], 10) || 0;
+            var rb = parseInt(row['RB'], 10) || 0;
             return (g > 0 && rb > 0) ? g / rb : null;
         },
         colorClass: function(val) { if (val === null) return ''; return val <= 300 ? 'plus' : val >= 500 ? 'minus' : ''; },
@@ -128,8 +130,8 @@ var TREND_COLUMN_CONFIG = {
         label: '機械割', unit: '%',
         format: function(val) { return val === null ? '-' : val.toFixed(2) + '%'; },
         parseRow: function(row) {
-            var g = row['G数'] || 0;
-            var sa = row['差枚'] || 0;
+            var g = parseInt(row['G数'], 10) || 0;
+            var sa = parseInt(row['差枚'], 10) || 0;
             if (g <= 0) return null;
             return ((g * 3 + sa) / (g * 3)) * 100;
         },
