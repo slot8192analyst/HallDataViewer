@@ -217,6 +217,8 @@ button.aim-btn { border: 1px solid var(--border-light); }
 .aim-chip-kubi-1 { background: var(--chip-kubi-1-bg);  border-color: var(--color-zone-top); }
 .aim-chip-kubi-2 { background: var(--chip-kubi-2-bg); border-color: var(--color-zone-high); }
 .aim-chip-kubi-3 { background: var(--chip-kubi-3-bg); border-color: var(--color-info); }
+.aim-chip-kubi-4 { background: var(--chip-kubi-4-bg); border-color: #8b5cf6; }
+.aim-chip-kubi-5 { background: var(--chip-kubi-5-bg); border-color: #14b8a6; }
 .aim-chip-rank { font-weight: bold; }
 .aim-chip-num  { font-variant-numeric: tabular-nums; }
 .aim-chip-val  { color: var(--text-muted); font-variant-numeric: tabular-nums; }
@@ -370,7 +372,9 @@ button.aim-btn { border: 1px solid var(--border-light); }
     margin-left: auto;
 }
 .aim-hidden-group-btns .aim-preset-hide { color: var(--color-danger); }
-.aim-hidden-group-btns .aim-group-rank3.aim-rank3-off {
+.aim-hidden-group-btns .aim-group-rank3.aim-rank-off,
+.aim-hidden-group-btns .aim-group-rank4.aim-rank-off,
+.aim-hidden-group-btns .aim-group-rank5.aim-rank-off {
     opacity: 0.6;
     text-decoration: line-through;
 }
@@ -394,6 +398,8 @@ button.aim-btn { border: 1px solid var(--border-light); }
     color: var(--text-muted);
 }
 .aim-preset-show, .aim-preset-hide { padding: 2px 8px; font-size: 11px; }
+.aim-rank-off { opacity: 0.6; text-decoration: line-through; }
+/* 旧クラス名の後方互換 */
 .aim-rank3-off { opacity: 0.6; text-decoration: line-through; }
 
 /* ============ 7. ページヘッダ / タブ / 日付ピッカー ============ */
