@@ -428,3 +428,43 @@ webapp/
 >
 > 例:「デザイン・色・フォントを変えたい」
 > → 読ませるファイル: `ARCHITECTURE.md` + `DESIGN.md` + `css/theme.css`（+ `css/style.css`）
+
+---
+
+## 12. 変更履歴
+
+### 2026-09-15 — ハンバーガーナビからのページ遷移後に操作不能になるバグ修正
+
+**問題**:  
+ハンバーガーボタン（FloatingNav）のハーフモーダルからページを選択して遷移すると、遷移先ページのボタン等が操作できない状態になっていた。
+
+**根本原因**:  
+`js/router.js` の `start()` では `document.addEventListener('click', ...)` でイベント委譲を設定し、`[data-nav]` 属性を持つ要素のクリックを一括処理している。一方、`js/floating-nav.js` の `_setupEvents()` では `.half-modal-nav-item[data-nav]` に個別のクリックリスナーを追加していた。
+
+ハーフモーダル内のナビアイテムをクリックすると：
+1. **FloatingNav の個別リスナー** → `_closeModal()` + `Router.navigate(page)` を実行
+2. **Router のドキュメント委譲リスナー** → `Router.navigate(page)` を **再度実行**
+
+`Router.navigate()` が二重に呼ばれることで `show()` → `ensurePartial()` の非同期処理が競合し、ページ初期化（`init()`）とイベントリスナー登録が正常に完了しないまま遷移先が表示される状態になっていた。
+
+**修正内容** (`js/floating-nav.js`):  
+ナビアイテムのクリックハンドラーに `e.stopPropagation()` を追加し、Router のドキュメント委譲リスナーへのイベント伝播を遮断。`Router.navigate()` が FloatingNav から一度だけ呼ばれることを保証する。
+
+```js
+// 修正前
+item.addEventListener('click', function () {
+    var page = item.getAttribute('data-nav');
+    _closeModal();
+    if (typeof Router !== 'undefined') Router.navigate(page);
+});
+
+// 修正後
+item.addEventListener('click', function (e) {
+    e.stopPropagation();   // ← 追加: Router の委譲リスナーへ伝播させない
+    var page = item.getAttribute('data-nav');
+    _closeModal();
+    if (typeof Router !== 'undefined') Router.navigate(page);
+});
+```
+
+**影響ファイル**: `js/floating-nav.js`
