@@ -699,12 +699,11 @@ function aggregateMachineData(rawData, targetFiles, latestFile, config) {
 
     Object.values(rawData).forEach(function(item) {
         var entry = { machine: item.machine, dates: {} };
-        var totalUnits = 0;
+        var latestUnitCount = (item.fileRows[latestFile] || []).length;
 
         targetFiles.forEach(function(file) {
             var rows = item.fileRows[file] || [];
             var unitCount = rows.length;
-            totalUnits += unitCount;
 
             if (unitCount === 0) { entry.dates[file] = null; return; }
 
@@ -719,14 +718,14 @@ function aggregateMachineData(rawData, targetFiles, latestFile, config) {
             }
         });
 
-        entry.num = totalUnits + '台';
+        entry.num = latestUnitCount + '台';
 
         var allValidValues = [];
         targetFiles.forEach(function(f) { if (entry.dates[f] !== null && entry.dates[f] !== undefined) allValidValues.push(entry.dates[f]); });
 
         if (config.canSum && !useAvg) {
             entry.total = allValidValues.reduce(function(a, b) { return a + b; }, 0);
-            entry.avg = totalUnits > 0 ? Math.round(entry.total / totalUnits) : 0;
+            entry.avg = latestUnitCount > 0 ? Math.round(entry.total / latestUnitCount) : 0;
         } else {
             entry.avg = allValidValues.length > 0 ? allValidValues.reduce(function(a, b) { return a + b; }, 0) / allValidValues.length : null;
             entry.total = entry.avg;
