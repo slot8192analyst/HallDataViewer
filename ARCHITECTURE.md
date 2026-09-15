@@ -5,7 +5,7 @@
 > コードを編集する前にこのファイルだけを読めば、「どのファイルに何が書いてあるか」「どこを直せばよいか」が分かることを目指す。
 > AI / 人間どちらも対象読者。**機能を追加・変更したらこのファイルも更新すること。**
 
-最終更新: 2026-08-18（デッドコード削除フェーズ1: ボトムシート化で未使用になった旧バッジ設定モーダル（`#badgeModal` / `#kubiBadgeModal` / `#aimBadgePanel`）のHTMLと関連JS配線・CSSを削除。`preset.js` のユーザープリセットCRUD（`add`/`remove`/`rename`/`updateMachines`/`saveUserPresets`）と`components.css` の `.preset-manage-*` / `.preset-action-btn` 系スタイルを削除。既に削除済みだった `tagmatch.js` / `tagmatch.css` の記述、および実在しない `UNIT_STATUS_ORDER` 二重定義の記述を本ドキュメントから除去。機能変更なし。 / 旧: 2026-07-15（台の状態変化履歴機能を追加。converter/build_unit_history.py が data/*.json をスキャンして unit_history.json を生成し、日別タブに「状態」列（新台/増台/減台/移動バッジ・複数同時表示対応・新台期間90日で自動消滅）と「設置日数」列、テーブル下部に「最近撤去された台」セクションを追加。ヘルパーは utils.js の HallData.utils.getUnitStatus / getUnitAge / getMachineAge / getUnitDisplayStatus / getUnitDisplayStatuses。/ 2026-07-13 bottomsheet.js を追加（バッジ設定を共通ボトムシート化）。機種内バッジのロジックを改修：1台設置機種はバッジ非付与に変更、未ロード日の検知と警告表示、集計に使った日の可視化（集計内訳）を追加、集計期間を数値入力から選択式（1〜15日・iOSネイティブホイール）に変更。バッジ設定UIを DESIGN.md（DevFocus Dark）準拠に刷新。））
+最終更新: 2026-09-15（解析タブ・集計タブ: 機種別モードの台数表示と台平均計算のバグ修正。旧: 2026-08-18（デッドコード削除フェーズ1: ボトムシート化で未使用になった旧バッジ設定モーダル（`#badgeModal` / `#kubiBadgeModal` / `#aimBadgePanel`）のHTMLと関連JS配線・CSSを削除。`preset.js` のユーザープリセットCRUD（`add`/`remove`/`rename`/`updateMachines`/`saveUserPresets`）と`components.css` の `.preset-manage-*` / `.preset-action-btn` 系スタイルを削除。既に削除済みだった `tagmatch.js` / `tagmatch.css` の記述、および実在しない `UNIT_STATUS_ORDER` 二重定義の記述を本ドキュメントから除去。機能変更なし。 / 旧: 2026-07-15（台の状態変化履歴機能を追加。converter/build_unit_history.py が data/*.json をスキャンして unit_history.json を生成し、日別タブに「状態」列（新台/増台/減台/移動バッジ・複数同時表示対応・新台期間90日で自動消滅）と「設置日数」列、テーブル下部に「最近撤去された台」セクションを追加。ヘルパーは utils.js の HallData.utils.getUnitStatus / getUnitAge / getMachineAge / getUnitDisplayStatus / getUnitDisplayStatuses。/ 2026-07-13 bottomsheet.js を追加（バッジ設定を共通ボトムシート化）。機種内バッジのロジックを改修：1台設置機種はバッジ非付与に変更、未ロード日の検知と警告表示、集計に使った日の可視化（集計内訳）を追加、集計期間を数値入力から選択式（1〜15日・iOSネイティブホイール）に変更。バッジ設定UIを DESIGN.md（DevFocus Dark）準拠に刷新。））
 
 ---
 
@@ -468,3 +468,47 @@ item.addEventListener('click', function (e) {
 ```
 
 **影響ファイル**: `js/floating-nav.js`
+
+### 2026-09-15 — 解析タブ・集計タブ: 機種別モードの台数表示と台平均計算のバグ修正
+
+**問題**:  
+解析タブの集計タブで「機種別」モードを選択した際、テーブルの「台数」列と「台平均」列の値が誤っていた。
+
+**根本原因**:  
+`js/analysis.js` の `aggregateMachineData()` で `totalUnits`（延べ台数 = 日数 × 台数）を用いて台数表示と台平均を計算していた。例えば3日間・40台の機種では `totalUnits = 120` となり、テーブルに「120台」と表示される上に `entry.avg = entry.total / 120`（実際の3倍の分母）となり、台平均が実際の1/3程度の誤った値になっていた。
+
+**修正内容** (`js/analysis.js` — `aggregateMachineData()`):  
+- `var totalUnits = 0`（延べ台数の累積）を廃止
+- 代わりに `var latestUnitCount = (item.fileRows[latestFile] || []).length`（最新日の台数）を使用
+- `entry.num = latestUnitCount + '台'`（最新日の実台数を表示）
+- `entry.avg = Math.round(entry.total / latestUnitCount)`（期間合計 ÷ 最新日台数 = 1台あたりの期間合計）
+
+**修正前後の比較（3日間・40台の機種の例）**:
+
+| 項目 | 修正前 | 修正後 |
+|------|--------|--------|
+| テーブルの台数表示 | 120台（延べ台数） | 40台（最新日の実台数） |
+| 台平均の分母 | 120（延べ台数） | 40（最新日の台数） |
+
+**影響ファイル**: `js/analysis.js`
+
+### 2026-09-15 — 解析タブ・集計タブ: parseRow の数値変換漏れによる文字列連結バグ修正
+
+**問題**:  
+解析タブの集計タブで合計・平均が異常に大きな値（例: +24,365,761,360）になる。
+
+**根本原因**:  
+`2026_09` 以降のデータは旧フォーマットで、`G数` `差枚` `BB` `RB` `ART` が文字列型（`"1360"` 等）で格納されている（月によってフォーマットが混在）。  
+`TREND_COLUMN_CONFIG` の `parseRow` が `row['差枚'] || 0` と書かれており、文字列でも truthy なため `|| 0` が効かず文字列のまま返っていた。`reduce` の初期値が数値 `0` であるため `0 + "424" + "733"...` → 文字列連結が発生し、巨大な数値に見える文字列が生成されていた。
+
+**修正内容** (`js/analysis.js` — `TREND_COLUMN_CONFIG`):  
+全 `parseRow` の数値フィールド参照を `parseInt(row['フィールド名'], 10)` または `parseFloat` に変更し、文字列・数値どちらのフォーマットでも正しく数値化されるようにした。
+
+| `parseRow` | 修正前 | 修正後 |
+|---|---|---|
+| 差枚・G数・BB・RB・ART | `row['差枚'] \|\| 0` | `parseInt(row['差枚'], 10) \|\| 0` |
+| 合成確率・BB確率・RB確率 | `var g = row['G数'] \|\| 0` | `var g = parseInt(row['G数'], 10) \|\| 0` |
+| 機械割 | `var g = row['G数'] \|\| 0` | `var g = parseInt(row['G数'], 10) \|\| 0` |
+
+**影響ファイル**: `js/analysis.js`  
+**備考**: `js/daily.js` / `js/utils.js` / `js/aim.js` の数値参照はいずれも既に `parseInt` / `parseFloat` でガード済みのため修正不要。
