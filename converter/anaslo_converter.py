@@ -180,11 +180,47 @@ def load_existing_json(json_path: str) -> dict:
         return {}
 
 
+def format_json_custom(data: dict) -> str:
+    """
+    日付ごとの配列内の各レコードを1行にまとめたJSON文字列を生成する
+
+    出力イメージ:
+    {
+      "2026_09_01": [
+        {"機種名": "...", "台番号": 881, "G数": 3233, "差枚": 157, "BB": 12, "RB": 10, "ART": 0},
+        {"機種名": "...", "台番号": 882, "G数": 3439, "差枚": 477, "BB": 15, "RB": 6, "ART": 0}
+      ],
+      "2026_09_02": [
+        ...
+      ]
+    }
+    """
+    lines = ["{"]
+    date_keys = list(data.keys())
+
+    for i, date_key in enumerate(date_keys):
+        records = data[date_key]
+        lines.append(f'  "{date_key}": [')
+
+        for j, record in enumerate(records):
+            record_json = json.dumps(record, ensure_ascii=False)
+            comma = ',' if j < len(records) - 1 else ''
+            lines.append(f'    {record_json}{comma}')
+
+        # 配列を閉じる行（末尾の日付以外はカンマを付ける）
+        closing = '],' if i < len(date_keys) - 1 else ']'
+        lines.append(f'  {closing}')
+
+    lines.append("}")
+    return '\n'.join(lines)
+
+
 def save_json(data: dict, json_path: str) -> bool:
-    """辞書をJSONとして保存"""
+    """辞書をJSONとして保存（各レコードを1行にまとめた読みやすい形式）"""
     try:
+        json_str = format_json_custom(data)
         with open(json_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+            f.write(json_str)
         return True
     except Exception as e:
         print(f"    エラー: JSON保存失敗 - {e}")
