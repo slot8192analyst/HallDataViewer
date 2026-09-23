@@ -406,11 +406,12 @@
       "type": "dmm",
       "media": "DMMぱちタウン",
       "name": ["ゾンビ狩り取材"],
-      "report_url": "",
+      "report_url": "https://p-town.dmm.com/shops/shizuoka/12073/reports/553699",
       "target_machines": [
-        "",
-        "",
-        ""
+        "ネオアイムEX",
+        "スマスロ北斗の拳",
+        "スマート沖スロ スターハナハナ",
+        "新鬼武者3"
       ],
       "note": ""
     },
