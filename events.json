@@ -455,7 +455,7 @@
       "type": "dmm",
       "media": "DMMぱちタウン",
       "name": ["妖怪ハント"],
-      "report_url": "",
+      "report_url": "https://p-town.dmm.com/shops/shizuoka/12073/reports/555525",
       "target_machines": [
         "",
         "",
@@ -463,8 +463,8 @@
         ""
       ],
       "note": [
-        "",
-        ""
+        "天狗",
+        "サポート呪符：各入,雁行,全開"
       ]
     },
     {
@@ -501,6 +501,12 @@
     },
      {
       "date": "2025_10_28",
+      "type": "anniversary",
+      "media": "その他",
+      "name": "オーギヤグループ周年日"
+    },
+    {
+      "date": "2026_10_28",
       "type": "anniversary",
       "media": "その他",
       "name": "オーギヤグループ周年日"
