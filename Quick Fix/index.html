@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON一括リセットツール</title>
+<style>
+  :root {
+    --bg: #f1f4f9;
+    --card: #ffffff;
+    --text: #1f2937;
+    --sub: #6b7280;
+    --primary: #4f46e5;
+    --primary-dark: #4338ca;
+    --border: #e5e7eb;
+    --danger: #dc2626;
+    --ok: #059669;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 16px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+    line-height: 1.6;
+  }
+  .container { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .lead { color: var(--sub); margin: 0 0 24px; font-size: .95rem; }
+
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.04);
+  }
+  .card h2 {
+    font-size: 1.05rem;
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .step {
+    background: var(--primary);
+    color: #fff;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .85rem;
+    flex-shrink: 0;
+  }
+  .card.disabled { opacity: .45; pointer-events: none; }
+
+  /* ドロップエリア */
+  .drop {
+    border: 2px dashed #c7cbe8;
+    border-radius: 12px;
+    padding: 28px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: .15s;
+    background: #fafaff;
+  }
+  .drop:hover, .drop.over { border-color: var(--primary); background: #eef0ff; }
+  .drop strong { color: var(--primary); }
+  .drop small { color: var(--sub); display: block; margin-top: 4px; }
+  .fileinfo {
+    margin-top: 12px;
+    font-size: .9rem;
+    color: var(--sub);
+  }
+  .fileinfo b { color: var(--text); }
+
+  /* フォーム部品 */
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .row + .row { margin-top: 12px; }
+  label.lbl { font-size: .85rem; color: var(--sub); display: block; margin-bottom: 4px; }
+  input[type="date"], select {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: .95rem;
+    background: #fff;
+    color: var(--text);
+    font-family: inherit;
+  }
+  input[type="date"]:focus, select:focus {
+    outline: 2px solid #c7d2fe;
+    border-color: var(--primary);
+  }
+  .tilde { padding-top: 22px; color: var(--sub); }
+
+  .quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .chipbtn {
+    border: 1px solid var(--border);
+    background: #fff;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: .85rem;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--text);
+    transition: .15s;
+  }
+  .chipbtn:hover { border-color: var(--primary); color: var(--primary); background: #f5f5ff; }
+
+  .checks { display: flex; flex-wrap: wrap; gap: 10px; }
+  .checks label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: .92rem;
+    user-select: none;
+  }
+  .checks label:has(input:checked) { background: #eef0ff; border-color: var(--primary); }
+
+  /* プレビュー */
+  .summary {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: .95rem;
+  }
+  .summary b { color: var(--primary); font-size: 1.1rem; }
+  .summary.warn { background: #fef2f2; border-color: #fecaca; color: var(--danger); }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; max-height: 140px; overflow-y: auto; }
+  .tag {
+    background: #eef0ff;
+    color: var(--primary-dark);
+    border-radius: 6px;
+    padding: 2px 10px;
+    font-size: .8rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 実行ボタン */
+  .run {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .15s;
+    font-family: inherit;
+  }
+  .run:hover:not(:disabled) { background: var(--primary-dark); }
+  .run:disabled { background: #c7c9d9; cursor: not-allowed; }
+
+  .log {
+    margin-top: 14px;
+    background: #111827;
+    color: #d1d5db;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: .85rem;
+    font-family: ui-monospace, Consolas, monospace;
+    white-space: pre-wrap;
+    display: none;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .log .ok { color: #6ee7b7; }
+  .log .ng { color: #fca5a5; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>JSON一括リセットツール</h1>
+  <p class="lead">指定した期間のデータを、G数・差枚・BB・RB・ART などの項目を 0 に書き換えて保存します。</p>
+
+  <!-- STEP 1 -->
+  <div class="card">
+    <h2><span class="step">1</span>JSONファイルを選ぶ</h2>
+    <div class="drop" id="drop">
+      <strong>クリックして選択</strong> または ここにドラッグ&ドロップ
+      <small>.json ファイル</small>
+    </div>
+    <input type="file" id="file" accept=".json,application/json" hidden>
+    <div class="fileinfo" id="fileinfo"></div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="card disabled" id="card2">
+    <h2><span class="step">2</span>期間を選ぶ</h2>
+    <div class="row">
+      <div>
+        <label class="lbl" for="start">開始日</label>
+        <input type="date" id="start">
+      </div>
+      <div class="tilde">〜</div>
+      <div>
+        <label class="lbl" for="end">終了日</label>
+        <input type="date" id="end">
+      </div>
+    </div>
+    <div class="quick">
+      <button type="button" class="chipbtn" data-q="all">全期間</button>
+      <button type="button" class="chipbtn" data-q="latest">最新日のみ</button>
+      <button type="button" class="chipbtn" data-q="7">直近7日</button>
+      <button type="button" class="chipbtn" data-q="30">直近30日</button>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="card disabled" id="card3">
+    <h2><span class="step">3</span>書き換える項目・条件</h2>
+    <label class="lbl">0にする項目</label>
+    <div class="checks" id="fields"></div>
+    <div class="row" style="margin-top:16px">
+      <div>
+        <label class="lbl" for="machine">機種名で絞り込み(任意)</label>
+        <select id="machine"><option value="">すべての機種</option></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="card disabled" id="card4">
+    <h2><span class="step">4</span>確認して実行</h2>
+    <div class="summary" id="summary">-</div>
+    <div class="tags" id="tags"></div>
+    <div style="margin-top:16px">
+      <button class="run" id="run" disabled>0に書き換えてダウンロード</button>
+    </div>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+
+<script>
+const FIELDS = ["G数", "差枚", "BB", "RB", "ART"];
+let data = null;
+let fileName = "";
+let dateKeys = [];   // [{key, num}] 日付順
+
+const $ = id => document.getElementById(id);
+
+// ---------- ユーティリティ ----------
+const keyToNum = key => {
+  const m = /^(\d{4})_(\d{1,2})_(\d{1,2})$/.exec(key);
+  return m ? (+m[1]) * 10000 + (+m[2]) * 100 + (+m[3]) : null;
+};
+const numToInput = n => {
+  const y = Math.floor(n / 10000);
+  const m = Math.floor(n / 100) % 100;
+  const d = n % 100;
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+};
+const inputToNum = v => v ? Number(v.replace(/-/g, "")) : null;
+const shiftInput = (v, days) => {
+  const dt = new Date(v + "T00:00:00Z");
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+};
+
+// ---------- ファイル読み込み ----------
+$("drop").onclick = () => $("file").click();
+$("drop").ondragover = e => { e.preventDefault(); $("drop").classList.add("over"); };
+$("drop").ondragleave = () => $("drop").classList.remove("over");
+$("drop").ondrop = e => {
+  e.preventDefault();
+  $("drop").classList.remove("over");
+  if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+};
+$("file").onchange = e => { if (e.target.files[0]) loadFile(e.target.files[0]); };
+
+async function loadFile(file) {
+  try {
+    data = JSON.parse(await file.text());
+  } catch (err) {
+    data = null;
+    $("fileinfo").innerHTML = `<span style="color:var(--danger)">JSONの読み込みに失敗しました: ${err.message}</span>`;
+    return;
+  }
+  fileName = file.name;
+
+  dateKeys = Object.keys(data)
+    .map(k => ({ key: k, num: keyToNum(k) }))
+    .filter(o => o.num !== null && Array.isArray(data[o.key]))
+    .sort((a, b) => a.num - b.num);
+
+  if (dateKeys.length === 0) {
+    $("fileinfo").innerHTML = `<span style="color:var(--danger)">「2026_10_12」形式の日付キーが見つかりませんでした。</span>`;
+    return;
+  }
+
+  const first = dateKeys[0].num, last = dateKeys[dateKeys.length - 1].num;
+  $("fileinfo").innerHTML =
+    `<b>${file.name}</b> を読み込みました(${dateKeys.length}日分:${numToInput(first)} 〜 ${numToInput(last)})`;
+
+  // 日付入力の範囲設定
+  ["start", "end"].forEach(id => {
+    $(id).min = numToInput(first);
+    $(id).max = numToInput(last);
+  });
+  setRange("all");
+
+  // 機種名リスト
+  const machines = new Set();
+  dateKeys.forEach(o => data[o.key].forEach(r => { if (r["機種名"]) machines.add(r["機種名"]); }));
+  const sel = $("machine");
+  sel.length = 1;
+  [...machines].sort().forEach(m => {
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = m;
+    sel.appendChild(opt);
+  });
+
+  ["card2", "card3", "card4"].forEach(id => $(id).classList.remove("disabled"));
+  $("log").style.display = "none";
+  updatePreview();
+}
+
+// ---------- 期間のクイック選択 ----------
+function setRange(type) {
+  const first = numToInput(dateKeys[0].num);
+  const last = numToInput(dateKeys[dateKeys.length - 1].num);
+  let s = first, e = last;
+  if (type === "latest") s = last;
+  else if (type === "7" || type === "30") {
+    s = shiftInput(last, -(Number(type) - 1));
+    if (s < first) s = first;
+  }
+  $("start").value = s;
+  $("end").value = e;
+}
+document.querySelectorAll("[data-q]").forEach(btn => {
+  btn.onclick = () => { setRange(btn.dataset.q); updatePreview(); };
+});
+
+// ---------- 項目チェックボックス ----------
+$("fields").innerHTML = FIELDS.map(f =>
+  `<label><input type="checkbox" value="${f}" checked>${f}</label>`).join("");
+
+// ---------- プレビュー ----------
+function getTargetKeys() {
+  const s = inputToNum($("start").value);
+  const e = inputToNum($("end").value);
+  if (s === null || e === null || s > e) return null;
+  return dateKeys.filter(o => o.num >= s && o.num <= e).map(o => o.key);
+}
+const selectedFields = () =>
+  [...document.querySelectorAll("#fields input:checked")].map(e => e.value);
+const rowMatches = row => {
+  const m = $("machine").value;
+  return !m || row["機種名"] === m;
+};
+
+function updatePreview() {
+  if (!data) return;
+  const keys = getTargetKeys();
+  const sum = $("summary"), tags = $("tags");
+  tags.innerHTML = "";
+
+  if (keys === null) {
+    sum.className = "summary warn";
+    sum.textContent = "開始日と終了日を正しく指定してください(開始日 ≦ 終了日)。";
+    $("run").disabled = true;
+    return;
+  }
+
+  let rowCount = 0;
+  keys.forEach(k => data[k].forEach(r => { if (rowMatches(r)) rowCount++; }));
+  const fields = selectedFields();
+
+  if (keys.length === 0 || rowCount === 0 || fields.length === 0) {
+    sum.className = "summary warn";
+    sum.textContent = fields.length === 0
+      ? "書き換える項目を1つ以上選んでください。"
+      : "対象のデータがありません。";
+    $("run").disabled = true;
+    return;
+  }
+
+  sum.className = "summary";
+  sum.innerHTML = `<b>${keys.length}日分 / ${rowCount}台</b> の「${fields.join("・")}」を 0 に書き換えます。`;
+
+  const MAX = 80;
+  keys.slice(0, MAX).forEach(k => {
+    const s = document.createElement("span");
+    s.className = "tag";
+    s.textContent = k;
+    tags.appendChild(s);
+  });
+  if (keys.length > MAX) {
+    const s = document.createElement("span");
+    s.className = "tag";
+    s.textContent = `…ほか${keys.length - MAX}日`;
+    tags.appendChild(s);
+  }
+  $("run").disabled = false;
+}
+["start", "end", "machine"].forEach(id => $(id).addEventListener("change", updatePreview));
+$("fields").addEventListener("change", updatePreview);
+
+// ---------- 実行 ----------
+$("run").onclick = () => {
+  const keys = getTargetKeys();
+  const fields = selectedFields();
+  if (!keys || keys.length === 0) return;
+  if (!confirm(`${keys.length}日分のデータを書き換えます。よろしいですか?\n(元ファイルは変更されません)`)) return;
+
+  let log = "", total = 0;
+  keys.forEach(k => {
+    let n = 0;
+    data[k].forEach(row => {
+      if (!rowMatches(row)) return;
+      fields.forEach(f => { if (f in row) row[f] = 0; });
+      n++;
+    });
+    total += n;
+    log += `<span class="ok">[完了]</span> ${k}: ${n}台を更新\n`;
+  });
+  log += `\n合計 ${total}台を更新しました。ダウンロードを開始します。`;
+  $("log").innerHTML = log;
+  $("log").style.display = "block";
+
+  // 1台1行の見た目を保って書き出し
+  const text = "{\n" + Object.entries(data).map(([k, v]) => {
+    if (Array.isArray(v)) {
+      return `  ${JSON.stringify(k)}: [\n` +
+             v.map(r => "    " + JSON.stringify(r)).join(",\n") + "\n  ]";
+    }
+    return `  ${JSON.stringify(k)}: ${JSON.stringify(v)}`;
+  }).join(",\n") + "\n}\n";
+
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  a.download = "edited_" + fileName;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+</script>
+</body>
+</html>
