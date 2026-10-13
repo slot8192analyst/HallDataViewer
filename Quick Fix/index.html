@@ -3,446 +3,721 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>JSON一括リセットツール</title>
+<title>差枚・機種名 一括更新ツール</title>
 <style>
   :root {
-    --bg: #f1f4f9;
-    --card: #ffffff;
-    --text: #1f2937;
-    --sub: #6b7280;
-    --primary: #4f46e5;
-    --primary-dark: #4338ca;
-    --border: #e5e7eb;
-    --danger: #dc2626;
-    --ok: #059669;
+    --bg: #f1f4f9; --card: #fff; --text: #1f2937; --sub: #6b7280;
+    --primary: #4f46e5; --primary-dark: #4338ca; --border: #e5e7eb;
+    --danger: #dc2626; --ok: #059669; --warn: #d97706;
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0;
-    padding: 32px 16px 64px;
-    background: var(--bg);
-    color: var(--text);
-    font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
-    line-height: 1.6;
+    margin: 0; padding: 32px 16px 64px; background: var(--bg); color: var(--text);
+    font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; line-height: 1.6;
   }
-  .container { max-width: 760px; margin: 0 auto; }
+  .container { max-width: 1040px; margin: 0 auto; }
   h1 { font-size: 1.5rem; margin: 0 0 4px; }
   .lead { color: var(--sub); margin: 0 0 24px; font-size: .95rem; }
-
   .card {
-    background: var(--card);
-    border-radius: 14px;
-    padding: 20px 22px;
-    margin-bottom: 18px;
+    background: var(--card); border-radius: 14px; padding: 20px 22px; margin-bottom: 18px;
     box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.04);
   }
-  .card h2 {
-    font-size: 1.05rem;
-    margin: 0 0 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+  .card h2 { font-size: 1.05rem; margin: 0 0 14px; display: flex; align-items: center; gap: 10px; }
   .step {
-    background: var(--primary);
-    color: #fff;
-    width: 26px; height: 26px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: .85rem;
-    flex-shrink: 0;
+    background: var(--primary); color: #fff; width: 26px; height: 26px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center; font-size: .85rem; flex-shrink: 0;
   }
   .card.disabled { opacity: .45; pointer-events: none; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
 
-  /* ドロップエリア */
   .drop {
-    border: 2px dashed #c7cbe8;
-    border-radius: 12px;
-    padding: 28px 16px;
-    text-align: center;
-    cursor: pointer;
-    transition: .15s;
-    background: #fafaff;
+    border: 2px dashed #c7cbe8; border-radius: 12px; padding: 24px 12px; text-align: center;
+    cursor: pointer; transition: .15s; background: #fafaff; font-size: .92rem;
   }
   .drop:hover, .drop.over { border-color: var(--primary); background: #eef0ff; }
   .drop strong { color: var(--primary); }
   .drop small { color: var(--sub); display: block; margin-top: 4px; }
-  .fileinfo {
-    margin-top: 12px;
-    font-size: .9rem;
-    color: var(--sub);
-  }
+  .drop.loaded { border-style: solid; border-color: var(--ok); background: #f0fdf4; }
+  .fileinfo { margin-top: 10px; font-size: .88rem; color: var(--sub); word-break: break-all; }
   .fileinfo b { color: var(--text); }
+  .err { color: var(--danger); }
 
-  /* フォーム部品 */
-  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-  .row + .row { margin-top: 12px; }
   label.lbl { font-size: .85rem; color: var(--sub); display: block; margin-bottom: 4px; }
-  input[type="date"], select {
-    padding: 9px 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    font-size: .95rem;
-    background: #fff;
-    color: var(--text);
-    font-family: inherit;
+  select, input[type="text"], input[type="number"] {
+    padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: .9rem;
+    background: #fff; color: var(--text); font-family: inherit;
   }
-  input[type="date"]:focus, select:focus {
-    outline: 2px solid #c7d2fe;
-    border-color: var(--primary);
+  select { padding: 9px 12px; font-size: .95rem; max-width: 100%; }
+  select:focus, input:focus { outline: 2px solid #c7d2fe; border-color: var(--primary); }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+  .opt {
+    display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border: 1px solid var(--border);
+    border-radius: 8px; cursor: pointer; font-size: .9rem; user-select: none;
   }
-  .tilde { padding-top: 22px; color: var(--sub); }
+  .opt:has(input:checked) { background: #eef0ff; border-color: var(--primary); }
 
-  .quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-  .chipbtn {
-    border: 1px solid var(--border);
-    background: #fff;
-    border-radius: 999px;
-    padding: 6px 14px;
-    font-size: .85rem;
-    cursor: pointer;
-    font-family: inherit;
-    color: var(--text);
-    transition: .15s;
-  }
-  .chipbtn:hover { border-color: var(--primary); color: var(--primary); background: #f5f5ff; }
+  /* 列設定 */
+  .colbox { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .colbox h3 { font-size: .95rem; margin: 0 0 10px; }
+  .colgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+  .colgrid select { width: 100%; }
+  .pv { margin-top: 14px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; max-height: 240px; }
+  .pv th, .pv td { max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+  .pv tr.hdr td { background: #f3f4f6; color: #9ca3af; }
+  .pv .badge { margin-left: 4px; }
+  .warnline { margin-top: 10px; font-size: .85rem; color: var(--warn); }
 
-  .checks { display: flex; flex-wrap: wrap; gap: 10px; }
-  .checks label {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: .92rem;
-    user-select: none;
-  }
-  .checks label:has(input:checked) { background: #eef0ff; border-color: var(--primary); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .stat { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
+  .stat .n { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat .t { font-size: .78rem; color: var(--sub); }
+  .stat.main { background: #eef0ff; border-color: #c7d2fe; }
+  .stat.main .n { color: var(--primary); }
+  .stat.warn .n { color: var(--warn); }
+  .notes { margin-top: 12px; font-size: .85rem; color: var(--warn); }
 
-  /* プレビュー */
-  .summary {
-    background: #f8fafc;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 16px;
-    font-size: .95rem;
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 10px; }
+  .tab {
+    border: 1px solid var(--border); background: #fff; border-radius: 999px; padding: 6px 14px;
+    font-size: .85rem; cursor: pointer; font-family: inherit; color: var(--text);
   }
-  .summary b { color: var(--primary); font-size: 1.1rem; }
-  .summary.warn { background: #fef2f2; border-color: #fecaca; color: var(--danger); }
-  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; max-height: 140px; overflow-y: auto; }
-  .tag {
-    background: #eef0ff;
-    color: var(--primary-dark);
-    border-radius: 6px;
-    padding: 2px 10px;
-    font-size: .8rem;
-    font-variant-numeric: tabular-nums;
+  .tab:hover { border-color: var(--primary); }
+  .tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .tab .cnt { opacity: .75; margin-left: 4px; font-variant-numeric: tabular-nums; }
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .btn {
+    border: 1px solid var(--border); background: #fff; border-radius: 8px; padding: 6px 12px;
+    font-size: .82rem; cursor: pointer; font-family: inherit;
   }
+  .btn:hover { border-color: var(--primary); color: var(--primary); }
 
-  /* 実行ボタン */
+  .tablewrap { max-height: 480px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: .85rem; font-variant-numeric: tabular-nums; }
+  th, td { padding: 5px 8px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; vertical-align: middle; }
+  th { position: sticky; top: 0; background: #f3f4f6; z-index: 1; }
+  td.num { text-align: right; }
+  tr.skip td { background: #fffbeb; }
+  tr.bad td { background: #fef2f2; }
+  tr.add td { background: #f0fdf4; }
+  .in-no { width: 84px; }
+  .in-machine { width: 250px; }
+  .in-diff { width: 96px; text-align: right; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 6px; font-size: .75rem; margin-right: 4px; }
+  .b-ok { background: #d1fae5; color: #065f46; }
+  .b-skip { background: #fef3c7; color: #92400e; }
+  .b-bad { background: #fee2e2; color: #991b1b; }
+  .b-add { background: #dbeafe; color: #1e40af; }
+  .b-mc { background: #ede9fe; color: #5b21b6; }
+  .strike { text-decoration: line-through; color: #9ca3af; }
+  .more { margin-top: 6px; font-size: .8rem; color: var(--sub); }
+  .empty { padding: 24px; text-align: center; color: var(--sub); }
+
   .run {
-    width: 100%;
-    padding: 14px;
-    border: none;
-    border-radius: 10px;
-    background: var(--primary);
-    color: #fff;
-    font-size: 1.05rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: .15s;
-    font-family: inherit;
+    width: 100%; padding: 14px; border: none; border-radius: 10px; background: var(--primary); color: #fff;
+    font-size: 1.05rem; font-weight: 600; cursor: pointer; transition: .15s; font-family: inherit; margin-top: 16px;
   }
   .run:hover:not(:disabled) { background: var(--primary-dark); }
   .run:disabled { background: #c7c9d9; cursor: not-allowed; }
-
   .log {
-    margin-top: 14px;
-    background: #111827;
-    color: #d1d5db;
-    border-radius: 10px;
-    padding: 12px 16px;
-    font-size: .85rem;
-    font-family: ui-monospace, Consolas, monospace;
-    white-space: pre-wrap;
-    display: none;
-    max-height: 200px;
-    overflow-y: auto;
+    margin-top: 14px; background: #111827; color: #d1d5db; border-radius: 10px; padding: 12px 16px;
+    font-size: .85rem; font-family: ui-monospace, Consolas, monospace; white-space: pre-wrap; display: none;
   }
   .log .ok { color: #6ee7b7; }
-  .log .ng { color: #fca5a5; }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>JSON一括リセットツール</h1>
-  <p class="lead">指定した期間のデータを、G数・差枚・BB・RB・ART などの項目を 0 に書き換えて保存します。</p>
+  <h1>差枚・機種名 一括更新ツール</h1>
+  <p class="lead">temp.csv の内容で、指定した日の差枚と機種名を台番号ごとに更新します。CSVの列は自由に選べます。</p>
 
   <!-- STEP 1 -->
   <div class="card">
-    <h2><span class="step">1</span>JSONファイルを選ぶ</h2>
-    <div class="drop" id="drop">
-      <strong>クリックして選択</strong> または ここにドラッグ&ドロップ
-      <small>.json ファイル</small>
+    <h2><span class="step">1</span>ファイルを選ぶ</h2>
+    <div class="grid2">
+      <div>
+        <label class="lbl">JSONファイル</label>
+        <div class="drop" id="dropJson"><strong>クリックして選択</strong> またはドラッグ&ドロップ<small>.json</small></div>
+        <input type="file" id="fileJson" accept=".json,application/json" hidden>
+        <div class="fileinfo" id="infoJson"></div>
+      </div>
+      <div>
+        <label class="lbl">temp.csv(Shift_JIS / UTF-8 自動判定)</label>
+        <div class="drop" id="dropCsv"><strong>クリックして選択</strong> またはドラッグ&ドロップ<small>.csv / .tsv / .txt</small></div>
+        <input type="file" id="fileCsv" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden>
+        <div class="fileinfo" id="infoCsv"></div>
+      </div>
     </div>
-    <input type="file" id="file" accept=".json,application/json" hidden>
-    <div class="fileinfo" id="fileinfo"></div>
+
+    <!-- CSV列設定(CSV読み込み後に表示) -->
+    <div class="colbox" id="colBox" style="display:none">
+      <h3>CSVの列設定(選択肢は1行目の内容です)</h3>
+      <div class="colgrid">
+        <div><label class="lbl" for="colMachine">機種名の列</label><select id="colMachine"></select></div>
+        <div><label class="lbl" for="colNo">台番号の列</label><select id="colNo"></select></div>
+        <div><label class="lbl" for="colDiff">差枚の列</label><select id="colDiff"></select></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <label class="opt"><input type="checkbox" id="chkHeader">1行目は見出し行なので読み込まない</label>
+        <div>
+          <label class="lbl" for="delim">区切り文字</label>
+          <select id="delim">
+            <option value="auto">自動判定</option>
+            <option value="tab">タブ</option>
+            <option value="comma">カンマ</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl" for="enc">文字コード</label>
+          <select id="enc">
+            <option value="auto">自動判定(おすすめ)</option>
+            <option value="shift_jis">Shift_JIS</option>
+            <option value="utf-8">UTF-8</option>
+          </select>
+        </div>
+      </div>
+      <div class="pv" id="pv"></div>
+      <div class="warnline" id="mapWarn"></div>
+    </div>
   </div>
 
   <!-- STEP 2 -->
   <div class="card disabled" id="card2">
-    <h2><span class="step">2</span>期間を選ぶ</h2>
+    <h2><span class="step">2</span>更新する日付と条件</h2>
     <div class="row">
       <div>
-        <label class="lbl" for="start">開始日</label>
-        <input type="date" id="start">
+        <label class="lbl" for="dateSel">対象の日付</label>
+        <select id="dateSel"></select>
       </div>
-      <div class="tilde">〜</div>
-      <div>
-        <label class="lbl" for="end">終了日</label>
-        <input type="date" id="end">
-      </div>
-    </div>
-    <div class="quick">
-      <button type="button" class="chipbtn" data-q="all">全期間</button>
-      <button type="button" class="chipbtn" data-q="latest">最新日のみ</button>
-      <button type="button" class="chipbtn" data-q="7">直近7日</button>
-      <button type="button" class="chipbtn" data-q="30">直近30日</button>
+      <label class="opt"><input type="checkbox" id="chkSync" checked>機種名の変更もJSONに反映する(CSVの機種名で上書き)</label>
     </div>
   </div>
 
   <!-- STEP 3 -->
   <div class="card disabled" id="card3">
-    <h2><span class="step">3</span>書き換える項目・条件</h2>
-    <label class="lbl">0にする項目</label>
-    <div class="checks" id="fields"></div>
-    <div class="row" style="margin-top:16px">
-      <div>
-        <label class="lbl" for="machine">機種名で絞り込み(任意)</label>
-        <select id="machine"><option value="">すべての機種</option></select>
-      </div>
-    </div>
-  </div>
+    <h2><span class="step">3</span>内容を確認・修正して実行</h2>
+    <div class="stats" id="stats"></div>
+    <div class="notes" id="notes"></div>
 
-  <!-- STEP 4 -->
-  <div class="card disabled" id="card4">
-    <h2><span class="step">4</span>確認して実行</h2>
-    <div class="summary" id="summary">-</div>
-    <div class="tags" id="tags"></div>
-    <div style="margin-top:16px">
-      <button class="run" id="run" disabled>0に書き換えてダウンロード</button>
+    <div class="tabs" id="tabs"></div>
+    <div class="tools">
+      <button type="button" class="btn" id="btnAddAll">台番号なしを すべて「追加」にする</button>
+      <button type="button" class="btn" id="btnAddNone">「追加」を すべて解除</button>
     </div>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>CSV行</th><th>状態</th><th>台番号</th><th>機種名(CSV=新)</th>
+            <th>現在の機種名</th><th class="num">現在の差枚</th><th>新しい差枚</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="empty" style="display:none">この分類に該当する行はありません。</div>
+    </div>
+    <div class="more" id="more"></div>
+
+    <button class="run" id="run" disabled>書き換えてダウンロード</button>
     <div class="log" id="log"></div>
   </div>
 </div>
 
 <script>
-const FIELDS = ["G数", "差枚", "BB", "RB", "ART"];
-let data = null;
-let fileName = "";
-let dateKeys = [];   // [{key, num}] 日付順
-
 const $ = id => document.getElementById(id);
+let data = null, jsonName = "", dateKeys = [], byNo = new Map();
+let csvBuf = null, csvName = "", rows = [];
+let an = new Map();            // 行ID → 解析結果のキャッシュ
+let curTab = "skip";
 
-// ---------- ユーティリティ ----------
-const keyToNum = key => {
-  const m = /^(\d{4})_(\d{1,2})_(\d{1,2})$/.exec(key);
+/* CSV関連の状態 */
+let table = [];                // [{line, cols[]}] 空行を除いた生データ
+let maxCols = 0, emptyLines = 0, usedEnc = "", usedDelim = "";
+let colMap = { machine: 0, no: 1, diff: 2 };   // machine は -1 で「使わない」
+let headerOn = true, headerManual = false, mapManual = false;
+let dirty = false;             // 表で手修正したか
+
+/* ---------- 共通ユーティリティ ---------- */
+const keyToNum = k => {
+  const m = /^(\d{4})_(\d{1,2})_(\d{1,2})$/.exec(k);
   return m ? (+m[1]) * 10000 + (+m[2]) * 100 + (+m[3]) : null;
 };
-const numToInput = n => {
-  const y = Math.floor(n / 10000);
-  const m = Math.floor(n / 100) % 100;
-  const d = n % 100;
-  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-};
-const inputToNum = v => v ? Number(v.replace(/-/g, "")) : null;
-const shiftInput = (v, days) => {
-  const dt = new Date(v + "T00:00:00Z");
-  dt.setUTCDate(dt.getUTCDate() + days);
-  return dt.toISOString().slice(0, 10);
-};
+const fmtKey = k => { const m = /^(\d{4})_(\d{1,2})_(\d{1,2})$/.exec(k); return m ? `${m[1]}/${m[2]}/${m[3]}` : k; };
+const norm = s => String(s ?? "").normalize("NFKC").replace(/\s+/g, "").trim();
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const colLetter = i => { let s = "", n = i + 1; while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); } return s; };
+const clip = (s, n) => s.length > n ? s.slice(0, n) + "…" : s;
 
-// ---------- ファイル読み込み ----------
-$("drop").onclick = () => $("file").click();
-$("drop").ondragover = e => { e.preventDefault(); $("drop").classList.add("over"); };
-$("drop").ondragleave = () => $("drop").classList.remove("over");
-$("drop").ondrop = e => {
-  e.preventDefault();
-  $("drop").classList.remove("over");
-  if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
-};
-$("file").onchange = e => { if (e.target.files[0]) loadFile(e.target.files[0]); };
+function parseNumber(raw) {
+  const s = String(raw ?? "").normalize("NFKC").replace(/[−―ー‐–—]/g, "-").replace(/[,\s]/g, "");
+  if (s === "") return { blank: true };
+  if (!/^[+-]?\d+(\.\d+)?$/.test(s)) return { invalid: true };
+  return { value: Number(s) };
+}
 
-async function loadFile(file) {
+/* ---------- ドロップエリア ---------- */
+function setupDrop(dropId, inputId, handler) {
+  const d = $(dropId), i = $(inputId);
+  d.onclick = () => i.click();
+  d.ondragover = e => { e.preventDefault(); d.classList.add("over"); };
+  d.ondragleave = () => d.classList.remove("over");
+  d.ondrop = e => { e.preventDefault(); d.classList.remove("over"); if (e.dataTransfer.files[0]) handler(e.dataTransfer.files[0]); };
+  i.onchange = e => { if (e.target.files[0]) handler(e.target.files[0]); };
+}
+setupDrop("dropJson", "fileJson", loadJson);
+setupDrop("dropCsv", "fileCsv", loadCsv);
+
+/* ---------- JSON読み込み ---------- */
+async function loadJson(file) {
   try {
-    data = JSON.parse(await file.text());
+    data = JSON.parse((await file.text()).replace(/^\uFEFF/, ""));
   } catch (err) {
     data = null;
-    $("fileinfo").innerHTML = `<span style="color:var(--danger)">JSONの読み込みに失敗しました: ${err.message}</span>`;
-    return;
+    $("infoJson").innerHTML = `<span class="err">JSONの読み込みに失敗しました: ${esc(err.message)}</span>`;
+    $("dropJson").classList.remove("loaded");
+    fullRefresh(); return;
   }
-  fileName = file.name;
-
+  jsonName = file.name;
   dateKeys = Object.keys(data)
     .map(k => ({ key: k, num: keyToNum(k) }))
     .filter(o => o.num !== null && Array.isArray(data[o.key]))
-    .sort((a, b) => a.num - b.num);
-
-  if (dateKeys.length === 0) {
-    $("fileinfo").innerHTML = `<span style="color:var(--danger)">「2026_10_12」形式の日付キーが見つかりませんでした。</span>`;
-    return;
+    .sort((a, b) => b.num - a.num);
+  if (!dateKeys.length) {
+    data = null;
+    $("infoJson").innerHTML = `<span class="err">「2026_10_12」形式の日付キーが見つかりませんでした。</span>`;
+    $("dropJson").classList.remove("loaded");
+    fullRefresh(); return;
   }
-
-  const first = dateKeys[0].num, last = dateKeys[dateKeys.length - 1].num;
-  $("fileinfo").innerHTML =
-    `<b>${file.name}</b> を読み込みました(${dateKeys.length}日分:${numToInput(first)} 〜 ${numToInput(last)})`;
-
-  // 日付入力の範囲設定
-  ["start", "end"].forEach(id => {
-    $(id).min = numToInput(first);
-    $(id).max = numToInput(last);
-  });
-  setRange("all");
-
-  // 機種名リスト
-  const machines = new Set();
-  dateKeys.forEach(o => data[o.key].forEach(r => { if (r["機種名"]) machines.add(r["機種名"]); }));
-  const sel = $("machine");
-  sel.length = 1;
-  [...machines].sort().forEach(m => {
-    const opt = document.createElement("option");
-    opt.value = m;
-    opt.textContent = m;
-    sel.appendChild(opt);
-  });
-
-  ["card2", "card3", "card4"].forEach(id => $(id).classList.remove("disabled"));
-  $("log").style.display = "none";
-  updatePreview();
+  $("dropJson").classList.add("loaded");
+  $("infoJson").innerHTML = `<b>${esc(file.name)}</b><br>${dateKeys.length}日分(${fmtKey(dateKeys[dateKeys.length - 1].key)} 〜 ${fmtKey(dateKeys[0].key)})`;
+  $("dateSel").innerHTML = dateKeys.map(o => `<option value="${esc(o.key)}">${fmtKey(o.key)}(${data[o.key].length}台)</option>`).join("");
+  fullRefresh();
 }
 
-// ---------- 期間のクイック選択 ----------
-function setRange(type) {
-  const first = numToInput(dateKeys[0].num);
-  const last = numToInput(dateKeys[dateKeys.length - 1].num);
-  let s = first, e = last;
-  if (type === "latest") s = last;
-  else if (type === "7" || type === "30") {
-    s = shiftInput(last, -(Number(type) - 1));
-    if (s < first) s = first;
+/* ---------- CSV読み込み ---------- */
+function decodeBuffer(buf, enc) {
+  const strip = s => s.replace(/^\uFEFF/, "");
+  if (enc === "utf-8") return { text: strip(new TextDecoder("utf-8").decode(buf)), used: "UTF-8" };
+  if (enc === "shift_jis") return { text: strip(new TextDecoder("shift_jis").decode(buf)), used: "Shift_JIS" };
+  try {
+    return { text: strip(new TextDecoder("utf-8", { fatal: true }).decode(buf)), used: "UTF-8" };
+  } catch (_) {
+    return { text: strip(new TextDecoder("shift_jis").decode(buf)), used: "Shift_JIS" };
   }
-  $("start").value = s;
-  $("end").value = e;
 }
-document.querySelectorAll("[data-q]").forEach(btn => {
-  btn.onclick = () => { setRange(btn.dataset.q); updatePreview(); };
+
+function splitLine(line, delim) {
+  const out = []; let cur = "", q = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (q) {
+      if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === delim) { out.push(cur); cur = ""; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+
+/* バッファ → 生データ表(table) */
+function tokenize() {
+  const { text, used } = decodeBuffer(csvBuf, $("enc").value);
+  const lines = text.split(/\r?\n/);
+  const firstLine = lines.find(l => l.replace(/[\t, ]/g, "") !== "") ?? "";
+  let d = $("delim").value;
+  d = d === "tab" ? "\t" : d === "comma" ? "," : (firstLine.includes("\t") ? "\t" : ",");
+
+  table = []; emptyLines = 0; maxCols = 0;
+  lines.forEach((line, i) => {
+    if (line === "") return;
+    const cols = splitLine(line, d).map(s => s.trim());
+    if (cols.every(c => c === "")) { emptyLines++; return; }
+    table.push({ line: i + 1, cols });
+    maxCols = Math.max(maxCols, cols.length);
+  });
+  usedEnc = used;
+  usedDelim = d === "\t" ? "タブ" : "カンマ";
+}
+
+/* 列の自動割り当て */
+function autoMap() {
+  const f = table[0] ? table[0].cols : [];
+  const iNo = f.indexOf("台番号"), iD = f.indexOf("差枚"), iM = f.indexOf("機種名");
+  if (iNo >= 0 && iD >= 0) colMap = { machine: iM >= 0 ? iM : 0, no: iNo, diff: iD };
+  else colMap = { machine: 0, no: 1, diff: 2 };
+  clampMap();
+}
+function clampMap() {
+  const mx = Math.max(maxCols - 1, 0);
+  colMap.no = Math.min(colMap.no, mx);
+  colMap.diff = Math.min(colMap.diff, mx);
+  if (colMap.machine >= 0) colMap.machine = Math.min(colMap.machine, mx);
+}
+/* 1行目が見出しかどうかの自動判定(台番号の列が数字でなければ見出し) */
+function autoHeader() {
+  const f = table[0];
+  return !!f && !/^\d+$/.test(norm(f.cols[colMap.no] ?? ""));
+}
+
+/* 生データ表 → 行データ(rows) */
+function buildRows() {
+  rows = [];
+  const start = headerOn ? 1 : 0;
+  for (let i = start; i < table.length; i++) {
+    const t = table[i];
+    const noStr = norm(t.cols[colMap.no]);
+    rows.push({
+      id: rows.length, line: t.line,
+      machine: colMap.machine >= 0 ? (t.cols[colMap.machine] ?? "") : "",
+      no: /^\d+$/.test(noStr) ? Number(noStr) : null,
+      diffRaw: t.cols[colMap.diff] ?? "",
+      exclude: false, add: false
+    });
+  }
+  dirty = false;
+}
+
+/* 列設定UIの描画 */
+function cellLabel(i) {
+  const v = table[0] ? (table[0].cols[i] ?? "") : "";
+  return v === "" ? "(空)" : clip(v, 18);
+}
+function renderColumnUI() {
+  $("colBox").style.display = "block";
+  const opts = [];
+  for (let i = 0; i < maxCols; i++) opts.push(`<option value="${i}">${colLetter(i)}列:${esc(cellLabel(i))}</option>`);
+  const html = opts.join("");
+  $("colMachine").innerHTML = `<option value="-1">(使わない)</option>` + html;
+  $("colNo").innerHTML = html;
+  $("colDiff").innerHTML = html;
+  $("colMachine").value = String(colMap.machine);
+  $("colNo").value = String(colMap.no);
+  $("colDiff").value = String(colMap.diff);
+  $("chkHeader").checked = headerOn;
+  renderPreview();
+
+  const w = [];
+  if (colMap.no === colMap.diff) w.push("台番号と差枚に同じ列が選ばれています。");
+  if (colMap.machine >= 0 && colMap.machine === colMap.no) w.push("機種名と台番号に同じ列が選ばれています。");
+  if (colMap.machine >= 0 && colMap.machine === colMap.diff) w.push("機種名と差枚に同じ列が選ばれています。");
+  if (colMap.machine < 0) w.push("機種名の列を使わないため、機種名の変更・新規追加は行われません。");
+  $("mapWarn").innerHTML = w.map(x => `<div>⚠ ${esc(x)}</div>`).join("");
+}
+
+function renderPreview() {
+  const n = Math.min(maxCols, 8), show = table.slice(0, 5);
+  let h = `<table><thead><tr><th>CSV行</th>`;
+  for (let i = 0; i < n; i++) {
+    const roles = [];
+    if (colMap.machine === i) roles.push("機種名");
+    if (colMap.no === i) roles.push("台番号");
+    if (colMap.diff === i) roles.push("差枚");
+    h += `<th>${colLetter(i)}${roles.map(r => `<span class="badge b-ok">${r}</span>`).join("")}</th>`;
+  }
+  h += `</tr></thead><tbody>`;
+  show.forEach((t, ri) => {
+    const isH = ri === 0 && headerOn;
+    h += `<tr class="${isH ? "hdr" : ""}"><td>${t.line}${isH ? "(見出し)" : ""}</td>`;
+    for (let i = 0; i < n; i++) h += `<td>${esc(clip(t.cols[i] ?? "", 30))}</td>`;
+    h += `</tr>`;
+  });
+  h += `</tbody></table>`;
+  if (maxCols > n) h += `<div class="more" style="padding:4px 10px">…ほか ${maxCols - n}列(プルダウンからは全列選べます)</div>`;
+  $("pv").innerHTML = h;
+}
+
+function updateCsvInfo() {
+  $("dropCsv").classList.add("loaded");
+  $("infoCsv").innerHTML = `<b>${esc(csvName)}</b><br>文字コード: ${usedEnc} / 区切り: ${usedDelim} / ${maxCols}列 / データ行 ${rows.length}件(空行 ${emptyLines}件は無視)`;
+}
+
+function applyCsv() {
+  buildRows();
+  renderColumnUI();
+  updateCsvInfo();
+  fullRefresh();
+}
+
+const confirmReset = () => !dirty || confirm("列設定を変えると、表で修正した内容がリセットされます。続けますか?");
+
+async function loadCsv(file) {
+  csvBuf = await file.arrayBuffer();
+  csvName = file.name;
+  tokenize();
+  mapManual = false; headerManual = false;
+  autoMap();
+  headerOn = autoHeader();
+  applyCsv();
+}
+
+/* 設定変更ハンドラ */
+function onTokenSettingChange() {
+  if (!csvBuf) return;
+  if (!confirmReset()) { renderColumnUI(); return; }
+  tokenize();
+  if (!mapManual) autoMap(); else clampMap();
+  if (!headerManual) headerOn = autoHeader();
+  applyCsv();
+}
+$("enc").onchange = onTokenSettingChange;
+$("delim").onchange = onTokenSettingChange;
+
+["colMachine", "colNo", "colDiff"].forEach(id => {
+  $(id).onchange = () => {
+    if (!confirmReset()) { renderColumnUI(); return; }
+    mapManual = true;
+    colMap = { machine: Number($("colMachine").value), no: Number($("colNo").value), diff: Number($("colDiff").value) };
+    if (!headerManual) headerOn = autoHeader();
+    applyCsv();
+  };
 });
-
-// ---------- 項目チェックボックス ----------
-$("fields").innerHTML = FIELDS.map(f =>
-  `<label><input type="checkbox" value="${f}" checked>${f}</label>`).join("");
-
-// ---------- プレビュー ----------
-function getTargetKeys() {
-  const s = inputToNum($("start").value);
-  const e = inputToNum($("end").value);
-  if (s === null || e === null || s > e) return null;
-  return dateKeys.filter(o => o.num >= s && o.num <= e).map(o => o.key);
-}
-const selectedFields = () =>
-  [...document.querySelectorAll("#fields input:checked")].map(e => e.value);
-const rowMatches = row => {
-  const m = $("machine").value;
-  return !m || row["機種名"] === m;
+$("chkHeader").onchange = () => {
+  if (!confirmReset()) { renderColumnUI(); return; }
+  headerManual = true;
+  headerOn = $("chkHeader").checked;
+  applyCsv();
 };
 
-function updatePreview() {
+/* ---------- 解析 ---------- */
+const syncOn = () => $("chkSync").checked;
+
+function rebuildIndex() {
+  byNo = new Map();
   if (!data) return;
-  const keys = getTargetKeys();
-  const sum = $("summary"), tags = $("tags");
-  tags.innerHTML = "";
-
-  if (keys === null) {
-    sum.className = "summary warn";
-    sum.textContent = "開始日と終了日を正しく指定してください(開始日 ≦ 終了日)。";
-    $("run").disabled = true;
-    return;
-  }
-
-  let rowCount = 0;
-  keys.forEach(k => data[k].forEach(r => { if (rowMatches(r)) rowCount++; }));
-  const fields = selectedFields();
-
-  if (keys.length === 0 || rowCount === 0 || fields.length === 0) {
-    sum.className = "summary warn";
-    sum.textContent = fields.length === 0
-      ? "書き換える項目を1つ以上選んでください。"
-      : "対象のデータがありません。";
-    $("run").disabled = true;
-    return;
-  }
-
-  sum.className = "summary";
-  sum.innerHTML = `<b>${keys.length}日分 / ${rowCount}台</b> の「${fields.join("・")}」を 0 に書き換えます。`;
-
-  const MAX = 80;
-  keys.slice(0, MAX).forEach(k => {
-    const s = document.createElement("span");
-    s.className = "tag";
-    s.textContent = k;
-    tags.appendChild(s);
+  (data[$("dateSel").value] || []).forEach(x => {
+    const n = Number(x["台番号"]);
+    if (!byNo.has(n)) byNo.set(n, []);
+    byNo.get(n).push(x);
   });
-  if (keys.length > MAX) {
-    const s = document.createElement("span");
-    s.className = "tag";
-    s.textContent = `…ほか${keys.length - MAX}日`;
-    tags.appendChild(s);
-  }
-  $("run").disabled = false;
 }
-["start", "end", "machine"].forEach(id => $(id).addEventListener("change", updatePreview));
-$("fields").addEventListener("change", updatePreview);
 
-// ---------- 実行 ----------
-$("run").onclick = () => {
-  const keys = getTargetKeys();
-  const fields = selectedFields();
-  if (!keys || keys.length === 0) return;
-  if (!confirm(`${keys.length}日分のデータを書き換えます。よろしいですか?\n(元ファイルは変更されません)`)) return;
+function analyze(r) {
+  const arr = r.no != null ? (byNo.get(r.no) || null) : null;
+  const found = !!arr;
+  const d = parseNumber(r.diffRaw);
+  const cur = found ? arr[0] : null;
+  const machineChange = !!(found && !r.exclude && syncOn() && norm(r.machine) &&
+                           norm(cur["機種名"]) !== norm(r.machine));
+  let action = "skip", reason = "";
+  if (found) {
+    if (r.exclude) reason = "exclude";
+    else if (d.blank) reason = "blank";
+    else if (d.invalid) reason = "invalid";
+    else action = "update";
+  } else {
+    if (r.no == null) reason = "noNo";
+    else if (!r.add) reason = "notfound";
+    else if (!norm(r.machine)) reason = "noMachine";
+    else if (d.invalid) reason = "invalid";
+    else action = "add";
+  }
+  return { found, arr, cur, d, value: d.value, machineChange, action, reason };
+}
+function analyzeAll() { an = new Map(); rows.forEach(r => an.set(r.id, analyze(r))); }
 
-  let log = "", total = 0;
-  keys.forEach(k => {
-    let n = 0;
-    data[k].forEach(row => {
-      if (!rowMatches(row)) return;
-      fields.forEach(f => { if (f in row) row[f] = 0; });
-      n++;
-    });
-    total += n;
-    log += `<span class="ok">[完了]</span> ${k}: ${n}台を更新\n`;
-  });
-  log += `\n合計 ${total}台を更新しました。ダウンロードを開始します。`;
-  $("log").innerHTML = log;
-  $("log").style.display = "block";
+const REASON = {
+  exclude: "除外指定", blank: "差枚が空欄", invalid: "差枚が数値ではない",
+  notfound: "JSONに台番号なし", noNo: "台番号が読めない", noMachine: "機種名が空欄"
+};
+const TABS = [
+  { k: "skip",     label: "スキップ対象",   test: a => a.action === "skip" },
+  { k: "blank",    label: "差枚が空欄",     test: a => a.reason === "blank" },
+  { k: "notfound", label: "台番号なし",     test: a => !a.found },
+  { k: "invalid",  label: "数値不正",       test: a => a.reason === "invalid" },
+  { k: "update",   label: "更新される",     test: a => a.action === "update" || a.action === "add" },
+  { k: "machine",  label: "機種名が変わる", test: a => a.machineChange },
+  { k: "all",      label: "すべて",         test: () => true }
+];
 
-  // 1台1行の見た目を保って書き出し
-  const text = "{\n" + Object.entries(data).map(([k, v]) => {
-    if (Array.isArray(v)) {
-      return `  ${JSON.stringify(k)}: [\n` +
-             v.map(r => "    " + JSON.stringify(r)).join(",\n") + "\n  ]";
+/* ---------- 行の表示部品 ---------- */
+function statusHtml(a) {
+  let h = "";
+  if (a.action === "update") h += `<span class="badge b-ok">差枚を更新</span>`;
+  else if (a.action === "add") h += `<span class="badge b-add">新規追加</span>`;
+  else h += `<span class="badge ${a.found ? "b-skip" : "b-bad"}">スキップ:${REASON[a.reason]}</span>`;
+  if (a.machineChange) h += `<span class="badge b-mc">機種名を変更</span>`;
+  return h;
+}
+const curMachineHtml = (r, a) => !a.found ? "-" :
+  (a.machineChange ? `<span class="strike">${esc(a.cur["機種名"])}</span>` : esc(a.cur["機種名"]));
+const curDiffHtml = a => a.found ? esc(a.cur["差枚"] ?? "(なし)") : "-";
+function opHtml(r, a) {
+  if (a.found) return `<label><input type="checkbox" data-k="exclude" ${r.exclude ? "checked" : ""}> 除外</label>`;
+  const can = r.no != null && norm(r.machine);
+  return `<label><input type="checkbox" data-k="add" ${r.add ? "checked" : ""} ${can ? "" : "disabled"}> 追加</label>`;
+}
+const rowClass = a => a.action === "add" ? "add" : a.action === "skip" ? (a.found ? "skip" : "bad") : "";
+
+function trHtml(r) {
+  const a = an.get(r.id);
+  return `<tr data-id="${r.id}" class="${rowClass(a)}">
+    <td>${r.line}</td>
+    <td class="c-status">${statusHtml(a)}</td>
+    <td><input type="number" class="in-no" data-k="no" value="${r.no ?? ""}"></td>
+    <td><input type="text" class="in-machine" data-k="machine" value="${esc(r.machine)}"></td>
+    <td class="c-curm">${curMachineHtml(r, a)}</td>
+    <td class="c-curd num">${curDiffHtml(a)}</td>
+    <td><input type="text" class="in-diff" data-k="diff" value="${esc(r.diffRaw)}" placeholder="差枚"></td>
+    <td class="c-op">${opHtml(r, a)}</td>
+  </tr>`;
+}
+
+/* ---------- 画面更新 ---------- */
+const MAX_ROWS = 1000;
+function renderTable() {
+  const tab = TABS.find(t => t.k === curTab);
+  const list = rows.filter(r => tab.test(an.get(r.id)));
+  $("tbody").innerHTML = list.slice(0, MAX_ROWS).map(trHtml).join("");
+  $("empty").style.display = list.length ? "none" : "block";
+  $("more").textContent = list.length > MAX_ROWS ? `…ほか ${list.length - MAX_ROWS}行(先頭${MAX_ROWS}行のみ表示)` : "";
+}
+
+function renderTabs() {
+  $("tabs").innerHTML = TABS.map(t => {
+    const n = rows.filter(r => t.test(an.get(r.id))).length;
+    return `<button type="button" class="tab ${t.k === curTab ? "active" : ""}" data-tab="${t.k}">${t.label}<span class="cnt">${n}</span></button>`;
+  }).join("");
+}
+
+function refreshStats() {
+  const c = { update: 0, add: 0, machine: 0, blank: 0, notfound: 0, other: 0, dup: 0 };
+  const seen = new Map();
+  rows.forEach(r => {
+    const a = an.get(r.id);
+    if (a.action === "update") c.update++;
+    if (a.action === "add") c.add++;
+    if (a.machineChange) c.machine++;
+    if (a.action === "skip") {
+      if (a.reason === "blank") c.blank++;
+      else if (!a.found) c.notfound++;
+      else c.other++;
     }
-    return `  ${JSON.stringify(k)}: ${JSON.stringify(v)}`;
-  }).join(",\n") + "\n}\n";
+    if (r.no != null) seen.set(r.no, (seen.get(r.no) || 0) + 1);
+  });
+  seen.forEach(v => { if (v > 1) c.dup += v - 1; });
 
+  const stat = (n, t, cls = "") => `<div class="stat ${cls}"><div class="n">${n}</div><div class="t">${t}</div></div>`;
+  $("stats").innerHTML =
+    stat(c.update, "差枚を更新", "main") +
+    stat(c.machine, "機種名を変更", "main") +
+    stat(c.add, "新規追加", c.add ? "main" : "") +
+    stat(c.blank, "スキップ:差枚が空欄", c.blank ? "warn" : "") +
+    stat(c.notfound, "スキップ:台番号なし", c.notfound ? "warn" : "") +
+    stat(c.other, "スキップ:その他", c.other ? "warn" : "");
+
+  const notes = [];
+  if (c.dup) notes.push(`CSV内で台番号が重複している行が ${c.dup}件あります(後ろの行が優先されます)。`);
+  if (rows.length && !c.update && !c.machine && !c.add && c.notfound === rows.length)
+    notes.push("台番号が1件も一致しません。日付、列の選択、文字コードの設定を確認してください。");
+  $("notes").innerHTML = notes.map(n => `<div>⚠ ${esc(n)}</div>`).join("");
+
+  renderTabs();
+  $("run").disabled = !(c.update || c.machine || c.add);
+  return c;
+}
+
+function fullRefresh() {
+  const ready = data && rows.length;
+  $("card2").classList.toggle("disabled", !ready);
+  $("card3").classList.toggle("disabled", !ready);
+  $("log").style.display = "none";
+  if (!ready) { $("run").disabled = true; return; }
+  rebuildIndex();
+  analyzeAll();
+  refreshStats();
+  renderTable();
+}
+$("dateSel").onchange = () => { rows.forEach(r => { r.add = false; r.exclude = false; }); fullRefresh(); };
+$("chkSync").onchange = fullRefresh;
+
+$("tabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-tab]");
+  if (!b) return;
+  curTab = b.dataset.tab;
+  renderTabs(); renderTable();
+});
+
+/* ---------- 表の編集 ---------- */
+$("tbody").addEventListener("change", e => {
+  const el = e.target, k = el.dataset.k;
+  const tr = el.closest("tr");
+  if (!k || !tr) return;
+  const r = rows[Number(tr.dataset.id)];
+  dirty = true;
+  if (k === "no") { const s = norm(el.value); r.no = /^\d+$/.test(s) ? Number(s) : null; }
+  else if (k === "machine") r.machine = el.value.trim();
+  else if (k === "diff") r.diffRaw = el.value.trim();
+  else if (k === "exclude") r.exclude = el.checked;
+  else if (k === "add") r.add = el.checked;
+
+  const a = analyze(r);
+  an.set(r.id, a);
+  tr.className = rowClass(a);
+  tr.querySelector(".c-status").innerHTML = statusHtml(a);
+  tr.querySelector(".c-curm").innerHTML = curMachineHtml(r, a);
+  tr.querySelector(".c-curd").innerHTML = curDiffHtml(a);
+  tr.querySelector(".c-op").innerHTML = opHtml(r, a);
+  refreshStats();   // 表は再描画しないので、Tabキーで連続入力できます
+});
+
+$("btnAddAll").onclick = () => {
+  rows.forEach(r => { if (!an.get(r.id).found && r.no != null && norm(r.machine)) r.add = true; });
+  dirty = true;
+  analyzeAll(); refreshStats(); renderTable();
+};
+$("btnAddNone").onclick = () => {
+  rows.forEach(r => { r.add = false; });
+  analyzeAll(); refreshStats(); renderTable();
+};
+
+/* ---------- 実行 ---------- */
+$("run").onclick = () => {
+  analyzeAll();
+  const c = refreshStats();
+  const key = $("dateSel").value;
+  const msg = `${fmtKey(key)} に対して次の更新を行います。\n` +
+              `・差枚を更新: ${c.update}台\n・機種名を変更: ${c.machine}台\n・新規追加: ${c.add}台\n\n` +
+              `よろしいですか?(元ファイルは変更されません)`;
+  if (!confirm(msg)) return;
+
+  const arr = data[key];
+  rows.forEach(r => {
+    const a = analyze(r);
+    if (a.found) {
+      a.arr.forEach(x => {
+        if (a.action === "update") x["差枚"] = a.value;
+        if (a.machineChange) x["機種名"] = r.machine;
+      });
+    } else if (a.action === "add") {
+      const tmpl = arr.length ? Object.keys(arr[0]) : ["機種名", "台番号", "G数", "差枚", "BB", "RB", "ART"];
+      const o = {};
+      tmpl.forEach(k => { o[k] = 0; });
+      o["機種名"] = r.machine; o["台番号"] = r.no; o["差枚"] = a.d.blank ? 0 : a.value;
+      let pos = -1;
+      arr.forEach((x, i) => { if (norm(x["機種名"]) === norm(r.machine)) pos = i; });
+      arr.splice(pos >= 0 ? pos + 1 : arr.length, 0, o);
+      byNo.set(r.no, [o]);
+    }
+  });
+
+  const text = "{\n" + Object.entries(data).map(([k, v]) =>
+    Array.isArray(v)
+      ? `  ${JSON.stringify(k)}: [\n` + v.map(x => "    " + JSON.stringify(x)).join(",\n") + "\n  ]"
+      : `  ${JSON.stringify(k)}: ${JSON.stringify(v)}`
+  ).join(",\n") + "\n}\n";
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
-  a.download = "edited_" + fileName;
+  a.download = "edited_" + jsonName;
   a.click();
   URL.revokeObjectURL(a.href);
+
+  rebuildIndex(); analyzeAll(); refreshStats(); renderTable();
+  $("log").innerHTML =
+    `<span class="ok">[完了]</span> ${fmtKey(key)}\n差枚を更新: ${c.update}台 / 機種名を変更: ${c.machine}台 / 新規追加: ${c.add}台\n` +
+    `スキップ: 差枚空欄 ${c.blank}件 / 台番号なし ${c.notfound}件 / その他 ${c.other}件\nダウンロードを開始します。`;
+  $("log").style.display = "block";
 };
 </script>
 </body>
