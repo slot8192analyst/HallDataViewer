@@ -132,6 +132,14 @@ var Router = (function() {
                 if (typeof Promotion !== 'undefined') Promotion.render('zombie', param);
                 if (typeof Board !== 'undefined') Board.render('zombie');
             }
+        },
+        yokai: {
+            tabId: 'yokai',
+            init: null,
+            onShow: function(param) {
+                if (typeof Promotion !== 'undefined') Promotion.render('yokai', param);
+                if (typeof Board !== 'undefined') Board.render('yokai');
+            }
         }
     };
 

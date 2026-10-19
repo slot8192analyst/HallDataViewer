@@ -5,7 +5,7 @@
 //   - date はアンダースコア区切り（例: 2026_06_06）
 //   - 対象機種は機種名 完全一致で日別データ(dataCache)から抽出
 //   - 未来の開催日（今日より後）はデータを読みに行かない（404防止）
-//   - 取材ハブには3取材を1枚にまとめた全体マトリクス（buildOverviewMatrix）を描画
+//   - 取材ハブには4取材を1枚にまとめた全体マトリクス（buildOverviewMatrix）を描画
 //   - 各取材の日付詳細にはその日の全台ランキング（buildDayRanking）を描画
 // ===================
 var Promotion = (function() {
@@ -14,21 +14,24 @@ var Promotion = (function() {
     var PROMO_NAMES = {
         tenun:  '天運総撃',
         ougi:   '奥義ノ矢',
-        zombie: 'ゾンビ狩り取材'
+        zombie: 'ゾンビ狩り取材',
+        yokai:  '妖怪ハント'
     };
 
     // 取材カラー定義（全体マトリクス用）。キーは router の data-nav / ページキーと一致
     var PROMO_COLORS = {
         tenun:  { name: '天運総撃',   accent: '#ef4444' },  // 赤
         ougi:   { name: '奥義の矢',   accent: '#3b82f6' },  // 青
-        zombie: { name: 'ゾンビ狩り', accent: '#22c55e' }   // 緑
+        zombie: { name: 'ゾンビ狩り', accent: '#22c55e' },  // 緑
+        yokai:  { name: '妖怪ハント', accent: '#a855f7' }   // 紫
     };
 
     // 表示用ラベル（カード/凡例と揃える。PROMO_NAMES は events.json の name 値なので別物）
     var PROMO_LABELS = {
         tenun:  '天運総撃',
         ougi:   '奥義の矢',
-        zombie: 'ゾンビ狩り'
+        zombie: 'ゾンビ狩り',
+        yokai:  '妖怪ハント'
     };
 
     var COLUMNS = [
@@ -433,14 +436,14 @@ var Promotion = (function() {
     }
 
     // ===================
-    // 全体マトリクス（3取材を1枚に統合）
+    // 全体マトリクス（4取材を1枚に統合）
     //   縦: 機種名 / 横: 開催日（全取材を日付昇順で「通し」に並べる）
     //   各開催日（列）に取材カラーを付与。セルは target=濃(●) / candidate=薄(○)
     //   events.json の target_machines / candidate_machines から組むので
     //   日別データのロード状況に依存しない（未来日も描ける）
     // ===================
     function buildOverviewMatrix(allEvents) {
-        var keys = ['tenun', 'ougi', 'zombie'];
+        var keys = ['tenun', 'ougi', 'zombie', 'yokai'];
 
         // 1) 取材ごとの開催日イベントを集める（date + promoKey を持たせる）
         var dayEvents = [];
@@ -464,7 +467,7 @@ var Promotion = (function() {
         //    取材別ピック回数も集計
         var matrix = {};     // { 機種名: { colIndex: type } }
         var order  = [];     // 機種出現順
-        var promoCount = {}; // { 機種名: { tenun:{t,c}, ougi:{...}, zombie:{...} } }
+        var promoCount = {}; // { 機種名: { tenun:{t,c}, ougi:{...}, zombie:{...}, yokai:{...} } }
 
         columns.forEach(function(col, ci) {
             function mark(names, type) {
@@ -476,7 +479,8 @@ var Promotion = (function() {
                         promoCount[n] = {
                             tenun:  { t: 0, c: 0 },
                             ougi:   { t: 0, c: 0 },
-                            zombie: { t: 0, c: 0 }
+                            zombie: { t: 0, c: 0 },
+                            yokai:  { t: 0, c: 0 }
                         };
                     }
                     // target は candidate より優先（上書きしない）
@@ -508,7 +512,7 @@ var Promotion = (function() {
 
         // 5) HTML 組み立て
         var html = '<div class="promo-matrix-section promo-overview-section">';
-        html += '<h3 class="promo-matrix-title">全体マトリクス（3取材一覧）</h3>';
+        html += '<h3 class="promo-matrix-title">全体マトリクス（4取材一覧）</h3>';
 
         // 凡例（取材カラー）
         html += '<div class="promo-matrix-legend promo-overview-legend">';

@@ -17,6 +17,7 @@
 [data-promo="tenun"]  { --promo-accent: #f59e0b; --promo-accent-hover: #fbbf24; }
 [data-promo="ougi"]   { --promo-accent: #60a5fa; --promo-accent-hover: #93c5fd; }
 [data-promo="zombie"] { --promo-accent: #34d399; --promo-accent-hover: #6ee7b7; }
+[data-promo="yokai"]  { --promo-accent: #c084fc; --promo-accent-hover: #d8b4fe; }
 
 /* ===================
    2. 取材ハブのカード
@@ -331,7 +332,7 @@
     color: var(--text-muted);
 }
 
-/* ===== 全体マトリクス（3取材一覧） ===== */
+/* ===== 全体マトリクス（4取材一覧） ===== */
 .promo-overview-section { margin-top: var(--space-6); }
 
 .promo-overview-legend {

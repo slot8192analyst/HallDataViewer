@@ -1,6 +1,6 @@
 // ===================
 // 取材掲示板モジュール（board.js）
-//   - 取材ページ(tenun/ougi/zombie) と 取材ハブ(hub) の各スレッドを描画
+//   - 取材ページ(tenun/ougi/zombie/yokai) と 取材ハブ(hub) の各スレッドを描画
 //   - <div class="promo-memo" data-promo="tenun"> をプレースホルダにする
 //   - 作成者名は aim.js と共用（localStorage 'aimSheetAuthor'）
 //   - Cloudflare Workers + D1（/api/board）に投稿・編集・削除
@@ -12,7 +12,7 @@ var Board = (function() {
     var BOARD_API_URL = 'https://aim-api.slot8192analyst.workers.dev/api/board';
     var AUTHOR_KEY = 'aimSheetAuthor';
 
-    var VALID = { tenun: 1, ougi: 1, zombie: 1, hub: 1 };
+    var VALID = { tenun: 1, ougi: 1, zombie: 1, yokai: 1, hub: 1 };
 
     function getAuthor() {
         try { return localStorage.getItem(AUTHOR_KEY) || ''; } catch (e) { return ''; }

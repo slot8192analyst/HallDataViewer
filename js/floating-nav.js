@@ -18,7 +18,8 @@ var FloatingNav = (function () {
         promotion: '取材',
         tenun:     '取材 / 天運',
         ougi:      '取材 / 扇',
-        zombie:    '取材 / ゾンビ'
+        zombie:    '取材 / ゾンビ',
+        yokai:     '取材 / 妖怪'
     };
 
     // DOM 参照
@@ -145,9 +146,9 @@ var FloatingNav = (function () {
         // ナビアイテムの active 状態更新
         _modal.querySelectorAll('.half-modal-nav-item').forEach(function (item) {
             var nav = item.getAttribute('data-nav');
-            // tenun/ougi/zombie は promotion グループとして扱う
+            // tenun/ougi/zombie/yokai は promotion グループとして扱う
             var isActive = (nav === page) ||
-                           (['tenun', 'ougi', 'zombie'].includes(page) && nav === 'promotion');
+                           (['tenun', 'ougi', 'zombie', 'yokai'].includes(page) && nav === 'promotion');
             item.classList.toggle('current-page', isActive);
         });
         // 現在ページラベル
