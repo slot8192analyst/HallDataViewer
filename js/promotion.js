@@ -7,6 +7,8 @@
 //   - 未来の開催日（今日より後）はデータを読みに行かない（404防止）
 //   - 取材ハブには4取材を1枚にまとめた全体マトリクス（buildOverviewMatrix）を描画
 //   - 各取材の日付詳細にはその日の全台ランキング（buildDayRanking）を描画
+//   - 特定日ページ(tokutei)は events.json の recurringEvents（ビッキー降臨）の日付を
+//     日別データから集計して描画（renderTokutei / renderTokuteiDetail）
 // ===================
 var Promotion = (function() {
     'use strict';
@@ -33,6 +35,9 @@ var Promotion = (function() {
         zombie: 'ゾンビ狩り',
         yokai:  '妖怪ハント'
     };
+
+    // 特定日ページ（tokutei）で扱う recurringEvents の name（events.json と完全一致）
+    var TOKUTEI_NAMES = ['ビッキーゼウス降臨', 'ビッキーデビル降臨'];
 
     var COLUMNS = [
         { key: '機種名', label: '機種名' },
@@ -253,6 +258,12 @@ var Promotion = (function() {
         if (!container) return;
         var body = container.querySelector('.promo-body');
         if (!body) return;
+
+        if (promoKey === 'tokutei') {
+            if (!param) renderTokutei(body);
+            else renderTokuteiDetail(param, body);
+            return;
+        }
 
         getAllEvents().then(function(allEvents) {
             var events = filterEventsFor(allEvents, promoKey);
@@ -760,6 +771,199 @@ var Promotion = (function() {
         }
 
         body.innerHTML = html;
+    }
+
+    // ===================
+    // 特定日ページ（tokutei）
+    //   events.json の recurringEvents のうち TOKUTEI_NAMES に一致するルールを対象に、
+    //   該当する開催日（日別データが存在する日）を集計して一覧表示する。
+    //   日付判定は utils.js の getRecurringEventsForDate を使う（カレンダーと同じ判定）。
+    // ===================
+    function ensureEventData() {
+        if (typeof loadEventData === 'function') {
+            return Promise.resolve(loadEventData()).catch(function() { return null; });
+        }
+        return Promise.resolve(null);
+    }
+
+    function dateKeyOf(d) {
+        return d.getFullYear() + '_' + pad2(d.getMonth() + 1) + '_' + pad2(d.getDate());
+    }
+
+    // その日付に該当する特定日ルール（TOKUTEI_NAMES のみ）を返す。無ければ null
+    function tokuteiRuleOf(dateKey) {
+        if (typeof getRecurringEventsForDate !== 'function') return null;
+        var hit = getRecurringEventsForDate(dateKey).filter(function(r) {
+            return TOKUTEI_NAMES.indexOf(r.name) !== -1;
+        });
+        return hit.length ? hit[0] : null;
+    }
+
+    // 各ルールの「次回開催日」（今日以降で最初に該当する日）
+    function nextTokuteiDate(name) {
+        var d = new Date();
+        d.setHours(0, 0, 0, 0);
+        for (var i = 0; i < 400; i++) {
+            var key = dateKeyOf(d);
+            var r = tokuteiRuleOf(key);
+            if (r && r.name === name) return key;
+            d.setDate(d.getDate() + 1);
+        }
+        return null;
+    }
+
+    // files.json の月別ファイル一覧から未ロードの月を読み込む
+    function loadAllMonthsForTokutei() {
+        if (typeof loadFilesList !== 'function' || typeof loadMonthlyJSON !== 'function') {
+            return Promise.resolve();
+        }
+        return loadFilesList().then(function(files) {
+            var jobs = [];
+            (files || []).forEach(function(f) {
+                var m = f.match(/(\d{4})_(\d{2})\.json$/);
+                if (!m) return;
+                var prefix = 'data/' + m[1] + '_' + m[2] + '_';
+                var loaded = (typeof CSV_FILES !== 'undefined') && CSV_FILES.some(function(c) {
+                    return c.indexOf(prefix) === 0;
+                });
+                if (!loaded) jobs.push(Promise.resolve(loadMonthlyJSON(f)).catch(function() {}));
+            });
+            return Promise.all(jobs);
+        });
+    }
+
+    // dataCache 内の全日付から、特定日ルールに該当する日を { name: [ {date, records} ] } で返す
+    function collectTokuteiDays() {
+        var byName = {};
+        TOKUTEI_NAMES.forEach(function(n) { byName[n] = []; });
+        if (typeof dataCache === 'undefined') return byName;
+        Object.keys(dataCache).forEach(function(k) {
+            var m = k.match(/^data\/(\d{4}_\d{2}_\d{2})\.csv$/);
+            if (!m) return;
+            var rule = tokuteiRuleOf(m[1]);
+            if (!rule) return;
+            byName[rule.name].push({ date: m[1], records: dataCache[k] || [] });
+        });
+        TOKUTEI_NAMES.forEach(function(n) {
+            byName[n].sort(function(a, b) { return a.date < b.date ? 1 : -1; });
+        });
+        return byName;
+    }
+
+    function fmtSigned(n) { return (n > 0 ? '+' : '') + n.toLocaleString(); }
+    function signCls(n)   { return n > 0 ? 'plus' : (n < 0 ? 'minus' : 'zero'); }
+
+    function tokuteiIcon(name) {
+        var rules = (typeof eventData !== 'undefined' && eventData && eventData.recurringEvents) || [];
+        for (var i = 0; i < rules.length; i++) {
+            if (rules[i].name === name) return rules[i].icon || '';
+        }
+        return '';
+    }
+
+    // 行1件分の集計（台数 / 合計差枚 / 台平均差枚 / 平均G / 勝率）
+    function tokuteiStat(records) {
+        var s = summarizeRows(records);
+        s.avgDiff = s.count ? Math.round(s.total / s.count) : 0;
+        return s;
+    }
+
+    function renderTokutei(body) {
+        body.innerHTML = '<p class="promo-empty">データを読み込んでいます…</p>';
+
+        ensureEventData()
+            .then(loadAllMonthsForTokutei)
+            .then(function() {
+                // 読み込み中に別ページへ移っていたら描画しない
+                if (!document.body.contains(body)) return;
+                var byName = collectTokuteiDays();
+                var html = '';
+
+                TOKUTEI_NAMES.forEach(function(name) {
+                    var days = byName[name];
+                    var icon = tokuteiIcon(name);
+                    var next = nextTokuteiDate(name);
+
+                    html += '<div class="tokutei-section" data-promo="tokutei">';
+                    html += '<h3 class="tokutei-title">' + escapeHtml((icon ? icon + ' ' : '') + name)
+                         +  (next ? '<span class="tokutei-next">次回 ' + next.replace(/_/g, '-') + '</span>' : '')
+                         +  '</h3>';
+
+                    if (!days.length) {
+                        html += '<p class="promo-empty">該当日のデータがありません。</p></div>';
+                        return;
+                    }
+
+                    // 通算サマリー（全開催日の全台を合算）
+                    var all = [];
+                    days.forEach(function(d) { all = all.concat(d.records); });
+                    var t = tokuteiStat(all);
+                    html += '<div class="promo-summary summary tokutei-summary">'
+                         +  '<span>開催日数 <b>' + days.length + '</b></span>'
+                         +  '<span>平均差枚/台 <b class="' + signCls(t.avgDiff) + '">' + fmtSigned(t.avgDiff) + '</b></span>'
+                         +  '<span>平均G数 <b>' + t.avgG.toLocaleString() + '</b></span>'
+                         +  '<span>勝率 <b>' + t.winRate + '%</b></span>'
+                         +  '</div>';
+
+                    // 日別テーブル（新しい順）
+                    html += '<div class="table-wrapper"><table class="promo-table"><thead><tr>'
+                         +  '<th>日付</th><th>台数</th><th>合計差枚</th><th>平均差枚</th><th>平均G数</th><th>勝率</th>'
+                         +  '</tr></thead><tbody>';
+                    days.forEach(function(d) {
+                        var s = tokuteiStat(d.records);
+                        html += '<tr>'
+                             +  '<td><a href="#tokutei/' + d.date + '" data-nav="tokutei" data-param="' + d.date + '">'
+                             +  d.date.replace(/_/g, '-') + '</a></td>'
+                             +  '<td>' + s.count + '</td>'
+                             +  '<td class="' + signCls(s.total) + '">' + fmtSigned(s.total) + '</td>'
+                             +  '<td class="' + signCls(s.avgDiff) + '">' + fmtSigned(s.avgDiff) + '</td>'
+                             +  '<td>' + s.avgG.toLocaleString() + '</td>'
+                             +  '<td>' + s.winRate + '%</td>'
+                             +  '</tr>';
+                    });
+                    html += '</tbody></table></div></div>';
+                });
+
+                body.innerHTML = html;
+            });
+    }
+
+    function renderTokuteiDetail(dateStr, body) {
+        var back = '<p><a href="#tokutei" data-nav="tokutei">← 特定日一覧</a></p>';
+        body.innerHTML = back + '<p class="promo-empty">データを読み込んでいます…</p>';
+
+        ensureEventData().then(function() {
+            var rule = tokuteiRuleOf(dateStr);
+            var head = back + '<h3>' + dateStr.replace(/_/g, '-')
+                     + (rule ? '（' + escapeHtml((rule.icon ? rule.icon + ' ' : '') + rule.name) + '）' : '')
+                     + '</h3>';
+
+            if (isFutureDate(dateStr)) {
+                body.innerHTML = head + '<p class="promo-empty">この開催日はまだ来ていないため、データは未掲載です。</p>';
+                return;
+            }
+
+            var records = getDayRecords(dateStr);
+            if (!records) {
+                // 未ロード → その月だけ読んで再描画（読めなければ案内を出して終了）
+                var p = dateStr.split('_');
+                if (p.length !== 3 || typeof loadMonthlyJSON !== 'function') {
+                    body.innerHTML = head + '<p class="promo-empty">この日のデータがありません。</p>';
+                    return;
+                }
+                Promise.resolve(loadMonthlyJSON('data/' + p[0] + '_' + pad2(p[1]) + '.json'))
+                    .catch(function() {})
+                    .then(function() {
+                        if (getDayRecords(dateStr)) renderTokuteiDetail(dateStr, body);
+                        else body.innerHTML = head + '<p class="promo-empty">この日のデータがありません。</p>';
+                    });
+                return;
+            }
+
+            var html = head + summaryBar(records);
+            html += buildRankingSection(buildDayRanking(records));
+            body.innerHTML = html;
+        });
     }
 
     function loadDayThenRerender(promoKey, dateStr) {

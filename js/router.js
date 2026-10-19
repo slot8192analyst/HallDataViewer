@@ -109,6 +109,14 @@ var Router = (function() {
         },
         // 各取材ページ（開催日一覧 / 日付詳細を Promotion が描画 + 取材掲示板）
         //   param が無ければ開催日一覧、あれば該当日の詳細
+        // 特定日（ビッキーゼウス降臨 / ビッキーデビル降臨 など recurringEvents の日付ルール）
+        tokutei: {
+            tabId: 'tokutei',
+            init: null,
+            onShow: function(param) {
+                if (typeof Promotion !== 'undefined') Promotion.render('tokutei', param);
+            }
+        },
         tenun: {
             tabId: 'tenun',
             init: null,

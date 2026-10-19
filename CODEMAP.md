@@ -1,6 +1,6 @@
 # CODEMAP — 軽量コード地図（自動生成・手編集禁止）
 
-生成: 2026-10-19 10:49 JST / `python3 tools/gen_codemap.py`
+生成: 2026-10-19 16:21 JST / `python3 tools/gen_codemap.py`
 
 ## 使い方（AIも人間もまずここを読む）
 
@@ -27,9 +27,9 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 | `js/aim.js` | 1893 | ~26,672 | ⛔全読み禁止 |
 | `js/analysis.js` | 1229 | ~20,796 | ⛔全読み禁止 |
 | `ARCHITECTURE.md` | 514 | ~18,622 | ⚠️部分のみ |
+| `js/promotion.js` | 997 | ~14,529 | ⚠️部分のみ |
 | `css/components.css` | 1703 | ~13,068 | ⚠️部分のみ |
 | `js/calendar.js` | 973 | ~12,113 | ⚠️部分のみ |
-| `js/promotion.js` | 793 | ~11,303 | ⚠️部分のみ |
 | `js/hstag.js` | 849 | ~10,729 | ⚠️部分のみ |
 | `js/machinebadge.js` | 698 | ~10,612 | ⚠️部分のみ |
 | `css/style.css` | 1332 | ~10,569 | ⚠️部分のみ |
@@ -42,17 +42,17 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 | `css/aim.css` | 564 | ~6,117 | ✅ |
 | `js/memo.js` | 419 | ~5,455 | ✅ |
 | `DESIGN.md` | 329 | ~4,614 | ✅ |
-| `CODEMAP.md` | 221 | ~4,465 | ✅ |
+| `CODEMAP.md` | 223 | ~4,507 | ✅ |
 | `js/daily-state.js` | 355 | ~4,366 | ✅ |
-| `js/router.js` | 295 | ~3,590 | ✅ |
+| `js/router.js` | 303 | ~3,708 | ✅ |
+| `css/promotion.css` | 384 | ~3,546 | ✅ |
 | `css/island.css` | 570 | ~3,530 | ✅ |
 | `css/machinebadge.css` | 422 | ~3,506 | ✅ |
 | `js/board.js` | 229 | ~3,420 | ✅ |
-| `css/promotion.css` | 364 | ~3,292 | ✅ |
-| `index.html` | 192 | ~3,195 | ✅ |
+| `index.html` | 193 | ~3,227 | ✅ |
 | `partials/analysis.html` | 194 | ~2,892 | ✅ |
 | `partials/daily.html` | 177 | ~2,595 | ✅ |
-| `js/floating-nav.js` | 212 | ~2,435 | ✅ |
+| `js/floating-nav.js` | 213 | ~2,455 | ✅ |
 | `js/preset.js` | 202 | ~2,428 | ✅ |
 | `js/chart.js` | 190 | ~2,358 | ✅ |
 | `css/memo.css` | 172 | ~2,071 | ✅ |
@@ -62,13 +62,14 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 | `js/app.js` | 121 | ~1,313 | ✅ |
 | `js/bottomsheet.js` | 97 | ~1,179 | ✅ |
 | `partials/calendar.html` | 50 | ~808 | ✅ |
+| `partials/promotion/promotion.html` | 34 | ~688 | ✅ |
 | `partials/island.html` | 54 | ~662 | ✅ |
-| `partials/promotion/promotion.html` | 29 | ~580 | ✅ |
 | `files.json` | 26 | ~190 | ✅ |
 | `partials/promotion/zombie.html` | 3 | ~61 | ✅ |
 | `partials/promotion/yokai.html` | 3 | ~60 | ✅ |
 | `partials/promotion/tenun.html` | 3 | ~59 | ✅ |
 | `partials/promotion/ougi.html` | 3 | ~59 | ✅ |
+| `partials/promotion/tokutei.html` | 2 | ~28 | ✅ |
 
 **⛔ `data/*.json`（25ファイル）+ `unit_history.json` = 32.3MB / 概算 11,306,882 トークン**
 
@@ -112,7 +113,7 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 **`js/data.js`** 590行/~6,809tok 関数30個
 　L1 データ読み込み・管理 / L36 仮想翌日（稼働中メモ用） / L143 ローディング制御 / L200 データ読み込み
 
-**`js/floating-nav.js`** 212行/~2,435tok 関数12個 — 公開 `window.FloatingNav`
+**`js/floating-nav.js`** 213行/~2,455tok 関数12個 — 公開 `window.FloatingNav`
 　L1 floating-nav.js
 
 **`js/hstag.js`** 849行/~10,729tok ⚠️ 関数41個
@@ -130,10 +131,10 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 **`js/preset.js`** 202行/~2,428tok 関数6個
 　L1 機種フィルタープリセット管理 / L8 ストレージ / L25 固定プリセット / L47 全プリセット取得 / L58 マッチング / L194 公開API
 
-**`js/promotion.js`** 793行/~11,303tok ⚠️ 関数32個 — 公開 `window.Promotion`
-　L1 取材ページ共通モジュール（promotion.js） / L52 events 取得（ストア優先 → 無ければ自前 fetch してキャッシュ） / L91 日付・キャッシュ・データ抽出 / L144 集計ヘルパー / L177 その日の全台ランキング集計 / L248 描画エントリ（events を取得してから描く） / L264 開催日一覧（カード ＋ 対象機種マトリクス） / L354 対象機種マトリクス（縦:機種 × 横:開催日） / L438 全体マトリクス（4取材を1枚に統合） / L609 詳細ページ（テーブル＋サマリーバー） / L636 その日の全台ランキング描画 / L776 ユーティリティ
+**`js/promotion.js`** 997行/~14,529tok ⚠️ 関数44個 — 公開 `window.Promotion`
+　L1 取材ページ共通モジュール（promotion.js） / L57 events 取得（ストア優先 → 無ければ自前 fetch してキャッシュ） / L96 日付・キャッシュ・データ抽出 / L149 集計ヘルパー / L182 その日の全台ランキング集計 / L253 描画エントリ（events を取得してから描く） / L275 開催日一覧（カード ＋ 対象機種マトリクス） / L365 対象機種マトリクス（縦:機種 × 横:開催日） / L449 全体マトリクス（4取材を1枚に統合） / L620 詳細ページ（テーブル＋サマリーバー） / L647 その日の全台ランキング描画 / L776 特定日ページ（tokutei） / L980 ユーティリティ
 
-**`js/router.js`** 295行/~3,590tok 関数20個 — 公開 `window.Router`
+**`js/router.js`** 303行/~3,708tok 関数21個 — 公開 `window.Router`
 　L1 ハッシュルーター（完全版 / パラメータ対応 #page/param） / L100 取材（promotion）
 
 **`js/utils.js`** 2632行/~30,040tok ⛔ 関数128個 — 公開 `window.HallData`
@@ -151,7 +152,7 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 - `css/island.css` 570行/~3,530tok （セレクタ77個）
 - `css/machinebadge.css` 422行/~3,506tok （セレクタ63個）
 - `css/memo.css` 172行/~2,071tok （セレクタ60個）
-- `css/promotion.css` 364行/~3,292tok （セレクタ85個）
+- `css/promotion.css` 384行/~3,546tok （セレクタ92個）
 - `css/style.css` 1332行/~10,569tok （セレクタ136個）
 - `css/theme.css` 124行/~1,371tok （セレクタ0個）
 
@@ -159,15 +160,16 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 
 ## 4. partials/ 一覧（id の位置は `tools/find.sh '#myId'`）
 
-- `index.html` 192行/~3,195tok （id 20個）
+- `index.html` 193行/~3,227tok （id 21個）
 - `partials/aim.html` 94行/~1,823tok （id 24個）
 - `partials/analysis.html` 194行/~2,892tok （id 41個）
 - `partials/calendar.html` 50行/~808tok （id 8個）
 - `partials/daily.html` 177行/~2,595tok （id 52個）
 - `partials/island.html` 54行/~662tok （id 12個）
 - `partials/promotion/ougi.html` 3行/~59tok （id 0個）
-- `partials/promotion/promotion.html` 29行/~580tok （id 0個）
+- `partials/promotion/promotion.html` 34行/~688tok （id 0個）
 - `partials/promotion/tenun.html` 3行/~59tok （id 0個）
+- `partials/promotion/tokutei.html` 2行/~28tok （id 0個）
 - `partials/promotion/yokai.html` 3行/~60tok （id 0個）
 - `partials/promotion/zombie.html` 3行/~61tok （id 0個）
 

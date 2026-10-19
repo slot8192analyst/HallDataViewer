@@ -18,6 +18,7 @@
 [data-promo="ougi"]   { --promo-accent: #60a5fa; --promo-accent-hover: #93c5fd; }
 [data-promo="zombie"] { --promo-accent: #34d399; --promo-accent-hover: #6ee7b7; }
 [data-promo="yokai"]  { --promo-accent: #c084fc; --promo-accent-hover: #d8b4fe; }
+[data-promo="tokutei"] { --promo-accent: #fbbf24; --promo-accent-hover: #fcd34d; }
 
 /* ===================
    2. 取材ハブのカード
@@ -362,3 +363,22 @@
     padding-left: var(--space-2);
     padding-right: var(--space-2);
 }
+
+/* ===================
+   7. 特定日ページ（tokutei）
+   =================== */
+.tokutei-section { margin-bottom: var(--space-6); }
+.tokutei-title {
+    margin: 0 0 var(--space-2);
+    padding-left: var(--space-3);
+    border-left: 4px solid var(--promo-accent, var(--border-color));
+}
+.tokutei-next {
+    margin-left: var(--space-2);
+    font-size: var(--font-size-sm);
+    font-weight: normal;
+    color: var(--text-muted);
+}
+.tokutei-summary { margin-bottom: var(--space-3); }
+.tokutei-summary b.promo-sub { font-weight: normal; color: var(--text-muted); font-size: var(--font-size-sm); }
+.tokutei-per-unit { font-size: var(--font-size-sm); color: var(--text-muted); }

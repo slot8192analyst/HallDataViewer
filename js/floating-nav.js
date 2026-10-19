@@ -16,6 +16,7 @@ var FloatingNav = (function () {
         calendar:  'カレンダー',
         island:    'ヒートマップ',
         promotion: '取材',
+        tokutei:   '取材 / 特定日',
         tenun:     '取材 / 天運',
         ougi:      '取材 / 扇',
         zombie:    '取材 / ゾンビ',
@@ -146,9 +147,9 @@ var FloatingNav = (function () {
         // ナビアイテムの active 状態更新
         _modal.querySelectorAll('.half-modal-nav-item').forEach(function (item) {
             var nav = item.getAttribute('data-nav');
-            // tenun/ougi/zombie/yokai は promotion グループとして扱う
+            // tokutei/tenun/ougi/zombie/yokai は promotion グループとして扱う
             var isActive = (nav === page) ||
-                           (['tenun', 'ougi', 'zombie', 'yokai'].includes(page) && nav === 'promotion');
+                           (['tokutei', 'tenun', 'ougi', 'zombie', 'yokai'].includes(page) && nav === 'promotion');
             item.classList.toggle('current-page', isActive);
         });
         // 現在ページラベル
