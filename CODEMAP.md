@@ -1,6 +1,6 @@
 # CODEMAP — 軽量コード地図（自動生成・手編集禁止）
 
-生成: 2026-10-19 16:21 JST / `python3 tools/gen_codemap.py`
+生成: 2026-10-27 06:17 JST / `python3 tools/gen_codemap.py`
 
 ## 使い方（AIも人間もまずここを読む）
 
@@ -22,27 +22,27 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 
 | ファイル | 行 | tok | 判定 |
 |---|--:|--:|:--:|
-| `js/daily.js` | 2529 | ~33,948 | ⛔全読み禁止 |
-| `js/utils.js` | 2632 | ~30,040 | ⛔全読み禁止 |
+| `js/daily.js` | 2363 | ~31,641 | ⛔全読み禁止 |
 | `js/aim.js` | 1893 | ~26,672 | ⛔全読み禁止 |
+| `js/utils.js` | 2209 | ~24,200 | ⛔全読み禁止 |
 | `js/analysis.js` | 1229 | ~20,796 | ⛔全読み禁止 |
-| `ARCHITECTURE.md` | 514 | ~18,622 | ⚠️部分のみ |
+| `ARCHITECTURE.md` | 484 | ~16,309 | ⚠️部分のみ |
 | `js/promotion.js` | 997 | ~14,529 | ⚠️部分のみ |
 | `css/components.css` | 1703 | ~13,068 | ⚠️部分のみ |
 | `js/calendar.js` | 973 | ~12,113 | ⚠️部分のみ |
 | `js/hstag.js` | 849 | ~10,729 | ⚠️部分のみ |
 | `js/machinebadge.js` | 698 | ~10,612 | ⚠️部分のみ |
 | `css/style.css` | 1332 | ~10,569 | ⚠️部分のみ |
-| `css/daily.css` | 1239 | ~10,216 | ⚠️部分のみ |
+| `css/daily.css` | 1206 | ~9,828 | ⚠️部分のみ |
 | `js/island.js` | 815 | ~9,765 | ⚠️部分のみ |
-| `events.json` | 909 | ~8,793 | ⚠️部分のみ |
+| `events.json` | 926 | ~9,027 | ⚠️部分のみ |
 | `css/analysis.css` | 909 | ~7,753 | ✅ |
 | `css/calendar.css` | 1027 | ~6,836 | ✅ |
-| `js/data.js` | 590 | ~6,809 | ✅ |
+| `js/data.js` | 560 | ~6,357 | ✅ |
 | `css/aim.css` | 564 | ~6,117 | ✅ |
 | `js/memo.js` | 419 | ~5,455 | ✅ |
 | `DESIGN.md` | 329 | ~4,614 | ✅ |
-| `CODEMAP.md` | 223 | ~4,507 | ✅ |
+| `CODEMAP.md` | 225 | ~4,558 | ✅ |
 | `js/daily-state.js` | 355 | ~4,366 | ✅ |
 | `js/router.js` | 303 | ~3,708 | ✅ |
 | `css/promotion.css` | 384 | ~3,546 | ✅ |
@@ -51,9 +51,9 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 | `js/board.js` | 229 | ~3,420 | ✅ |
 | `index.html` | 193 | ~3,227 | ✅ |
 | `partials/analysis.html` | 194 | ~2,892 | ✅ |
-| `partials/daily.html` | 177 | ~2,595 | ✅ |
 | `js/floating-nav.js` | 213 | ~2,455 | ✅ |
 | `js/preset.js` | 202 | ~2,428 | ✅ |
+| `partials/daily.html` | 161 | ~2,406 | ✅ |
 | `js/chart.js` | 190 | ~2,358 | ✅ |
 | `css/memo.css` | 172 | ~2,071 | ✅ |
 | `js/config.js` | 166 | ~1,935 | ✅ |
@@ -71,7 +71,7 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 | `partials/promotion/ougi.html` | 3 | ~59 | ✅ |
 | `partials/promotion/tokutei.html` | 2 | ~28 | ✅ |
 
-**⛔ `data/*.json`（25ファイル）+ `unit_history.json` = 32.3MB / 概算 11,306,882 トークン**
+**⛔ `data/*.json`（25ファイル） = 33.0MB / 概算 11,524,970 トークン**
 
 → この中身を開くと1回で月間クレジットが消える。**絶対に Read しない。**
 　 集計は `jq` / `tools/peek.sh` を使う（トークン0）。スキーマは §3 にある。
@@ -107,10 +107,10 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 **`js/daily-state.js`** 355行/~4,366tok 関数19個
 　L1 日別タブ 状態管理モジュール
 
-**`js/daily.js`** 2529行/~33,948tok ⛔ 関数89個
-　L1 日別データタブ / L19 数値フィルター（グループAND/OR方式） / L348 プレビュー更新 / L436 日別タブ状態管理 / L450 機械割計算 / L482 汎用モーダル開閉 / L496 機種フィルター / L540 列選択 / L627 機種内バッジ設定（モーダル内） / L800 表示列（統合グループ対応） / L914 日付ナビゲーション / L999 タグカウント表示 / L1016 テーブル スケルトン / スピナー / L1052 メインフィルター＆描画 …他8件
+**`js/daily.js`** 2363行/~31,641tok ⛔ 関数85個
+　L1 日別データタブ / L19 数値フィルター（グループAND/OR方式） / L348 プレビュー更新 / L436 日別タブ状態管理 / L450 機械割計算 / L482 汎用モーダル開閉 / L496 機種フィルター / L540 列選択 / L612 機種内バッジ設定（モーダル内） / L785 表示列（統合グループ対応） / L899 日付ナビゲーション / L984 タグカウント表示 / L1001 テーブル スケルトン / スピナー / L1037 メインフィルター＆描画 …他7件
 
-**`js/data.js`** 590行/~6,809tok 関数30個
+**`js/data.js`** 560行/~6,357tok 関数29個
 　L1 データ読み込み・管理 / L36 仮想翌日（稼働中メモ用） / L143 ローディング制御 / L200 データ読み込み
 
 **`js/floating-nav.js`** 213行/~2,455tok 関数12個 — 公開 `window.FloatingNav`
@@ -137,8 +137,8 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 **`js/router.js`** 303行/~3,708tok 関数21個 — 公開 `window.Router`
 　L1 ハッシュルーター（完全版 / パラメータ対応 #page/param） / L100 取材（promotion）
 
-**`js/utils.js`** 2632行/~30,040tok ⛔ 関数128個 — 公開 `window.HallData`
-　L1 名前空間とグローバル状態管理 / L74 統一ソート関数 / L320 後方互換性のためのエイリアス / L373 ユーティリティ関数 / L444 テーブル描画 / L493 検索可能セレクトボックス / L734 共通コピー・ダウンロード機能 / L922 複数選択可能な機種フィルター（プリセット対応版） / L978 プリセット機能 / L1061 機種リスト描画 / L1235 イベントリスナー / L1376 機種ごとの台数を取得 / L1417 イベント関連（共通） / L1647 イベントバッジ描画（統一版） …他5件
+**`js/utils.js`** 2209行/~24,200tok ⛔ 関数111個 — 公開 `window.HallData`
+　L1 名前空間とグローバル状態管理 / L73 統一ソート関数 / L319 後方互換性のためのエイリアス / L372 ユーティリティ関数 / L443 テーブル描画 / L492 検索可能セレクトボックス / L733 共通コピー・ダウンロード機能 / L921 複数選択可能な機種フィルター（プリセット対応版） / L977 プリセット機能 / L1060 機種リスト描画 / L1234 イベントリスナー / L1375 機種ごとの台数を取得 / L1416 イベント関連（共通） / L1646 イベントバッジ描画（統一版） …他4件
 
 ---
 
@@ -148,7 +148,7 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 - `css/analysis.css` 909行/~7,753tok （セレクタ174個）
 - `css/calendar.css` 1027行/~6,836tok （セレクタ178個）
 - `css/components.css` 1703行/~13,068tok （セレクタ233個）
-- `css/daily.css` 1239行/~10,216tok （セレクタ199個）
+- `css/daily.css` 1206行/~9,828tok （セレクタ184個）
 - `css/island.css` 570行/~3,530tok （セレクタ77個）
 - `css/machinebadge.css` 422行/~3,506tok （セレクタ63個）
 - `css/memo.css` 172行/~2,071tok （セレクタ60個）
@@ -164,7 +164,7 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 - `partials/aim.html` 94行/~1,823tok （id 24個）
 - `partials/analysis.html` 194行/~2,892tok （id 41個）
 - `partials/calendar.html` 50行/~808tok （id 8個）
-- `partials/daily.html` 177行/~2,595tok （id 52個）
+- `partials/daily.html` 161行/~2,406tok （id 48個）
 - `partials/island.html` 54行/~662tok （id 12個）
 - `partials/promotion/ougi.html` 3行/~59tok （id 0個）
 - `partials/promotion/promotion.html` 34行/~688tok （id 0個）
@@ -218,7 +218,7 @@ tools/peek.sh fields 2026_08         # フィールド名一覧
 
 - `Read('js/utils.js')` など**全文読み** → 1回3万tok
 - `Write` でファイル全体を上書き → 入力+出力で二重課金
-- `data/*.json` `unit_history.json` を開く → 数十万tok
+- `data/*.json` を開く → 数十万tok
 - `ARCHITECTURE.md` 全文読み → 1.6万tok。必要な章だけ `sed -n '80,140p'`
 - `grep -r` を絞らずに実行 → ヒット行が全部コンテキストに乗る
 - 1セッションで無関係な複数機能を触る → 文脈が累積して毎ターン再課金

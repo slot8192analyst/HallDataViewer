@@ -14,7 +14,6 @@
 #   tools/peek.sh unit     2026_08_16 881   特定台のレコード
 #   tools/peek.sh top      2026_08_16 10    差枚トップN
 #   tools/peek.sh files                     データファイル一覧とサイズ
-#   tools/peek.sh history  881              unit_history.json から台番号を引く
 #   tools/peek.sh jq       2026_08 '<expr>' 任意の jq 式
 # ---------------------------------------------------------------------------
 set -uo pipefail
@@ -94,23 +93,11 @@ case "$CMD" in
 
   files)
     printf "%-28s %8s %12s\n" "FILE" "SIZE" "EST_TOKENS"
-    for f in data/*.json unit_history.json events.json; do
+    for f in data/*.json events.json; do
       [[ -f "$f" ]] || continue
       s=$(stat -c%s "$f")
       printf "%-28s %7sK %11s\n" "$f" "$((s/1024))" "$((s/3))"
     done
-    ;;
-
-  history)
-    NO="${2:?台番号を指定}"
-    [[ -f unit_history.json ]] || { echo "unit_history.json がありません" >&2; exit 1; }
-    jq --arg n "$NO" '
-      if type=="object" then
-        (to_entries | map(select(.key==$n)) | from_entries)
-      else
-        [.[] | select(((.["台番号"]? // .unitNo? // "")) == $n)]
-      end
-    ' unit_history.json
     ;;
 
   jq)

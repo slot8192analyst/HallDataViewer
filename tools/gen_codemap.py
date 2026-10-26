@@ -314,10 +314,7 @@ def main():
         if os.path.isfile(p):
             dtotal += os.path.getsize(p)
             dfiles += 1
-    uh = os.path.join(ROOT, "unit_history.json")
-    if os.path.isfile(uh):
-        dtotal += os.path.getsize(uh)
-    w(f"**⛔ `data/*.json`（{dfiles}ファイル）+ `unit_history.json` = "
+    w(f"**⛔ `data/*.json`（{dfiles}ファイル） = "
       f"{size_str(dtotal)} / 概算 {est(dtotal):,} トークン**")
     w("")
     w("→ この中身を開くと1回で月間クレジットが消える。**絶対に Read しない。**")
@@ -409,7 +406,7 @@ def main():
     w("")
     w("- `Read('js/utils.js')` など**全文読み** → 1回3万tok")
     w("- `Write` でファイル全体を上書き → 入力+出力で二重課金")
-    w("- `data/*.json` `unit_history.json` を開く → 数十万tok")
+    w("- `data/*.json` を開く → 数十万tok")
     w("- `ARCHITECTURE.md` 全文読み → 1.6万tok。必要な章だけ `sed -n '80,140p'`")
     w("- `grep -r` を絞らずに実行 → ヒット行が全部コンテキストに乗る")
     w("- 1セッションで無関係な複数機能を触る → 文脈が累積して毎ターン再課金")

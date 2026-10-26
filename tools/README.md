@@ -91,7 +91,6 @@ tools/peek.sh machines 2026_08        # 機種名一覧（重複除去）
 tools/peek.sh count    2026_08_16     # その日の台数
 tools/peek.sh unit     2026_08_16 881 # 特定台のレコード
 tools/peek.sh top      2026_08_16 10  # 差枚トップ10
-tools/peek.sh history  881            # 台番号の状態変化履歴
 tools/peek.sh files                   # 全データファイルのサイズとトークン量
 tools/peek.sh jq       2026_08 '<任意のjq式>'
 ```

@@ -44,7 +44,4 @@ python3 -m http.server 8000
 ```bash
 # CSV/HTML → 月別JSON
 python3 converter/convert_csv_to_json.py
-
-# 台の状態変化履歴を再生成
-python3 history-maker/build_unit_history.py
 ```

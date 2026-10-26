@@ -62,7 +62,7 @@ echo
 # --- 3. 巨大ファイルの diff 抑制 ---
 echo "[3] 巨大ファイルの git diff 抑制"
 if [[ -f .gitattributes ]]; then
-  for f in data/2026_08.json unit_history.json; do
+  for f in data/2026_08.json; do
     [[ -f "$f" ]] || continue
     ATTR=$(git check-attr diff -- "$f" 2>/dev/null | awk '{print $NF}')
     if [[ "$ATTR" == "unset" ]]; then
