@@ -33,7 +33,6 @@ sed -n '120,180p' ARCHITECTURE.md   # 必要な章だけ
 | ファイル | サイズ | 全読みした場合 |
 |---|--:|--:|
 | `data/*.json`（20ファイル） | 約68MB | **約2,300万トークン** |
-| `unit_history.json` | 311KB | 約104,000トークン |
 
 `Read`・`cat`・`head -c 大きい値` すべて禁止です。
 **中身の確認は必ず `tools/peek.sh` を使ってください（トークン消費0）。**
@@ -46,7 +45,6 @@ tools/peek.sh machines 2026_08        # 機種名一覧
 tools/peek.sh count    2026_08_16     # その日の台数
 tools/peek.sh unit     2026_08_16 881 # 特定台のレコード
 tools/peek.sh top      2026_08_16 10  # 差枚トップ10
-tools/peek.sh history  881            # 台番号の履歴
 tools/peek.sh jq       2026_08 '<任意のjq式>'
 ```
 
