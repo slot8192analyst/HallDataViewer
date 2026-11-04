@@ -87,10 +87,10 @@ button.aim-btn { border: 1px solid var(--border-light); }
     min-height: 50vh;
 }
 
-/* 3ゾーンは横並び3カラム */
+/* 4ゾーンは横並び4カラム */
 .aim-board-zones {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 10px;
     align-items: stretch;
 }
@@ -110,6 +110,7 @@ button.aim-btn { border: 1px solid var(--border-light); }
 .aim-zone-top      { border-top: 3px solid var(--color-zone-top); }
 .aim-zone-high     { border-top: 3px solid var(--color-zone-high); }
 .aim-zone-other    { border-top: 3px solid var(--color-zone-other); }
+.aim-zone-last     { border-top: 3px solid var(--color-zone-last); }
 .aim-zone-unplaced { border-top: 3px solid var(--color-zone-hidden); opacity: 0.97; }
 
 .aim-zone-head {
@@ -215,7 +216,7 @@ button.aim-btn { border: 1px solid var(--border-light); }
 .aim-chip:active { cursor: grabbing; }
 .aim-chip.aim-dragging { opacity: 0.5; }
 .aim-chip-kubi-1 { background: var(--chip-kubi-1-bg);  border-color: var(--color-zone-top); }
-.aim-chip-kubi-2 { background: var(--chip-kubi-2-bg); border-color: var(--color-zone-high); }
+.aim-chip-kubi-2 { background: var(--chip-kubi-2-bg); border-color: var(--color-zone-other); }
 .aim-chip-kubi-3 { background: var(--chip-kubi-3-bg); border-color: var(--color-info); }
 .aim-chip-kubi-4 { background: var(--chip-kubi-4-bg); border-color: #8b5cf6; }
 .aim-chip-kubi-5 { background: var(--chip-kubi-5-bg); border-color: #14b8a6; }
@@ -304,8 +305,9 @@ button.aim-btn { border: 1px solid var(--border-light); }
     margin-bottom: var(--space-3);
 }
 .aim-export-section.aim-export-top   .aim-export-zone-label { background: rgba(239, 68, 68, 0.25);  border-left: 5px solid var(--color-zone-top); }
-.aim-export-section.aim-export-high  .aim-export-zone-label { background: rgba(251, 191, 36, 0.22); border-left: 5px solid var(--color-zone-high); }
-.aim-export-section.aim-export-other .aim-export-zone-label { background: rgba(107, 114, 128, 0.22); border-left: 5px solid var(--color-zone-other); }
+.aim-export-section.aim-export-high  .aim-export-zone-label { background: rgba(249, 115, 22, 0.24); border-left: 5px solid var(--color-zone-high); }
+.aim-export-section.aim-export-other .aim-export-zone-label { background: rgba(251, 191, 36, 0.22); border-left: 5px solid var(--color-zone-other); }
+.aim-export-section.aim-export-last  .aim-export-zone-label { background: rgba(107, 114, 128, 0.22); border-left: 5px solid var(--color-zone-last); }
 
 .aim-export-row {
     display: flex;
@@ -486,7 +488,7 @@ button.aim-btn { border: 1px solid var(--border-light); }
 .aim-review-summary { margin-bottom: var(--space-4); }
 .aim-review-stats {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: var(--space-3);
 }
 .aim-review-stat {
@@ -500,6 +502,7 @@ button.aim-btn { border: 1px solid var(--border-light); }
 .aim-review-stat-top   { border-top: 3px solid var(--color-zone-top); }
 .aim-review-stat-high  { border-top: 3px solid var(--color-zone-high); }
 .aim-review-stat-other { border-top: 3px solid var(--color-zone-other); }
+.aim-review-stat-last  { border-top: 3px solid var(--color-zone-last); }
 .aim-review-stat-label { font-size: var(--font-size-xs); color: var(--text-muted); }
 .aim-review-stat-value { font-size: var(--font-size-3xl); font-weight: bold; margin: var(--space-1) 0; }
 .aim-review-stat-sub   { font-size: var(--font-size-xs); color: var(--text-muted); }
@@ -515,8 +518,9 @@ button.aim-btn { border: 1px solid var(--border-light); }
     font-weight: bold;
 }
 .aim-review-zone.aim-review-zone-top   .aim-review-zone-head { background: rgba(239, 68, 68, 0.20);  border-left: 4px solid var(--color-zone-top); }
-.aim-review-zone.aim-review-zone-high  .aim-review-zone-head { background: rgba(251, 191, 36, 0.18); border-left: 4px solid var(--color-zone-high); }
-.aim-review-zone.aim-review-zone-other .aim-review-zone-head { background: rgba(107, 114, 128, 0.18); border-left: 4px solid var(--color-zone-other); }
+.aim-review-zone.aim-review-zone-high  .aim-review-zone-head { background: rgba(249, 115, 22, 0.20); border-left: 4px solid var(--color-zone-high); }
+.aim-review-zone.aim-review-zone-other .aim-review-zone-head { background: rgba(251, 191, 36, 0.18); border-left: 4px solid var(--color-zone-other); }
+.aim-review-zone.aim-review-zone-last  .aim-review-zone-head { background: rgba(107, 114, 128, 0.18); border-left: 4px solid var(--color-zone-last); }
 .aim-review-zone-label { font-size: var(--font-size-md); }
 .aim-review-zone-hit { font-size: var(--font-size-xs); color: var(--text-muted); font-weight: normal; }
 
@@ -538,11 +542,14 @@ button.aim-btn { border: 1px solid var(--border-light); }
 }
 .aim-hit-badge { font-size: var(--font-size-xs); font-weight: bold; }
 .aim-hit-badge.hit  { color: var(--color-success); }
-.aim-hit-badge.miss { color: var(--color-zone-other); }
+.aim-hit-badge.miss { color: var(--color-zone-last); }
 
 /* ============ 9. レスポンシブ ============ */
 
 /* 禁止BP修正: 720px → 768px */
+@media (max-width: 1100px) {
+    .aim-board-zones { grid-template-columns: repeat(2, 1fr); }
+}
 @media (max-width: 768px) {
     .aim-board-zones { grid-template-columns: 1fr; }
     .aim-board-zones .aim-zone-body { min-height: 25vh; }

@@ -9,7 +9,7 @@
 //   - 未配置エリアは擬似ゾーン unplaced。画像出力・保存（掲載機種）には含めない。
 //
 // 【状態キー】
-//   placement[機種名]      … 機種ごとのゾーン（top/high/other）。キー集合=掲載機種。
+//   placement[機種名]      … 機種ごとのゾーン（top=1-50/high=51-100/other=101-200/last=201-）。キー集合=掲載機種。
 //   perUnit[機種名_kubi]    … 個別バッジの手動ゾーン上書き（基準日をまたいで保持）
 //   excluded[機種名_kubi]   … 個別バッジの「狙わない」グレーアウト
 //   order[zoneId]          … ゾーン内の機種並び順（機種名ベース）
@@ -39,10 +39,14 @@ var AimSheet = (function() {
 
     var WIN_RATE = 105;
 
+    // 区分は「朝の入場順（抽選番号）」の範囲。
+    // 内部IDは保存済みシート(クラウド/localStorage)との互換のため旧ID(top/high/other)を維持:
+    //   top=1-50（旧:最優先） / high=51-100（旧:優先） / other=101-200（旧:その他） / last=201-（新規）
     var ZONES = [
-        { id: 'top',    label: '最優先', presetId: 'at_main' },
-        { id: 'high',   label: '優先',   presetId: 'at_sub'  },
-        { id: 'other',  label: 'その他', presetId: null      }
+        { id: 'top',    label: '1-50',    presetId: 'at_main' },
+        { id: 'high',   label: '51-100',  presetId: 'at_sub'  },
+        { id: 'other',  label: '101-200', presetId: null      },
+        { id: 'last',   label: '201-',    presetId: null      }
     ];
 
     // 未配置エリア（擬似ゾーン）。placement には記録しない＝シート非掲載。
@@ -530,7 +534,7 @@ var AimSheet = (function() {
         return reviewState.placement[machine] || 'other';
     }
 
-    // 指定ゾーン（top/high/other/unplaced）に表示する機種一覧
+    // 指定ゾーン（top/high/other/last/unplaced）に表示する機種一覧
     function machinesInZone(zoneId) {
         var present = Object.keys(built).filter(function(m) {
             return itemsForMachineInZone(m, zoneId).length > 0;
@@ -608,7 +612,7 @@ var AimSheet = (function() {
         var board = document.getElementById('aimBoard');
         if (!board) return;
 
-        // 3ゾーン
+        // 4ゾーン（入場順ブロック）
         var zonesHtml = ZONES.map(function(zone) {
             return renderZoneHtml({ id: zone.id, label: zone.label, emptyText: 'ここにドラッグ' });
         }).join('');
@@ -1058,7 +1062,7 @@ var AimSheet = (function() {
         title.className = 'aim-card-menu-title'; title.textContent = shortNameOf(machine) + ' を移動';
         menu.appendChild(title);
 
-        // 3ゾーン + 未配置へ戻す
+        // 4ゾーン + 未配置へ戻す
         var targets = ZONES.concat([{ id: UNPLACED, label: '未配置（外す）' }]);
         targets.forEach(function(z) {
             var btn = document.createElement('button');
@@ -1427,7 +1431,7 @@ var AimSheet = (function() {
         kubiList.forEach(function(it) { machineSet[it.machine] = true; });
         reviewPresetMap = computeReviewPresetMap(reviewFile, machineSet);
 
-        var byZone = { top: [], high: [], other: [] };
+        var byZone = { top: [], high: [], other: [], last: [] };
 
         kubiList.forEach(function(it) {
             // 振り返り対象はシートに載っている機種のみ（未配置は対象外）
@@ -1585,7 +1589,7 @@ var AimSheet = (function() {
         loadReviewState().then(function() {
             var byZone = buildReviewResult(reviewFile);
 
-            var allRows = byZone.top.concat(byZone.high).concat(byZone.other);
+            var allRows = byZone.top.concat(byZone.high).concat(byZone.other).concat(byZone.last);
             var totalStats = zoneHitStats(allRows);
 
             var summaryCards = [];
