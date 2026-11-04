@@ -14,9 +14,10 @@
    =================== */
 :root {
     /* ━━━ ゾーンカラー（aim.css / analysis.css 共通） ━━━ */
-    --color-zone-top:   #ef4444;   /* 最優先ゾーン（赤） */
-    --color-zone-high:  #fbbf24;   /* 高優先ゾーン（黄） */
-    --color-zone-other: #6b7280;   /* その他ゾーン（グレー） */
+    --color-zone-top:   #ef4444;   /* 入場順 1-50（赤） */
+    --color-zone-high:  #f97316;   /* 入場順 51-100（オレンジ） */
+    --color-zone-other: #fbbf24;   /* 入場順 101-200（黄） */
+    --color-zone-last:  #6b7280;   /* 入場順 201-（グレー） */
     --color-zone-hidden: #4b5563;  /* 未配置（暗グレー） */
 
     /* ━━━ 機能色（カード・テキスト用背景 rgba） ━━━ */
