@@ -229,7 +229,7 @@
     justify-content: center;
     width: 20px;
     height: 20px;
-    border-radius: 50%;
+    border-radius: var(--radius-sm);
     border: none;
     background: rgba(255, 255, 255, 0.18);
     color: inherit;
@@ -248,7 +248,7 @@
 
 /* チップ種別カラー */
 .filter-chip.chip-search {
-    background: rgba(59, 130, 246, 0.12);
+    background: color-mix(in oklch, var(--primary-color) 14%, transparent);
     border-color: var(--color-info);
     color: var(--color-info);
 }
@@ -278,7 +278,7 @@
     color: #22d3ee;
 }
 .chip-badge-filter {
-    background: rgba(38, 101, 253, 0.12);
+    background: color-mix(in oklch, var(--primary-color) 14%, transparent);
     border-color: var(--primary-color);
     color: var(--primary-color);
 }
@@ -389,7 +389,7 @@
 .app-modal-footer .modal-btn.primary {
     background: var(--primary-color);
     border-color: var(--primary-color);
-    color: #fff;
+    color: var(--on-primary);
 }
 
 
@@ -560,8 +560,8 @@ select option {
     color: var(--text-muted);
     padding: var(--space-1) 0;
 }
-.date-picker-weekday.dow-sat { color: #60a5fa; }
-.date-picker-weekday.dow-sun { color: #f87171; }
+.date-picker-weekday.dow-sat { color: var(--primary-color); }
+.date-picker-weekday.dow-sun { color: oklch(0.72 0.17 25); }
 
 /* 日付グリッド本体（常に6段固定＝月送りでガタつかない） */
 .date-picker-grid {
@@ -609,7 +609,7 @@ select option {
 .date-picker-cell.is-current {
     background: var(--primary-color);
     border-color: var(--primary-color);
-    color: #fff;
+    color: var(--on-primary);
     font-weight: 600;
 }
 
@@ -759,7 +759,7 @@ th.badge-col-header {
 
 th.badge-col-header.badge-filter-active {
     background: var(--primary-color);
-    color: #fff;
+    color: var(--on-primary);
 }
 
 th.badge-col-header.badge-filter-active .sort-icon {
@@ -805,7 +805,7 @@ button.badge-needs-calc:hover {
 
 button#badgeRecalcBtn:not(.badge-needs-calc) {
     background: var(--primary-color);
-    color: #fff;
+    color: var(--on-primary);
     border-color: var(--primary-color);
 }
 
@@ -921,7 +921,7 @@ button#badgeRecalcBtn:not(.badge-needs-calc) {
     font-size: 10px;
     opacity: 0.85;
     background: rgba(0, 0, 0, 0.25);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     padding: 0 4px;
     vertical-align: middle;
 }
@@ -1023,7 +1023,7 @@ button#badgeRecalcBtn:not(.badge-needs-calc) {
     margin-left: 4px;
     font-size: 10px;
     background: rgba(0, 0, 0, 0.2);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     padding: 0 4px;
     vertical-align: middle;
 }

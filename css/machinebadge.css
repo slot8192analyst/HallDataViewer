@@ -22,7 +22,7 @@
     font-weight: 700;
     line-height: 1;
     padding: 2px var(--space-1, 4px);
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--radius-md);
     margin: 1px 2px;
     border: 1px solid transparent;
     cursor: default;
@@ -126,7 +126,7 @@
 .mb-select {
     min-height: 44px;
     padding: var(--space-2, 8px) var(--space-3, 12px);
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--radius-md);
     border: 1px solid var(--border-light, #334155);
     background: var(--bg-input, #252525);
     color: var(--text-primary, #dae2fd);
@@ -138,7 +138,7 @@
 }
 .mb-select:focus {
     outline: none;
-    border-color: var(--border-focus, #2665fd);
+    border-color: var(--border-focus);
 }
 
 /* 除外チェック */
@@ -197,7 +197,7 @@
     padding: var(--space-3, 12px);
     background: var(--bg-card, #141414);
     border: 1px solid var(--border-light, #334155);
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--radius-md);
 }
 
 .mb-window-empty {
@@ -239,7 +239,7 @@
     display: inline-flex;
     align-items: center;
     padding: 2px var(--space-2, 8px);
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--radius-md);
     background: var(--bg-elevated, #181818);
     border: 1px solid var(--border-light, #334155);
     color: var(--text-primary, #dae2fd);
@@ -291,7 +291,7 @@
     min-height: 44px;
     flex: 1;
     padding: var(--space-2, 8px) var(--space-4, 16px);
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--radius-md);
     border: 1px solid var(--border-light, #334155);
     background: transparent;
     color: var(--text-primary, #dae2fd);
@@ -303,9 +303,9 @@
 }
 .mb-action-btn:active { opacity: 0.75; }
 .mb-action-primary {
-    background: var(--primary-color, #2665fd);
-    border-color: var(--primary-color, #2665fd);
-    color: #fff;
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: var(--on-primary);
 }
 
 .mb-sheet-filter {
@@ -377,7 +377,7 @@
 .bottom-sheet-handle {
     width: 40px;
     height: 4px;
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--radius-md);
     background: var(--border-light, #334155);
 }
 

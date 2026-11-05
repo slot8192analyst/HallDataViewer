@@ -23,7 +23,7 @@ var Promotion = (function() {
     // 取材カラー定義（全体マトリクス用）。キーは router の data-nav / ページキーと一致
     var PROMO_COLORS = {
         tenun:  { name: '天運総撃',   accent: '#ef4444' },  // 赤
-        ougi:   { name: '奥義の矢',   accent: '#3b82f6' },  // 青
+        ougi:   { name: '奥義の矢',   accent: 'oklch(0.78 0.14 220)' },  // シアン（サイトのアクセント）
         zombie: { name: 'ゾンビ狩り', accent: '#22c55e' },  // 緑
         yokai:  { name: '妖怪ハント', accent: '#a855f7' }   // 紫
     };

@@ -328,7 +328,7 @@ button.aim-btn { border: 1px solid var(--border-light); }
     font-weight: bold;
     font-variant-numeric: tabular-nums;
     padding: 3px 10px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     letter-spacing: 0.5px;
     white-space: nowrap;
 }
