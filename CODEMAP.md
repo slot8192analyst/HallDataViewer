@@ -1,6 +1,6 @@
 # CODEMAP — 軽量コード地図（自動生成・手編集禁止）
 
-生成: 2026-11-04 11:32 JST / `python3 tools/gen_codemap.py`
+生成: 2026-11-05 12:03 JST / `python3 tools/gen_codemap.py`
 
 ## 使い方（AIも人間もまずここを読む）
 
@@ -27,38 +27,38 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 | `js/utils.js` | 2209 | ~24,200 | ⛔全読み禁止 |
 | `js/analysis.js` | 1229 | ~20,796 | ⛔全読み禁止 |
 | `ARCHITECTURE.md` | 484 | ~16,309 | ⚠️部分のみ |
-| `js/promotion.js` | 997 | ~14,529 | ⚠️部分のみ |
-| `css/components.css` | 1703 | ~13,068 | ⚠️部分のみ |
-| `js/calendar.js` | 973 | ~12,113 | ⚠️部分のみ |
+| `js/promotion.js` | 997 | ~14,546 | ⚠️部分のみ |
+| `css/components.css` | 1722 | ~13,465 | ⚠️部分のみ |
+| `js/calendar.js` | 973 | ~12,118 | ⚠️部分のみ |
+| `css/style.css` | 1386 | ~11,065 | ⚠️部分のみ |
 | `js/hstag.js` | 849 | ~10,729 | ⚠️部分のみ |
 | `js/machinebadge.js` | 698 | ~10,612 | ⚠️部分のみ |
-| `css/style.css` | 1332 | ~10,569 | ⚠️部分のみ |
-| `css/daily.css` | 1206 | ~9,828 | ⚠️部分のみ |
+| `css/daily.css` | 1206 | ~9,889 | ⚠️部分のみ |
 | `js/island.js` | 815 | ~9,765 | ⚠️部分のみ |
 | `events.json` | 979 | ~9,510 | ⚠️部分のみ |
-| `css/analysis.css` | 909 | ~7,753 | ✅ |
-| `css/calendar.css` | 1027 | ~6,836 | ✅ |
+| `css/analysis.css` | 909 | ~7,795 | ✅ |
+| `css/calendar.css` | 1027 | ~6,884 | ✅ |
 | `js/data.js` | 560 | ~6,357 | ✅ |
-| `css/aim.css` | 571 | ~6,295 | ✅ |
+| `css/aim.css` | 571 | ~6,300 | ✅ |
 | `js/memo.js` | 419 | ~5,455 | ✅ |
-| `DESIGN.md` | 329 | ~4,614 | ✅ |
-| `CODEMAP.md` | 225 | ~4,544 | ✅ |
+| `DESIGN.md` | 334 | ~4,860 | ✅ |
+| `CODEMAP.md` | 225 | ~4,562 | ✅ |
 | `js/daily-state.js` | 355 | ~4,366 | ✅ |
 | `js/router.js` | 303 | ~3,708 | ✅ |
-| `css/promotion.css` | 384 | ~3,546 | ✅ |
-| `css/island.css` | 570 | ~3,530 | ✅ |
-| `css/machinebadge.css` | 422 | ~3,506 | ✅ |
+| `css/island.css` | 570 | ~3,539 | ✅ |
+| `css/promotion.css` | 382 | ~3,537 | ✅ |
+| `css/machinebadge.css` | 422 | ~3,491 | ✅ |
 | `js/board.js` | 229 | ~3,420 | ✅ |
-| `index.html` | 193 | ~3,227 | ✅ |
+| `index.html` | 193 | ~3,268 | ✅ |
 | `partials/analysis.html` | 194 | ~2,892 | ✅ |
 | `js/floating-nav.js` | 213 | ~2,455 | ✅ |
 | `js/preset.js` | 202 | ~2,428 | ✅ |
 | `partials/daily.html` | 161 | ~2,406 | ✅ |
 | `js/chart.js` | 190 | ~2,358 | ✅ |
-| `css/memo.css` | 172 | ~2,071 | ✅ |
-| `js/config.js` | 166 | ~1,935 | ✅ |
+| `css/memo.css` | 172 | ~2,072 | ✅ |
+| `js/config.js` | 166 | ~1,939 | ✅ |
 | `partials/aim.html` | 94 | ~1,834 | ✅ |
-| `css/theme.css` | 125 | ~1,393 | ✅ |
+| `css/theme.css` | 132 | ~1,624 | ✅ |
 | `js/app.js` | 121 | ~1,313 | ✅ |
 | `js/bottomsheet.js` | 97 | ~1,179 | ✅ |
 | `partials/calendar.html` | 50 | ~808 | ✅ |
@@ -95,13 +95,13 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 **`js/bottomsheet.js`** 97行/~1,179tok 関数9個
 　L1 ボトムシート（ハーフモーダル）共通モジュール
 
-**`js/calendar.js`** 973行/~12,113tok ⚠️ 関数29個
+**`js/calendar.js`** 973行/~12,118tok ⚠️ 関数29個
 　L1 カレンダータブ / L7 カレンダーから日別データへ遷移 / L364 週間おすすめ機種の処理 / L435 カレンダー描画 / L597 スマホ用リスト表示 / L783 月間累積差枚推移グラフ
 
 **`js/chart.js`** 190行/~2,358tok 関数10個
 　L1 グラフ描画モジュール
 
-**`js/config.js`** 166行/~1,935tok 関数0個
+**`js/config.js`** 166行/~1,939tok 関数0個
 　L1 非AT機種リスト / L3 ジャグラー系・ハナハナ沖スロ系・アクロス系の機種一覧。 / L35 サイト設定 / L57 機種フィルタープリセット（固定） / L59 matchMode: / L147 設定を適用
 
 **`js/daily-state.js`** 355行/~4,366tok 関数19個
@@ -131,7 +131,7 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 **`js/preset.js`** 202行/~2,428tok 関数6個
 　L1 機種フィルタープリセット管理 / L8 ストレージ / L25 固定プリセット / L47 全プリセット取得 / L58 マッチング / L194 公開API
 
-**`js/promotion.js`** 997行/~14,529tok ⚠️ 関数44個 — 公開 `window.Promotion`
+**`js/promotion.js`** 997行/~14,546tok ⚠️ 関数44個 — 公開 `window.Promotion`
 　L1 取材ページ共通モジュール（promotion.js） / L57 events 取得（ストア優先 → 無ければ自前 fetch してキャッシュ） / L96 日付・キャッシュ・データ抽出 / L149 集計ヘルパー / L182 その日の全台ランキング集計 / L253 描画エントリ（events を取得してから描く） / L275 開催日一覧（カード ＋ 対象機種マトリクス） / L365 対象機種マトリクス（縦:機種 × 横:開催日） / L449 全体マトリクス（4取材を1枚に統合） / L620 詳細ページ（テーブル＋サマリーバー） / L647 その日の全台ランキング描画 / L776 特定日ページ（tokutei） / L980 ユーティリティ
 
 **`js/router.js`** 303行/~3,708tok 関数21個 — 公開 `window.Router`
@@ -144,23 +144,23 @@ tools/peek.sh dates 2026_08      # データの中身をトークン0で確認
 
 ## 3. css/ 一覧（セレクタ位置は `tools/find.sh .クラス名`）
 
-- `css/aim.css` 571行/~6,295tok （セレクタ167個）
-- `css/analysis.css` 909行/~7,753tok （セレクタ174個）
-- `css/calendar.css` 1027行/~6,836tok （セレクタ178個）
-- `css/components.css` 1703行/~13,068tok （セレクタ233個）
-- `css/daily.css` 1206行/~9,828tok （セレクタ184個）
-- `css/island.css` 570行/~3,530tok （セレクタ77個）
-- `css/machinebadge.css` 422行/~3,506tok （セレクタ63個）
-- `css/memo.css` 172行/~2,071tok （セレクタ60個）
-- `css/promotion.css` 384行/~3,546tok （セレクタ92個）
-- `css/style.css` 1332行/~10,569tok （セレクタ136個）
-- `css/theme.css` 125行/~1,393tok （セレクタ0個）
+- `css/aim.css` 571行/~6,300tok （セレクタ167個）
+- `css/analysis.css` 909行/~7,795tok （セレクタ174個）
+- `css/calendar.css` 1027行/~6,884tok （セレクタ178個）
+- `css/components.css` 1722行/~13,465tok （セレクタ237個）
+- `css/daily.css` 1206行/~9,889tok （セレクタ184個）
+- `css/island.css` 570行/~3,539tok （セレクタ77個）
+- `css/machinebadge.css` 422行/~3,491tok （セレクタ63個）
+- `css/memo.css` 172行/~2,072tok （セレクタ60個）
+- `css/promotion.css` 382行/~3,537tok （セレクタ92個）
+- `css/style.css` 1386行/~11,065tok （セレクタ136個）
+- `css/theme.css` 132行/~1,624tok （セレクタ0個）
 
 ---
 
 ## 4. partials/ 一覧（id の位置は `tools/find.sh '#myId'`）
 
-- `index.html` 193行/~3,227tok （id 21個）
+- `index.html` 193行/~3,268tok （id 21個）
 - `partials/aim.html` 94行/~1,834tok （id 24個）
 - `partials/analysis.html` 194行/~2,892tok （id 41個）
 - `partials/calendar.html` 50行/~808tok （id 8個）

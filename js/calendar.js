@@ -395,7 +395,7 @@ function getRecommendationsForDate(dateKey) {
         if (targetDate >= recStart && targetDate <= recEnd) {
             result.push({
                 machines: rec.machines,
-                color: rec.color || '#3b82f6',
+                color: rec.color || 'oklch(0.78 0.14 220)',
                 note: rec.note || ''
             });
         }

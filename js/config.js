@@ -46,7 +46,7 @@ const SITE_CONFIG = {
 
     // カスタムカラー（DESIGN.md: DevFocus Dark）
     customColors: {
-        primary: "#2665fd",
+        primary: "oklch(0.78 0.14 220)",
         accent: "#fbbf24",
     },
 

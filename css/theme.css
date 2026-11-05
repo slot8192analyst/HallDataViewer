@@ -2,11 +2,11 @@
    theme.css — ページ全体カラーテーマ
    デザインシステム: DevFocus Dark (DESIGN.md 準拠)
 
-   Primary   #2665fd … CTA・アクティブ状態・主要インタラクション
-   Secondary #475569 … サポートUI・チップ・セカンダリアクション
-   Surface   #0d0d0d … ページ背景
-   On-surface #dae2fd … ダーク背景上のメインテキスト
-   Error     #ffb4ab … バリデーションエラー・破壊的操作
+   テイスト: モノトーン + シアン1色アクセント（直角・1px罫線・フラット）
+   Primary   oklch(0.78 0.14 220) … CTA・アクティブ状態・主要インタラクション
+   Surface   #0a0a0b … ページ背景
+   On-surface #ededee … ダーク背景上のメインテキスト
+   Error     oklch(0.72 0.19 25) … バリデーションエラー・破壊的操作
    =================== */
 
 /* ===================
@@ -29,14 +29,15 @@
     --chip-kubi-5-bg:   rgba( 20, 184, 166, 0.16);
 
     /* ━━━ メインカラー（Primary: #2665fd） ━━━ */
-    --primary-color: #2665fd;
-    --primary-hover: #3d77ff;
-    --primary-light: #5a8fff;
-    --primary-dark:  #1a50d6;
+    --primary-color: oklch(0.78 0.14 220);
+    --primary-hover: oklch(0.85 0.14 220);
+    --primary-light: oklch(0.88 0.10 220);
+    --primary-dark:  oklch(0.36 0.07 220);   /* hover 背景用の暗いアクセント */
+    --on-primary:    #000;                   /* アクセント塗りの上の文字色 */
 
-    /* ━━━ セカンダリカラー（Secondary: #475569） ━━━ */
-    --secondary-color: #475569;
-    --secondary-hover: #576879;
+    /* ━━━ セカンダリカラー ━━━ */
+    --secondary-color: #34343a;
+    --secondary-hover: #44444b;
 
     /* ━━━ 背景色（純黒系） ━━━
          base    → ページ背景（最も暗い）
@@ -45,27 +46,27 @@
          card    → カード・サマリー
          input   → フォーム入力欄
     */
-    --bg-base:     #0d0d0d;
-    --bg-elevated: #181818;
-    --bg-surface:  #1e1e1e;
-    --bg-card:     #141414;
-    --bg-input:    #252525;
+    --bg-base:     #0a0a0b;
+    --bg-elevated: #111113;
+    --bg-surface:  #151517;
+    --bg-card:     #0e0e10;
+    --bg-input:    #111113;
 
     /* ━━━ テキスト（On-surface: #dae2fd） ━━━ */
-    --text-primary:   #dae2fd;
-    --text-secondary: #8fa0c8;
-    --text-muted:     #5a6e96;
-    --text-disabled:  #3a4e70;
+    --text-primary:   #ededee;
+    --text-secondary: #8a8a90;
+    --text-muted:     #707077;
+    --text-disabled:  #55555b;
 
     /* ━━━ ボーダー ━━━ */
-    --border-color: #2e2e2e;
-    --border-light: #3a3a3a;
-    --border-focus: #2665fd;
+    --border-color: #232326;
+    --border-light: #34343a;
+    --border-focus: var(--primary-color);
 
     /* ━━━ アクセントカラー ━━━ */
     --color-success: #4ade80;
-    --color-danger:  #ffb4ab;
-    --color-info:    #93c5fd;
+    --color-danger:  oklch(0.72 0.19 25);
+    --color-info:    oklch(0.85 0.10 220);
     --color-warning: #fbbf24;
     --color-purple:  #a78bfa;
     --color-pink:    #f472b6;
@@ -79,19 +80,25 @@
     --table-row-odd:   var(--bg-base);
 
     /* ━━━ シャドウ ━━━ */
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.6);
-    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.6);
-    --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.7);
+    --shadow-sm: none;                          /* フラット: 影は使わず罫線で区別 */
+    --shadow-md: none;
+    --shadow-lg: 0 24px 80px rgba(0, 0, 0, 0.6); /* モーダルのみ */
+
+    /* ━━━ フォント ━━━ */
+    --font-jp:   'Zen Kaku Gothic New', 'Inter', -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --font-disp: 'Archivo', 'Zen Kaku Gothic New', 'Inter', sans-serif;
 }
 
 /* ===================
    ライトテーマ上書き
    =================== */
 [data-theme="light"] {
-    --primary-color: #2665fd;
-    --primary-hover: #3d77ff;
-    --primary-light: #5a8fff;
-    --primary-dark:  #1a50d6;
+    --primary-color: oklch(0.55 0.14 220);
+    --primary-hover: oklch(0.48 0.14 220);
+    --primary-light: oklch(0.62 0.12 220);
+    --primary-dark:  oklch(0.90 0.05 220);
+    --on-primary:    #fff;
 
     --secondary-color: #475569;
     --secondary-hover: #576879;
@@ -109,17 +116,17 @@
 
     --border-color: #d0d8f0;
     --border-light: #e0e8f8;
-    --border-focus: #2665fd;
+    --border-focus: var(--primary-color);
 
     --color-success: #16a34a;
     --color-danger:  #e53e3e;
-    --color-info:    #2665fd;
+    --color-info:    oklch(0.55 0.14 220);
 
     --table-header-bg: #e4e9f8;
     --table-row-even:  #f5f7ff;
     --table-row-odd:   #ffffff;
 
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.15);
 }

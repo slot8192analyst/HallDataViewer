@@ -128,7 +128,7 @@
     display: inline-flex;
     align-items: center;
     padding: 2px var(--space-2);
-    border-radius: var(--space-3);
+    border-radius: var(--radius-sm);
     font-size: var(--font-size-xs);
     font-weight: 600;
     line-height: 1.5;
@@ -145,7 +145,7 @@
     min-width: 18px;
     justify-content: center;
     padding: 2px var(--space-2);
-    border-radius: var(--space-2);
+    border-radius: var(--radius-sm);
     color: #fff;
 }
 /* 設定色: 6=赤 → 1=青 */

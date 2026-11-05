@@ -1687,24 +1687,28 @@ css	.daily-filter-groups	css/components.css	1382
 css	.filter-groups-empty	css/components.css	1389
 css	.terminal-home	css/components.css	1620
 css	.terminal-lead	css/components.css	1621
-css	.terminal-menu	css/components.css	1622
-css	.terminal-card	css/components.css	1627
-css	.terminal-card	css/components.css	1635
-css	.terminal-card-icon	css/components.css	1636
-css	.terminal-card-title	css/components.css	1637
-css	.terminal-card-desc	css/components.css	1638
-css	.page-nav	css/components.css	1641
-css	.page-nav-btn	css/components.css	1649
-css	.page-nav-btn	css/components.css	1665
-css	.page-nav-btn	css/components.css	1670
-css	.active	css/components.css	1670
-css	.back-to-home	css/components.css	1689
-css	.back-to-home	css/components.css	1694
-css	.promo-ranking-section	css/components.css	1697
-css	.promo-rank-no	css/components.css	1698
-css	.promo-rank-machines	css/components.css	1699
-css	.promo-rank-machine-block	css/components.css	1702
-css	.promo-rank-table	css/components.css	1703
+css	.terminal-menu	css/components.css	1627
+css	.terminal-card	css/components.css	1634
+css	.terminal-card	css/components.css	1645
+css	.terminal-card	css/components.css	1647
+css	.terminal-card	css/components.css	1653
+css	.terminal-card-icon	css/components.css	1654
+css	.terminal-card	css/components.css	1655
+css	.terminal-card-icon	css/components.css	1655
+css	.terminal-card-title	css/components.css	1656
+css	.terminal-card-desc	css/components.css	1657
+css	.page-nav	css/components.css	1660
+css	.page-nav-btn	css/components.css	1668
+css	.page-nav-btn	css/components.css	1684
+css	.page-nav-btn	css/components.css	1689
+css	.active	css/components.css	1689
+css	.back-to-home	css/components.css	1708
+css	.back-to-home	css/components.css	1713
+css	.promo-ranking-section	css/components.css	1716
+css	.promo-rank-no	css/components.css	1717
+css	.promo-rank-machines	css/components.css	1718
+css	.promo-rank-machine-block	css/components.css	1721
+css	.promo-rank-table	css/components.css	1722
 sect	折りたたみコンテンツ	css/components.css	54
 sect	フィルターバッジ	css/components.css	68
 sect	ドロップダウン内スクロールバー共通	css/components.css	348
@@ -1731,10 +1735,12 @@ sect	モーダル	css/components.css	1487
 sect	タグ条件	css/components.css	1513
 sect	プリセット	css/components.css	1574
 sect	multi-select内ボタン	css/components.css	1585
-sect	ページナビゲーションバー	css/components.css	1640
-sect	禁止BP修正: 600px → 480px	css/components.css	1678
-sect	後方互換：旧 back-to-home ボタン（使用箇所が残っている場合のフォールバック）	css/components.css	1688
-sect	その日の全台ランキング	css/components.css	1696
+sect	罫線を共有するグリッド（左・上のみ外枠、各カードが右・下を持つ）	css/components.css	1626
+sect	右上の三角（ホバーでアクセント色）	css/components.css	1646
+sect	ページナビゲーションバー	css/components.css	1659
+sect	禁止BP修正: 600px → 480px	css/components.css	1697
+sect	後方互換：旧 back-to-home ボタン（使用箇所が残っている場合のフォールバック）	css/components.css	1707
+sect	その日の全台ランキング	css/components.css	1715
 css	#data-table	css/daily.css	31
 css	.col-fixed-machine	css/daily.css	31
 css	#data-table	css/daily.css	48
@@ -2178,237 +2184,237 @@ sect	設定色: 6=赤 → 1=青	css/memo.css	151
 sect	日別タブのメモ列	css/memo.css	159
 css	.promo-card	css/promotion.css	26
 css	.promo-card	css/promotion.css	31
-css	.promo-card	css/promotion.css	36
-css	.terminal-card-icon	css/promotion.css	36
-css	.promo-day-cards	css/promotion.css	43
-css	.promo-day-card	css/promotion.css	48
-css	.promo-day-card	css/promotion.css	59
-css	.promo-day-head	css/promotion.css	64
-css	.promo-day-date	css/promotion.css	71
-css	.promo-day-stats	css/promotion.css	75
-css	.promo-day-winrate	css/promotion.css	81
-css	.promo-day-machines	css/promotion.css	86
-css	.promo-machine-chip	css/promotion.css	91
-css	.promo-machine-more	css/promotion.css	103
-css	.promo-matrix-section	css/promotion.css	111
-css	.promo-matrix-title	css/promotion.css	112
-css	.promo-matrix-legend	css/promotion.css	114
-css	.promo-matrix-legend	css/promotion.css	121
-css	.promo-matrix-legend	css/promotion.css	129
-css	.promo-cell-target	css/promotion.css	129
-css	.promo-matrix-legend	css/promotion.css	132
-css	.promo-cell-candidate	css/promotion.css	132
-css	.promo-matrix-table	css/promotion.css	136
-css	.promo-matrix-table	css/promotion.css	142
-css	.promo-matrix-table	css/promotion.css	151
-css	.promo-matrix-machine	css/promotion.css	151
-css	.promo-matrix-table	css/promotion.css	161
-css	.promo-matrix-machine	css/promotion.css	161
-css	.promo-matrix-count	css/promotion.css	163
-css	.promo-matrix-candcount	css/promotion.css	164
-css	.promo-matrix-day	css/promotion.css	169
-css	.promo-matrix-cell	css/promotion.css	175
-css	.promo-cell-target	css/promotion.css	176
-css	.promo-cell-candidate	css/promotion.css	180
-css	.promo-group-title	css/promotion.css	188
-css	.promo-summary	css/promotion.css	190
-css	.promo-summary	css/promotion.css	196
-css	.promo-summary	css/promotion.css	197
-css	.promo-table	css/promotion.css	199
-css	.promo-table	css/promotion.css	205
-css	.promo-report-link	css/promotion.css	211
-css	.promo-note	css/promotion.css	216
-css	.promo-note-title	css/promotion.css	223
-css	.promo-note-line	css/promotion.css	228
-css	.promo-empty	css/promotion.css	230
-css	.promo-nodetail	css/promotion.css	234
+css	.promo-card	css/promotion.css	34
+css	.terminal-card-icon	css/promotion.css	34
+css	.promo-day-cards	css/promotion.css	41
+css	.promo-day-card	css/promotion.css	46
+css	.promo-day-card	css/promotion.css	57
+css	.promo-day-head	css/promotion.css	62
+css	.promo-day-date	css/promotion.css	69
+css	.promo-day-stats	css/promotion.css	73
+css	.promo-day-winrate	css/promotion.css	79
+css	.promo-day-machines	css/promotion.css	84
+css	.promo-machine-chip	css/promotion.css	89
+css	.promo-machine-more	css/promotion.css	101
+css	.promo-matrix-section	css/promotion.css	109
+css	.promo-matrix-title	css/promotion.css	110
+css	.promo-matrix-legend	css/promotion.css	112
+css	.promo-matrix-legend	css/promotion.css	119
+css	.promo-matrix-legend	css/promotion.css	127
+css	.promo-cell-target	css/promotion.css	127
+css	.promo-matrix-legend	css/promotion.css	130
+css	.promo-cell-candidate	css/promotion.css	130
+css	.promo-matrix-table	css/promotion.css	134
+css	.promo-matrix-table	css/promotion.css	140
+css	.promo-matrix-table	css/promotion.css	149
+css	.promo-matrix-machine	css/promotion.css	149
+css	.promo-matrix-table	css/promotion.css	159
+css	.promo-matrix-machine	css/promotion.css	159
+css	.promo-matrix-count	css/promotion.css	161
+css	.promo-matrix-candcount	css/promotion.css	162
+css	.promo-matrix-day	css/promotion.css	167
+css	.promo-matrix-cell	css/promotion.css	173
+css	.promo-cell-target	css/promotion.css	174
+css	.promo-cell-candidate	css/promotion.css	178
+css	.promo-group-title	css/promotion.css	186
+css	.promo-summary	css/promotion.css	188
+css	.promo-summary	css/promotion.css	194
+css	.promo-summary	css/promotion.css	195
+css	.promo-table	css/promotion.css	197
+css	.promo-table	css/promotion.css	203
+css	.promo-report-link	css/promotion.css	209
+css	.promo-note	css/promotion.css	214
+css	.promo-note-title	css/promotion.css	221
+css	.promo-note-line	css/promotion.css	226
+css	.promo-empty	css/promotion.css	228
+css	.promo-nodetail	css/promotion.css	232
+css	.promo-date-list	css/promotion.css	240
+css	.promo-date-list	css/promotion.css	241
 css	.promo-date-list	css/promotion.css	242
-css	.promo-date-list	css/promotion.css	243
-css	.promo-date-list	css/promotion.css	244
-css	.board	css/promotion.css	256
-css	.board-title	css/promotion.css	257
-css	.board-form	css/promotion.css	259
-css	.board-author	css/promotion.css	269
-css	.board-body	css/promotion.css	270
-css	.board-edit-area	css/promotion.css	270
-css	.board-form-actions	css/promotion.css	271
-css	.board-list	css/promotion.css	273
-css	.board-empty	css/promotion.css	274
-css	.board-post	css/promotion.css	276
-css	.board-post-head	css/promotion.css	283
-css	.board-post-author	css/promotion.css	290
-css	.board-post-date	css/promotion.css	291
-css	.board-edited	css/promotion.css	295
-css	.board-post-body	css/promotion.css	296
-css	.board-post-actions	css/promotion.css	298
-css	.board-edit-area	css/promotion.css	303
-css	.board-edit-area	css/promotion.css	307
-css	.board-author	css/promotion.css	317
-css	.board-edit-area	css/promotion.css	321
-css	.board-edit-area	css/promotion.css	326
-css	.board-author	css/promotion.css	332
-css	.promo-overview-section	css/promotion.css	337
-css	.promo-overview-legend	css/promotion.css	339
-css	.promo-legend-item	css/promotion.css	343
-css	.promo-legend-swatch	css/promotion.css	344
-css	.promo-legend-note	css/promotion.css	347
-css	.promo-overview-table	css/promotion.css	350
-css	.promo-overview-table	css/promotion.css	351
-css	.promo-matrix-machine	css/promotion.css	351
-css	.promo-overview-promohead	css/promotion.css	353
-css	.promo-overview-count	css/promotion.css	355
-css	.promo-overview-countitem	css/promotion.css	356
-css	.promo-cell-on	css/promotion.css	358
-css	.promo-cell-cand	css/promotion.css	359
-css	.promo-overview-day	css/promotion.css	361
-css	.tokutei-section	css/promotion.css	370
-css	.tokutei-title	css/promotion.css	371
-css	.tokutei-next	css/promotion.css	376
-css	.tokutei-summary	css/promotion.css	382
-css	.tokutei-summary	css/promotion.css	383
-css	.promo-sub	css/promotion.css	383
-css	.tokutei-per-unit	css/promotion.css	384
-sect	機種名列は左寄せ・横スクロール時に左固定	css/promotion.css	149
-sect	セルの ●/○ は背景の塗りつぶしで表現（文字は背景と同色で隠す）	css/promotion.css	174
-sect	全体マトリクス（4取材一覧）	css/promotion.css	336
-css	.plus	css/style.css	93
-css	.minus	css/style.css	98
-css	.zero	css/style.css	102
-css	.text-center	css/style.css	106
-css	.text-muted	css/style.css	110
-css	.tab-content	css/style.css	119
-css	.tabs	css/style.css	135
-css	.tab-btn	css/style.css	144
-css	.tab-btn	css/style.css	157
-css	.tab-btn	css/style.css	162
-css	.active	css/style.css	162
-css	.tab-content	css/style.css	168
-css	.tab-content	css/style.css	172
-css	.active	css/style.css	172
-css	.scroll-x	css/style.css	198
-css	.btn-danger	css/style.css	211
-css	.btn-danger	css/style.css	230
-css	.btn-primary	css/style.css	237
-css	.btn-primary	css/style.css	242
-css	.btn-primary	css/style.css	245
-css	.btn-secondary	css/style.css	250
-css	.btn-secondary	css/style.css	255
-css	.btn-secondary	css/style.css	259
-css	.btn-ghost	css/style.css	264
-css	.btn-ghost	css/style.css	270
-css	.btn-ghost	css/style.css	274
-css	.btn-danger	css/style.css	279
-css	.btn-danger	css/style.css	284
-css	.btn-danger	css/style.css	287
-css	.modal-btn	css/style.css	295
-css	.primary	css/style.css	295
-css	.modal-btn	css/style.css	316
-css	.primary	css/style.css	316
-css	.modal-btn	css/style.css	321
-css	.primary	css/style.css	321
-css	.modal-btn	css/style.css	326
-css	.primary	css/style.css	326
-css	.modal-btn	css/style.css	346
-css	.primary	css/style.css	346
-css	.modal-btn	css/style.css	351
-css	.primary	css/style.css	351
-css	.btn-small	css/style.css	356
-css	.btn-small	css/style.css	374
-css	.btn-small	css/style.css	379
-css	.preset-btn	css/style.css	384
-css	.preset-btn	css/style.css	400
-css	.input	css/style.css	451
-css	.input	css/style.css	467
-css	.input	css/style.css	471
-css	.controls	css/style.css	478
-css	.controls	css/style.css	486
-css	.controls	css/style.css	493
-css	.control-group	css/style.css	497
-css	.control-group	css/style.css	503
-css	.control-group	css/style.css	509
-css	.date-nav	css/style.css	516
-css	.date-nav	css/style.css	523
-css	.date-nav	css/style.css	536
-css	.current-date	css/style.css	540
-css	.summary	css/style.css	550
-css	.summary	css/style.css	558
-css	.table-wrapper	css/style.css	566
-css	.table-actions	css/style.css	604
-css	.btn-download	css/style.css	611
-css	.btn-download	css/style.css	629
-css	.btn-download	css/style.css	635
-css	.btn-copy	css/style.css	639
-css	.copied	css/style.css	639
-css	.btn-copy	css/style.css	645
-css	.copied	css/style.css	645
-css	.copy-toast	css/style.css	652
-css	.copy-toast	css/style.css	669
-css	.show	css/style.css	669
-css	.copy-toast	css/style.css	674
-css	.error	css/style.css	674
-css	.loading-screen	css/style.css	681
-css	.loading-screen	css/style.css	695
-css	.hidden	css/style.css	695
-css	.loading-content	css/style.css	700
-css	.loading-spinner	css/style.css	705
-css	.loading-text	css/style.css	721
-css	.loading-progress	css/style.css	727
-css	.loading-progress-bar	css/style.css	736
-css	.loading-status	css/style.css	744
-css	.background-loading-indicator	css/style.css	750
-css	.background-loading-indicator	css/style.css	766
-css	.hidden	css/style.css	766
-css	.background-loading-indicator	css/style.css	772
-css	.mini-spinner	css/style.css	772
-css	.background-loading-indicator	css/style.css	781
-css	.loading-info	css/style.css	781
-css	.background-loading-indicator	css/style.css	787
-css	.loading-title	css/style.css	787
-css	.background-loading-indicator	css/style.css	792
-css	.loading-detail	css/style.css	792
-css	.no-data-message	css/style.css	798
-css	.summary-cards	css/style.css	1011
-css	.stat-card	css/style.css	1018
-css	.stat-label	css/style.css	1028
-css	.stat-value	css/style.css	1034
-css	.stat-unit	css/style.css	1041
-css	.summary-note	css/style.css	1048
-css	.floating-menu-btn	css/style.css	1075
-css	.floating-menu-btn	css/style.css	1101
-css	.visible	css/style.css	1101
-css	.floating-menu-btn	css/style.css	1106
-css	.floating-menu-btn	css/style.css	1111
-css	.hamburger-line	css/style.css	1115
-css	.floating-menu-btn	css/style.css	1125
-css	.open	css/style.css	1125
-css	.hamburger-line	css/style.css	1125
-css	.floating-menu-btn	css/style.css	1128
-css	.open	css/style.css	1128
-css	.hamburger-line	css/style.css	1128
-css	.floating-menu-btn	css/style.css	1132
-css	.open	css/style.css	1132
-css	.hamburger-line	css/style.css	1132
-css	.half-modal-overlay	css/style.css	1139
-css	.half-modal-overlay	css/style.css	1151
-css	.open	css/style.css	1151
-css	.half-modal	css/style.css	1159
-css	.half-modal	css/style.css	1183
-css	.open	css/style.css	1183
-css	.half-modal-handle	css/style.css	1189
-css	.half-modal-header	css/style.css	1199
-css	.half-modal-current	css/style.css	1207
-css	.half-modal-close-btn	css/style.css	1213
-css	.half-modal-close-btn	css/style.css	1230
-css	.half-modal-nav	css/style.css	1236
-css	.half-modal-nav-item	css/style.css	1245
-css	.half-modal-nav-item	css/style.css	1264
-css	.half-modal-nav-item	css/style.css	1270
-css	.half-modal-nav-item	css/style.css	1274
-css	.current-page	css/style.css	1274
-css	.half-modal-nav-icon	css/style.css	1281
-css	.half-modal-nav-label	css/style.css	1286
+css	.board	css/promotion.css	254
+css	.board-title	css/promotion.css	255
+css	.board-form	css/promotion.css	257
+css	.board-author	css/promotion.css	267
+css	.board-body	css/promotion.css	268
+css	.board-edit-area	css/promotion.css	268
+css	.board-form-actions	css/promotion.css	269
+css	.board-list	css/promotion.css	271
+css	.board-empty	css/promotion.css	272
+css	.board-post	css/promotion.css	274
+css	.board-post-head	css/promotion.css	281
+css	.board-post-author	css/promotion.css	288
+css	.board-post-date	css/promotion.css	289
+css	.board-edited	css/promotion.css	293
+css	.board-post-body	css/promotion.css	294
+css	.board-post-actions	css/promotion.css	296
+css	.board-edit-area	css/promotion.css	301
+css	.board-edit-area	css/promotion.css	305
+css	.board-author	css/promotion.css	315
+css	.board-edit-area	css/promotion.css	319
+css	.board-edit-area	css/promotion.css	324
+css	.board-author	css/promotion.css	330
+css	.promo-overview-section	css/promotion.css	335
+css	.promo-overview-legend	css/promotion.css	337
+css	.promo-legend-item	css/promotion.css	341
+css	.promo-legend-swatch	css/promotion.css	342
+css	.promo-legend-note	css/promotion.css	345
+css	.promo-overview-table	css/promotion.css	348
+css	.promo-overview-table	css/promotion.css	349
+css	.promo-matrix-machine	css/promotion.css	349
+css	.promo-overview-promohead	css/promotion.css	351
+css	.promo-overview-count	css/promotion.css	353
+css	.promo-overview-countitem	css/promotion.css	354
+css	.promo-cell-on	css/promotion.css	356
+css	.promo-cell-cand	css/promotion.css	357
+css	.promo-overview-day	css/promotion.css	359
+css	.tokutei-section	css/promotion.css	368
+css	.tokutei-title	css/promotion.css	369
+css	.tokutei-next	css/promotion.css	374
+css	.tokutei-summary	css/promotion.css	380
+css	.tokutei-summary	css/promotion.css	381
+css	.promo-sub	css/promotion.css	381
+css	.tokutei-per-unit	css/promotion.css	382
+sect	機種名列は左寄せ・横スクロール時に左固定	css/promotion.css	147
+sect	セルの ●/○ は背景の塗りつぶしで表現（文字は背景と同色で隠す）	css/promotion.css	172
+sect	全体マトリクス（4取材一覧）	css/promotion.css	334
+css	.plus	css/style.css	122
+css	.minus	css/style.css	127
+css	.zero	css/style.css	131
+css	.text-center	css/style.css	135
+css	.text-muted	css/style.css	139
+css	.tab-content	css/style.css	148
+css	.tabs	css/style.css	183
+css	.tab-btn	css/style.css	192
+css	.tab-btn	css/style.css	206
+css	.tab-btn	css/style.css	212
+css	.active	css/style.css	212
+css	.tab-content	css/style.css	218
+css	.tab-content	css/style.css	222
+css	.active	css/style.css	222
+css	.scroll-x	css/style.css	248
+css	.btn-danger	css/style.css	261
+css	.btn-danger	css/style.css	280
+css	.btn-primary	css/style.css	287
+css	.btn-primary	css/style.css	292
+css	.btn-primary	css/style.css	295
+css	.btn-secondary	css/style.css	300
+css	.btn-secondary	css/style.css	305
+css	.btn-secondary	css/style.css	309
+css	.btn-ghost	css/style.css	314
+css	.btn-ghost	css/style.css	320
+css	.btn-ghost	css/style.css	324
+css	.btn-danger	css/style.css	329
+css	.btn-danger	css/style.css	334
+css	.btn-danger	css/style.css	337
+css	.modal-btn	css/style.css	345
+css	.primary	css/style.css	345
+css	.modal-btn	css/style.css	366
+css	.primary	css/style.css	366
+css	.modal-btn	css/style.css	371
+css	.primary	css/style.css	371
+css	.modal-btn	css/style.css	376
+css	.primary	css/style.css	376
+css	.modal-btn	css/style.css	396
+css	.primary	css/style.css	396
+css	.modal-btn	css/style.css	401
+css	.primary	css/style.css	401
+css	.btn-small	css/style.css	406
+css	.btn-small	css/style.css	424
+css	.btn-small	css/style.css	429
+css	.preset-btn	css/style.css	434
+css	.preset-btn	css/style.css	450
+css	.input	css/style.css	501
+css	.input	css/style.css	517
+css	.input	css/style.css	521
+css	.controls	css/style.css	528
+css	.controls	css/style.css	536
+css	.controls	css/style.css	543
+css	.control-group	css/style.css	547
+css	.control-group	css/style.css	553
+css	.control-group	css/style.css	559
+css	.date-nav	css/style.css	566
+css	.date-nav	css/style.css	573
+css	.date-nav	css/style.css	586
+css	.current-date	css/style.css	590
+css	.summary	css/style.css	600
+css	.summary	css/style.css	608
+css	.table-wrapper	css/style.css	616
+css	.table-actions	css/style.css	658
+css	.btn-download	css/style.css	665
+css	.btn-download	css/style.css	683
+css	.btn-download	css/style.css	689
+css	.btn-copy	css/style.css	693
+css	.copied	css/style.css	693
+css	.btn-copy	css/style.css	699
+css	.copied	css/style.css	699
+css	.copy-toast	css/style.css	706
+css	.copy-toast	css/style.css	723
+css	.show	css/style.css	723
+css	.copy-toast	css/style.css	728
+css	.error	css/style.css	728
+css	.loading-screen	css/style.css	735
+css	.loading-screen	css/style.css	749
+css	.hidden	css/style.css	749
+css	.loading-content	css/style.css	754
+css	.loading-spinner	css/style.css	759
+css	.loading-text	css/style.css	775
+css	.loading-progress	css/style.css	781
+css	.loading-progress-bar	css/style.css	790
+css	.loading-status	css/style.css	798
+css	.background-loading-indicator	css/style.css	804
+css	.background-loading-indicator	css/style.css	820
+css	.hidden	css/style.css	820
+css	.background-loading-indicator	css/style.css	826
+css	.mini-spinner	css/style.css	826
+css	.background-loading-indicator	css/style.css	835
+css	.loading-info	css/style.css	835
+css	.background-loading-indicator	css/style.css	841
+css	.loading-title	css/style.css	841
+css	.background-loading-indicator	css/style.css	846
+css	.loading-detail	css/style.css	846
+css	.no-data-message	css/style.css	852
+css	.summary-cards	css/style.css	1065
+css	.stat-card	css/style.css	1072
+css	.stat-label	css/style.css	1082
+css	.stat-value	css/style.css	1088
+css	.stat-unit	css/style.css	1095
+css	.summary-note	css/style.css	1102
+css	.floating-menu-btn	css/style.css	1129
+css	.floating-menu-btn	css/style.css	1155
+css	.visible	css/style.css	1155
+css	.floating-menu-btn	css/style.css	1160
+css	.floating-menu-btn	css/style.css	1165
+css	.hamburger-line	css/style.css	1169
+css	.floating-menu-btn	css/style.css	1179
+css	.open	css/style.css	1179
+css	.hamburger-line	css/style.css	1179
+css	.floating-menu-btn	css/style.css	1182
+css	.open	css/style.css	1182
+css	.hamburger-line	css/style.css	1182
+css	.floating-menu-btn	css/style.css	1186
+css	.open	css/style.css	1186
+css	.hamburger-line	css/style.css	1186
+css	.half-modal-overlay	css/style.css	1193
+css	.half-modal-overlay	css/style.css	1205
+css	.open	css/style.css	1205
+css	.half-modal	css/style.css	1213
+css	.half-modal	css/style.css	1237
+css	.open	css/style.css	1237
+css	.half-modal-handle	css/style.css	1243
+css	.half-modal-header	css/style.css	1253
+css	.half-modal-current	css/style.css	1261
+css	.half-modal-close-btn	css/style.css	1267
+css	.half-modal-close-btn	css/style.css	1284
+css	.half-modal-nav	css/style.css	1290
+css	.half-modal-nav-item	css/style.css	1299
+css	.half-modal-nav-item	css/style.css	1318
+css	.half-modal-nav-item	css/style.css	1324
+css	.half-modal-nav-item	css/style.css	1328
+css	.current-page	css/style.css	1328
+css	.half-modal-nav-icon	css/style.css	1335
+css	.half-modal-nav-label	css/style.css	1340
 sect	━━━ ベースフォントサイズ ━━━	css/style.css	12
-sect	━━━ 角丸（DESIGN.md: rounded.md = 8px） ━━━	css/style.css	22
+sect	━━━ 角丸（直角 = 0。丸スピナーのみ 50% を個別指定） ━━━	css/style.css	22
 sect	━━━ スペーシング（4pxベース / DESIGN.md § Spacing） ━━━	css/style.css	28
 sect	━━━ ブレークポイント参照値（DESIGN.md § Breakpoints） ━━━	css/style.css	37
 sect	CSSのメディアクエリは var() 非対応のため実際は数値で書く。	css/style.css	38
@@ -2419,55 +2425,59 @@ sect	━━━ スマホ用ボタン間隔（DESIGN.md § Touch Button Sizing）
 sect	小さいボタンほど誤タップしやすいため間隔を広く取る（サイズと反比例）	css/style.css	51
 sect	━━━ トランジション（DESIGN.md § Motion） ━━━	css/style.css	57
 sect	━━━ z-index管理 ━━━	css/style.css	61
-sect	タップ時のデフォルトハイライトを消してCSS :active に統一	css/style.css	180
-sect	タップ時フィードバック（:active で視覚的確認）	css/style.css	190
-sect	スクロールコンテナ	css/style.css	196
-sect	── 新規統一クラス（4種） ──	css/style.css	207
-sect	Primary: 最重要アクション	css/style.css	236
-sect	Secondary: サブアクション	css/style.css	249
-sect	Ghost: 軽いアクション（最小高36px）	css/style.css	263
-sect	Danger: 削除・リセットなど不可逆操作	css/style.css	278
-sect	── 既存クラス → 新規クラスへのエイリアス（後方互換） ──	css/style.css	291
-sect	既存のHTMLを変更せずに新規スタイルを適用する	css/style.css	292
-sect	btn-small: Ghost相当 + 最小高さ保証	css/style.css	355
-sect	preset-btn: Secondary相当	css/style.css	383
-sect	無効化状態（共通）	css/style.css	406
-sect	全フォーム要素に44px最小高さ + タッチ最適化	css/style.css	418
-sect	.input クラス: DESIGN.md § Forms 標準入力欄	css/style.css	450
-sect	padding は フォーム共通ルール（--space-2 --space-3）を継承	css/style.css	489
-sect	バックグラウンド読み込みインジケーター	css/style.css	749
-sect	データなしメッセージ	css/style.css	797
-sect	min-height:44px / padding は共通ルールを維持	css/style.css	877
-sect	── スマホ用ボタンサイズ（DESIGN.md § Touch Button Sizing） ──	css/style.css	880
-sect	高優先度: Primary / Danger → 72px	css/style.css	881
-sect	中優先度: Secondary → 60px	css/style.css	888
-sect	低優先度: Ghost / icon-btn → 44px	css/style.css	893
-sect	後方互換エイリアスにも同じ優先度を適用	css/style.css	900
-sect	btn-reset / modal-btn（非primary） → Secondary相当（中優先度）	css/style.css	909
-sect	btn-small → Ghost相当（低優先度）	css/style.css	915
-sect	ボタングループのギャップ補助クラス	css/style.css	920
-sect	タブレット以下: 3列	css/style.css	1054
-sect	スマホ: 2列	css/style.css	1061
-sect	初期は非表示（hidden 属性でも制御するが、アニメのため opacity も使う）	css/style.css	1096
-sect	ハンバーガー → ✕ アニメーション（モーダルオープン時）	css/style.css	1124
-sect	初期位置: 画面下に隠れている	css/style.css	1171
-sect	最大高さ: 画面の55%	css/style.css	1176
-sect	ドラッグハンドル	css/style.css	1188
-sect	ヘッダー	css/style.css	1198
-sect	ナビゲーショングリッド	css/style.css	1235
-sect	スマホ: 3列	css/style.css	1293
-sect	PC広幅: 7列	css/style.css	1314
+sect	背景の方眼（上部だけ薄く見せる）	css/style.css	98
+sect	ロゴマーク（菱形 + グロー）	css/style.css	168
+sect	選択中=白地反転（チップ型）	css/style.css	211
+sect	タップ時のデフォルトハイライトを消してCSS :active に統一	css/style.css	230
+sect	タップ時フィードバック（:active で視覚的確認）	css/style.css	240
+sect	スクロールコンテナ	css/style.css	246
+sect	── 新規統一クラス（4種） ──	css/style.css	257
+sect	Primary: 最重要アクション	css/style.css	286
+sect	Secondary: サブアクション	css/style.css	299
+sect	Ghost: 軽いアクション（最小高36px）	css/style.css	313
+sect	Danger: 削除・リセットなど不可逆操作	css/style.css	328
+sect	── 既存クラス → 新規クラスへのエイリアス（後方互換） ──	css/style.css	341
+sect	既存のHTMLを変更せずに新規スタイルを適用する	css/style.css	342
+sect	btn-small: Ghost相当 + 最小高さ保証	css/style.css	405
+sect	preset-btn: Secondary相当	css/style.css	433
+sect	無効化状態（共通）	css/style.css	456
+sect	全フォーム要素に44px最小高さ + タッチ最適化	css/style.css	468
+sect	.input クラス: DESIGN.md § Forms 標準入力欄	css/style.css	500
+sect	padding は フォーム共通ルール（--space-2 --space-3）を継承	css/style.css	539
+sect	バックグラウンド読み込みインジケーター	css/style.css	803
+sect	データなしメッセージ	css/style.css	851
+sect	min-height:44px / padding は共通ルールを維持	css/style.css	931
+sect	── スマホ用ボタンサイズ（DESIGN.md § Touch Button Sizing） ──	css/style.css	934
+sect	高優先度: Primary / Danger → 72px	css/style.css	935
+sect	中優先度: Secondary → 60px	css/style.css	942
+sect	低優先度: Ghost / icon-btn → 44px	css/style.css	947
+sect	後方互換エイリアスにも同じ優先度を適用	css/style.css	954
+sect	btn-reset / modal-btn（非primary） → Secondary相当（中優先度）	css/style.css	963
+sect	btn-small → Ghost相当（低優先度）	css/style.css	969
+sect	ボタングループのギャップ補助クラス	css/style.css	974
+sect	タブレット以下: 3列	css/style.css	1108
+sect	スマホ: 2列	css/style.css	1115
+sect	初期は非表示（hidden 属性でも制御するが、アニメのため opacity も使う）	css/style.css	1150
+sect	ハンバーガー → ✕ アニメーション（モーダルオープン時）	css/style.css	1178
+sect	初期位置: 画面下に隠れている	css/style.css	1225
+sect	最大高さ: 画面の55%	css/style.css	1230
+sect	ドラッグハンドル	css/style.css	1242
+sect	ヘッダー	css/style.css	1252
+sect	ナビゲーショングリッド	css/style.css	1289
+sect	スマホ: 3列	css/style.css	1347
+sect	PC広幅: 7列	css/style.css	1368
 sect	━━━ ゾーンカラー（aim.css / analysis.css 共通） ━━━	css/theme.css	16
 sect	━━━ 機能色（カード・テキスト用背景 rgba） ━━━	css/theme.css	23
 sect	aim-chip 凹みランク色	css/theme.css	24
 sect	━━━ メインカラー（Primary: #2665fd） ━━━	css/theme.css	31
-sect	━━━ セカンダリカラー（Secondary: #475569） ━━━	css/theme.css	37
-sect	━━━ テキスト（On-surface: #dae2fd） ━━━	css/theme.css	54
-sect	━━━ ボーダー ━━━	css/theme.css	60
-sect	━━━ アクセントカラー ━━━	css/theme.css	65
-sect	━━━ ホール固有カラー ━━━	css/theme.css	73
-sect	━━━ テーブル ━━━	css/theme.css	76
-sect	━━━ シャドウ ━━━	css/theme.css	81
+sect	━━━ セカンダリカラー ━━━	css/theme.css	38
+sect	━━━ テキスト（On-surface: #dae2fd） ━━━	css/theme.css	55
+sect	━━━ ボーダー ━━━	css/theme.css	61
+sect	━━━ アクセントカラー ━━━	css/theme.css	66
+sect	━━━ ホール固有カラー ━━━	css/theme.css	74
+sect	━━━ テーブル ━━━	css/theme.css	77
+sect	━━━ シャドウ ━━━	css/theme.css	82
+sect	━━━ フォント ━━━	css/theme.css	87
 id	#loading-screen	index.html	36
 id	#loadingProgressBar	index.html	41
 id	#loadingStatus	index.html	43

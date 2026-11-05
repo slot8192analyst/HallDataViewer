@@ -98,7 +98,7 @@
 .island-mode-btn.active {
     background: var(--primary-color);
     border-color: var(--primary-hover);
-    color: #fff;
+    color: var(--on-primary);
 }
 
 .island-filters {
@@ -252,7 +252,7 @@
     width: 44px;
     height: 48px;
     padding: 2px;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     display: flex;
     flex-direction: column;
     align-items: center;

@@ -1,18 +1,18 @@
 ---
-name: DevFocus Dark
+name: DevFocus Dark（Mono Cyan テイスト）
 colors:
-  primary: "#2665fd"
-  secondary: "#475569"
-  surface: "#0d0d0d"
-  on-surface: "#dae2fd"
-  error: "#ffb4ab"
+  primary: "oklch(0.78 0.14 220)"
+  secondary: "#34343a"
+  surface: "#0a0a0b"
+  on-surface: "#ededee"
+  error: "oklch(0.72 0.19 25)"
 typography:
   body-md:
     fontFamily: Inter
     fontSize: 16px
     fontWeight: 400
 rounded:
-  md: 8px
+  md: 0
 spacing:
   base: 4px
 touch:
@@ -33,29 +33,34 @@ Clean lines, low visual noise, high information density.
 ---
 
 ## Colors
-- **Primary** (#2665fd): CTAs, active states, key interactive elements
-- **Secondary** (#475569): Supporting UI, chips, secondary actions
-- **Surface** (#0d0d0d): Page backgrounds — pure black base
-- **On-surface** (#dae2fd): Primary text on dark backgrounds
-- **Error** (#ffb4ab): Validation errors, destructive actions
+- **Primary** (`oklch(0.78 0.14 220)` シアン): CTAs, active states, key interactive elements。**塗りの上の文字は `--on-primary`（黒）**
+- **Secondary** (#34343a): Supporting UI, hairlines, secondary actions
+- **Surface** (#0a0a0b): Page backgrounds — near-black base
+- **On-surface** (#ededee): Primary text on dark backgrounds
+- **Error** (`oklch(0.72 0.19 25)`): Validation errors, destructive actions
+
+## Taste（テイスト）
+モノトーン + シアン1色アクセント。**直角（角丸0）・1px罫線・フラット（影なし）**。
+選択状態はチップ型の白地反転、見出し・数値はモノスペース/ディスプレイ体、ロゴは菱形+グロー。
+カレンダーのイベント色・機種バッジなど「意味を持つ色」だけはそのまま残す。
 
 ## Background Palette (dark theme)
 実装上は Surface の単色ではなく、以下の階調を使用する。
 
 | 変数              | 値        | 用途                     |
 |-------------------|-----------|--------------------------|
-| `--bg-base`       | `#0d0d0d` | ページ背景（最も暗い）   |
-| `--bg-elevated`   | `#181818` | 行・パネル（1段明るい）  |
-| `--bg-surface`    | `#1e1e1e` | セクション背景           |
-| `--bg-card`       | `#141414` | カード・サマリー         |
-| `--bg-input`      | `#252525` | フォーム入力欄           |
+| `--bg-base`       | `#0a0a0b` | ページ背景（最も暗い）   |
+| `--bg-elevated`   | `#111113` | 行・パネル（1段明るい）  |
+| `--bg-surface`    | `#151517` | セクション背景           |
+| `--bg-card`       | `#0e0e10` | カード・サマリー         |
+| `--bg-input`      | `#111113` | フォーム入力欄           |
 
 ---
 
 ## Typography
-- **Headlines**: Inter, semi-bold (600)
-- **Body**: Inter, regular (400), 14–16px
-- **Labels**: Inter, medium (500), 12px, uppercase for section headers
+- **Body / Headlines**: `--font-jp`（Zen Kaku Gothic New → Inter）。見出しは 900
+- **Mono**: `--font-mono`（JetBrains Mono）— テーブルヘッダー・補助ラベル・数値
+- **Display**: `--font-disp`（Archivo）— 大きな数字・見出し
 
 ### フォントサイズスケール（CSS変数）
 
@@ -166,9 +171,9 @@ button:active, a:active {
 | Destructive | `.btn-danger`    | 削除・リセットなど不可逆な操作       | 44px     |
 
 **スタイルルール**:
-- 角丸: `--radius-md`（8px）統一
+- 角丸: `--radius-md`（0 = 直角）統一
 - フォント: `--font-size-md`（14px）、`font-weight: 500`
-- Primary は `--primary-color` 塗り、白文字
+- Primary は `--primary-color` 塗り、黒文字（`--on-primary`）
 - Secondary は `--border-color` ボーダーのみ、`--text-primary` 文字
 - Ghost は背景なし・ボーダーなし、`--text-secondary` 文字
 - Destructive は `--color-danger` 塗り（またはボーダー）
@@ -270,7 +275,7 @@ button:active, a:active {
 - **すべての input / select / textarea の高さは最低 44px**
 - ラベルは入力欄の上に配置（横並びは768px以上のみ許可）
 - placeholder のコントラストは `--text-muted`（4:1 未満の薄すぎる色は禁止）
-- focus 時は `border-color: --border-focus`（`#2665fd`）に変化させる
+- focus 時は `border-color: --border-focus`（= `--primary-color`）に変化させる
 - エラー時は `border-color: --color-danger` + エラーメッセージを入力欄の下に表示
 
 ```css
@@ -296,10 +301,10 @@ button:active, a:active {
 
 ## Cards（カード）
 - 背景: `--bg-card`、ボーダー: `1px solid --border-color`
-- 角丸: `--radius-md`（8px）
+- 角丸: `--radius-md`（0）
 - 内部パディング: `--space-4`（16px）PC / `--space-3`（12px）スマホ
 - Elevation（影）は使わない。背景色の差とボーダーでの区別を徹底する
-- ホバー時は `border-color: --primary-color` に変化（`transform: translateY(-2px)` は任意）
+- ホバー時は背景を `--bg-elevated` に変える（浮き上がり `translateY` は使わない）
 
 ---
 
@@ -323,7 +328,7 @@ button:active, a:active {
 - **Do**: スマホのボタンは優先度に応じて 72 / 60 / 44px を使い分け、小さいボタンほど間隔を広く取る
 - **Do**: Primary カラーは最も重要な1つのアクションにだけ使う
 - **Do**: 4:1 以上のコントラスト比を維持する
-- **Don't**: 角丸を 8px と `border-radius: 50%`（丸）以外の値で混在させない
+- **Don't**: 角丸を付けない（スピナーのみ `border-radius: 50%` 可）。`var(--radius-*)` 以外の固定値を直書きしない
 - **Don't**: 中間ブレークポイント（600px / 720px / 900px）を新規追加しない
 - **Don't**: ボタン種別を4種（Primary / Secondary / Ghost / Destructive）以外に増やさない
 - **Don't**: `5px` `10px` `15px` など 4 の倍数でない余白値を新規追加しない

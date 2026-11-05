@@ -126,7 +126,7 @@
     background: var(--primary-color);
     border: none;
     border-radius: var(--radius-md);   /* btn-primary に合わせ md に統一 */
-    color: #fff;
+    color: var(--on-primary);
     font-size: var(--font-size-md);    /* btn-primary に合わせ md に統一 */
     font-weight: 500;
     font-family: inherit;
@@ -239,7 +239,7 @@
 .logic-btn.active {
     background: var(--primary-color);
     border-color: var(--primary-hover);
-    color: #fff;
+    color: var(--on-primary);
 }
 
 .filter-logic-hint {
@@ -306,7 +306,7 @@
 .trend-filter-btn.active {
     background: var(--primary-color);
     border-color: var(--primary-hover);
-    color: #fff;
+    color: var(--on-primary);
 }
 
 .trend-filter-btn.trend-filter-special {
@@ -373,7 +373,7 @@
     background: var(--primary-color);
     border: none;
     border-radius: var(--radius-md);   /* btn-primary に合わせ md に統一 */
-    color: #fff;
+    color: var(--on-primary);
     font-size: var(--font-size-md);
     font-weight: 500;
     font-family: inherit;
@@ -704,7 +704,7 @@
 }
 .trend-mc-page-btn.active {
     background: var(--primary-color);
-    color: #fff;
+    color: var(--on-primary);
     border-color: var(--primary-color);
     font-weight: bold;
 }
@@ -726,7 +726,7 @@
 .trend-mc-card {
     background: var(--bg-card);
     border: 2px solid var(--mc-color, #4ade80);
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     padding: 14px 16px;
     min-width: 180px;
     flex: 1 1 180px;
@@ -807,8 +807,8 @@
 
 .analysis-subtabs { display: flex; gap: 8px; margin: 8px 0 12px; }
 .analysis-subtab { padding: 8px 16px; border: 1px solid var(--border-color, #444);
-    background: transparent; color: inherit; border-radius: 6px; cursor: pointer; }
-.analysis-subtab.active { background: var(--primary-color, #3b82f6); color: #fff; }
+    background: transparent; color: inherit; border-radius: var(--radius-sm); cursor: pointer; }
+.analysis-subtab.active { background: var(--primary-color); color: var(--on-primary); }
 .analysis-tab-panel { display: none; }
 .analysis-tab-panel.active { display: block; }
 
@@ -825,12 +825,12 @@
 .kubi-section-title {
     margin: 12px 0 8px;
     font-size: 16px;
-    color: var(--primary-color, #60a5fa);
+    color: var(--primary-color);
 }
 .kubi-avg-cards { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
 .kubi-avg-card {
     border: 2px solid var(--k-color, #a78bfa);
-    border-radius: 8px; padding: 8px 12px; min-width: 130px;
+    border-radius: var(--radius-sm); padding: 8px 12px; min-width: 130px;
     background: var(--bg-card, rgba(255,255,255,0.03));
 }
 .kubi-avg-name { font-size: 13px; font-weight: bold; color: var(--k-color, #a78bfa); margin-bottom: 4px; }
@@ -860,7 +860,7 @@
     font-size: var(--font-size-sm); cursor:pointer; font-family:inherit;
     transition: all var(--transition-fast); -webkit-tap-highlight-color: transparent;
 }
-.sc-suffix-btn.on { background: var(--primary-color); border-color: var(--primary-color); color:#fff; font-weight:500; }
+.sc-suffix-btn.on { background: var(--primary-color); border-color: var(--primary-color); color: var(--on-primary); font-weight:500; }
 
 .sc-count-row { display:flex; align-items:center; gap:8px; }
 .sc-num { width:90px; min-height:44px; padding: var(--space-2) var(--space-3);
@@ -902,7 +902,7 @@
     font-size: var(--font-size-sm); cursor:pointer; font-family:inherit;
     transition: all var(--transition-fast); -webkit-tap-highlight-color: transparent;
 }
-.sc-rank-btn.on { background: var(--primary-color); border-color: var(--primary-color); color:#fff; font-weight:500; }
+.sc-rank-btn.on { background: var(--primary-color); border-color: var(--primary-color); color: var(--on-primary); font-weight:500; }
 
 @media (max-width: 480px){
     .sc-rank-btn { min-height: var(--btn-touch-low); }
