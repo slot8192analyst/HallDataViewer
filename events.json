@@ -628,12 +628,12 @@
       "type": "dmm",
       "media": "DMMぱちタウン",
       "name": ["奥義の矢"],
-      "report_url": "",
+      "report_url": "https://p-town.dmm.com/shops/shizuoka/12073/reports/569798",
       "target_machines": [
-          "",
-          "",
-          "",
-          "",
+          "ゴーゴージャグラー3",
+          "スマート沖スロ ニューキングハナハナV",
+          "Lパチスロ ゴジラ対エヴァンゲリオン2",
+          "Lソードアート・オンライン オルタナティブガンゲルオンライン",
           ""],
       "note":[
         ""
@@ -992,6 +992,12 @@
       "startDate": "2026_11_16",
       "endDate": "2026_11_22",
       "machines": ["喰種,ガールズ"],
+      "color": "#3b82f6"
+    },
+    {
+      "startDate": "2026_11_23",
+      "endDate": "2026_11_29",
+      "machines": ["ネオアイムEX"],
       "color": "#3b82f6"
     }
  ],
